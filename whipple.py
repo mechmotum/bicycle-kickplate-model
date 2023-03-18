@@ -25,6 +25,8 @@ import os
 import sympy as sm
 import sympy.physics.mechanics as mec
 from pydy.codegen.octave_code import OctaveMatrixGenerator
+from scipy.optimize import fsolve
+import numpy as np
 
 from utils import ReferenceFrame, decompose_linear_parts
 
@@ -290,6 +292,15 @@ fn_ = mec.Point('fn')
 fn_.set_pos(fn, 0)
 fn_.set_vel(N, fn.vel(N) + u12*A['3'])  # includes u11 and u12
 
+# Slip angle
+
+yd_repl = {y.diff(t, 2): ydd, y.diff(t): yd}
+
+N_v_dn1 = dn.vel(N).dot(A['1']).xreplace(yd_repl)
+N_v_dn2 = dn.vel(N).dot(A['2']).xreplace(yd_repl)
+N_v_fn1 = dn.vel(N).dot(g1_hat).xreplace(yd_repl)
+N_v_fn2 = dn.vel(N).dot(g2_hat).xreplace(yd_repl)
+
 ####################
 # Motion Constraints
 ####################
@@ -508,5 +519,134 @@ gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
                              [T4, T6, T7, yd, ydd, Fry, Mrz, Ffy, Mfz],
                              [u1p, u2p, u3p, u4p, u5p, u6p, u7p, u8p],
                              const],
-                            [A, -b])
+                            [A, -b, sm.Matrix([N_v_dn1, N_v_dn2, N_v_fn1, N_v_fn2])])
 gen.write('eval_normal_forces', path=os.path.dirname(__file__))
+
+
+#gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
+                             #[u1, u2],
+                             #[y, yd],
+                             #const],
+                             #sm.Matrix([N_v_dn1, N_v_dn2, N_v_fn1, N_v_fn2]))
+#gen.write('eval_slip_components', path=os.path.dirname(__file__))
+
+
+# Test simulation
+
+from pydy.system import System
+sys = System(kane)
+sys.constants = {
+   rf: 0.35,
+   rr: 0.3,
+   d1: 0.9534570696121849,
+   d3: 0.03207142672761929,
+   d2: 0.2676445084476887,
+   l1: 0.4707271515135145,
+   l2: -0.47792881146460797,
+   l4: -0.3699518200282974,
+   l3: -0.00597083392418685,
+   mc: 85.0,
+   md: 2.0,
+   me: 4.0,
+   mf: 3.0,
+   id11: 0.0603,
+   id22: 0.12,
+   if11: 0.1405,
+   if22: 0.28,
+   ic11: 7.178169776497895,
+   ic22: 11.0,
+   ic31: 3.8225535938357873,
+   ic33: 4.821830223502103,
+   ie11: 0.05841337700152972,
+   ie22: 0.06,
+   ie31: 0.009119225261946298,
+   ie33: 0.007586622998470264,
+   g: 9.81
+}
+
+
+def calc_tire_forces(Frz, Ffz, alphar, alphaf):
+    """
+    Frz : float
+        Normal contact force at the rear wheel.
+    Ffz : float
+        Normal contact force at the front wheel.
+    alphar : float
+        Slip angle in radians of the rear wheel contact point.
+    alphaf : float
+        Slip angle in radians of the front wheel contact point.
+    """
+    # vertical load cornering stiffness approximation from Dressel and Rahman
+    # 2012, Figure 11
+    normalized_cornering_coeff = (0.55 - 0.1)/np.deg2rad(3.0 - 0.5)
+    Fry = Frz*normalized_cornering_coeff*alphar
+    Ffy = Ffz*normalized_cornering_coeff*alphaf
+    Mrz = 0.0  # set self-aligning moments to zero for now
+    Mfz = 0.0
+    return Fry, Ffy, Mrz, Mfz
+
+
+def calc_specifieds(inputs, t):
+    y = 0.0
+    yd = 0.0
+    ydd = 0.0
+    T4 = 0.0
+    T6 = 0.0
+    T7 = 0.0
+    return np.array([Fry, Ffy, Mrz, Mfz, y, yd, ydd, T4, T6, T7])
+
+
+sys.specifieds = {(Fry, Ffy, Mrz, Mfz): calc_tire_forces,
+                  (y, yd, ydd, T4, T6, T7): np.zeros(6)}
+
+initial_speed = 4.6  # m/s
+initial_roll_rate = 0.5  # rad/s
+
+eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic)
+initial_pitch_angle = float(fsolve(eval_holonomic, 0.0,
+                                   args=(0.0,  # q4
+                                         1e-8,  # q7
+                                         sys.constants[d1],
+                                         sys.constants[d2],
+                                         sys.constants[d3],
+                                         sys.constants[rf],
+                                         sys.constants[rr])))
+
+sys.initial_conditions = {q3: 0.0,
+                          q4: 0.0,
+                          q5: initial_pitch_angle,
+                          q7: 1e-8,
+                          u3: 0.0,
+                          u4: initial_roll_rate,
+                          u5: 0.0,
+                          u6: -initial_speed/sys.constants[rr],
+                          u7: 0.0,
+                          u8: -initial_speed/sys.constants[rf]}
+fps = 30  # frames per second
+duration = 6.0  # seconds
+sys.times = np.linspace(0.0, duration, num=int(duration*fps))
+
+sys.generate_ode_function(generator='cython')
+
+x_trajectory = sys.integrate()
+
+holonomic_vs_time  = eval_holonomic(x_trajectory[:, 3],  # q5
+                                    x_trajectory[:, 1],  # q4
+                                    x_trajectory[:, 2],  # q7
+                                    sys.constants[d1],
+                                    sys.constants[d2],
+                                    sys.constants[d3],
+                                    sys.constants[rf],
+                                    sys.constants[rr])
+
+import matplotlib.pyplot as plt
+fig, axes = plt.subplots(len(sys.states) + 1, 1, sharex=True)
+fig.set_size_inches(8, 10)
+for ax, traj, s in zip(axes, x_trajectory.T, sys.states):
+    ax.plot(sys.times, traj)
+    ax.set_ylabel(s)
+axes[-1].plot(sys.times, np.squeeze(holonomic_vs_time))
+axes[-1].set_ylabel('Holonomic\nconstraint [m]')
+axes[-1].set_xlabel('Time [s]')
+plt.tight_layout()
+plt.show()

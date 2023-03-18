@@ -446,8 +446,7 @@ print('The derivative of the nonholonomic constraints a function of these '
       'dynamic variables:')
 print(list(sm.ordered(mec.find_dynamicsymbols(nonholonomic_dot))))
 
-A_pnh, B_pnh = decompose_linear_parts(nonholonomic_dot,
-                                      [u2p, u5p, u8p])
+A_pnh, B_pnh = decompose_linear_parts(nonholonomic_dot, [u2p, u5p, u8p])
 gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
                              [u1, u2, u3, u4, u5, u6, u7, u8],
                              [yd, ydd],
@@ -458,55 +457,56 @@ gen.write('eval_dep_speeds_derivs', path=os.path.dirname(__file__))
 
 # Create function for solving for the derivatives of the dependent speeds.
 
+print('The mass matrix is a function of these dynamic variables:')
+print(list(sm.ordered(mec.find_dynamicsymbols(kane.mass_matrix))))
+
+print('The forcing function is a function of these dynamic variables:')
+print(list(sm.ordered(mec.find_dynamicsymbols(kane.forcing))))
+
 A = kane.mass_matrix
 B = kane.forcing.xreplace({
-    u11.diff(t): 0, u12.diff(t): 0,
-    u11: 0, u12: 0,
-    y.diff(t, 2): ydd, y.diff(t): yd, Ffz: 0})
+    u11.diff(t): 0,
+    u12.diff(t): 0,
+    u11: 0,
+    u12: 0,
+    y.diff(t, 2): ydd,
+    y.diff(t): yd,
+    Ffz: 0
+})
 
 gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
                              [u1, u2, u3, u4, u5, u6, u7, u8],
                              [T4, T6, T7, yd, ydd, Fry, Mrz, Ffy, Mfz],
-
                              const],
                             [A, B])
 gen.write('eval_dynamic_eqs', path=os.path.dirname(__file__))
-
-pause
 
 # Create function for solving for the lateral forces.
 """
 Should be linear in the forces? Or even always F1 + F2 + ... = 0, i.e.
 coefficient is 1?
 
-A(q, t)*[Ff] - b(u', u, q, t) = 0
-        [Fr]
+A(q, t)*[Ffz] - b(u', u, q, t) = 0
+        [Frz]
 
 """
+aux_eqs = kane.auxiliary_eqs.xreplace(u_dot_subs).xreplace({y.diff(t, 2): ydd,
+                                                            y.diff(t): yd})
 
-aux_eqs = kane.auxiliary_eqs.xreplace({u11: 0, u12: 0}).xreplace(
-    u_dot_subs).xreplace(kane.kindiffdict())
 print('The auxiliary equations are a function of these dynamic variables:')
 print(list(sm.ordered(mec.find_dynamicsymbols(aux_eqs))))
 
-# TODO: Ff is only in aux_eq[1], so decompose fails when trying to take the
-# Jacobian wrt Fr in decompose_lienar_parts. Oddly it doesn't just return 0 for
-# that component.
-a11 = aux_eqs[0].diff(Ff)
-a12 = aux_eqs[0].diff(Fr)
-a21 = aux_eqs[1].diff(Ff)
-a22 = aux_eqs[1].diff(Fr)
-A = sm.Matrix([[a11, a12], [a21, a22]])
-b = -aux_eqs.xreplace({Ff: 0, Fr: 0})
+A, b = decompose_linear_parts(aux_eqs, [Frz, Ffz])
 
 print('A is a function of these dynamic variables:')
 print(list(sm.ordered(mec.find_dynamicsymbols(A))))
 print('b is a function of these dynamic variables:')
 print(list(sm.ordered(mec.find_dynamicsymbols(b))))
 
-gen = OctaveMatrixGenerator([[q4, q5, q7],
-                             [u3, u4, u5, u6, u7, u8],
-                             [u3p, u4p, u5p, u6p, u7p, u8p],
-                             list(const)],
-                            [A, b])
-gen.write('eval_lat_forces', path=os.path.dirname(__file__))
+gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
+                             [u1, u2, u3, u4, u5, u6, u7, u8],
+                             [T4, T6, T7, yd, ydd, Fry, Mrz, Ffy, Mfz],
+                             [u1p, u2p, u3p, u4p, u5p, u6p, u7p, u8p],
+                             const],
+                            [A, -b])
+gen.write('eval_normal_forces', path=os.path.dirname(__file__))

@@ -93,6 +93,21 @@ u5, u6, u7, u8 = mec.dynamicsymbols('u5, u6, u7, u8')
 # u12: auxiliary speed to determine the front tire lateral force
 u9, u10, u11, u12 = mec.dynamicsymbols('u9, u10, u11, u12')
 
+###########
+# Specified
+###########
+
+# kickplate lateral position
+y = mec.dynamicsymbols('y')
+
+# control torques
+# T4 : roll torque
+# T6 : rear wheel torque
+# T7 : steer torque
+# Fr : rear wheel-ground contact lateral force
+# Ff : front wheel-ground contact lateral force
+T4, T6, T7, Fr, Ff = mec.dynamicsymbols('T4, T6, T7, Fr, Ff')
+
 #################################
 # Orientation of Reference Frames
 #################################
@@ -151,18 +166,6 @@ ic11, ic22, ic33, ic31 = sm.symbols('ic11, ic22, ic33, ic31')
 id11, id22 = sm.symbols('id11, id22')
 ie11, ie22, ie33, ie31 = sm.symbols('ie11, ie22, ie33, ie31')
 if11, if22 = sm.symbols('if11, if22')
-
-###########
-# Specified
-###########
-
-# control torques
-# T4 : roll torque
-# T6 : rear wheel torque
-# T7 : steer torque
-# Fr : rear wheel-ground contact lateral force
-# Ff : front wheel-ground contact lateral force
-T4, T6, T7, Fr, Ff = mec.dynamicsymbols('T4, T6, T7, Fr, Ff')
 
 ##################
 # Position Vectors
@@ -377,77 +380,14 @@ kane = mec.KanesMethod(
 
 kane.kanes_equations(bodies, loads=forces)
 
-###############
-# IMU Equations
-###############
+###########################
+# Generate Octave Functions
+###########################
 
 u4p, u6p, u7p = mec.dynamicsymbols('u4p, u6p, u7p')
 u3p, u5p, u8p = mec.dynamicsymbols('u3p, u5p, u8p')
 u_dots = [mec.dynamicsymbols(ui.name + 'p') for ui in us]
 u_dot_subs = {ui.diff(): upi for ui, upi in zip(us, u_dots)}
-
-diff_subs = {u3.diff(): u3p,
-             u4.diff(): u4p,
-             u5.diff(): u5p,
-             u6.diff(): u6p,
-             u7.diff(): u7p,
-             u11.diff(): 0,  # fictitious
-             u12.diff(): 0}  # fictitious
-non_diff_subs = {u11: 0,  # fictitious
-                 u12: 0}  # fictitious
-
-bx, by, bz, ex, ey, ez = sm.symbols('bx, by, bz, ex, ey, ez')
-
-lam = sm.symbols('lambda')
-C_lam = C.orientnew('C_lam', 'Axis', (lam, -B['2']))
-
-# point in the rear frame measured from rear wheel center
-P = do.locatenew('P', bx*C_lam['1'] + by*C_lam['2'] + bz*C_lam['3'])
-P.v2pt_theory(do, N, C_lam)
-P.a2pt_theory(do, N, C_lam)
-
-# point in the steered frame measured from front wheel center
-Q = fo.locatenew('Q', ex*E['1'] + ey*E['2'] + ez*E['3'])
-Q.v2pt_theory(fo, N, E)
-Q.a2pt_theory(fo, N, E)
-
-# NOTE : This assumes that the smartphones XYZ axes are aligned with the B and
-# E axes when in the no roll, pitch, steer configuration.
-
-eqs = sm.Matrix([
-    # angular velocity components of the rear frame expressed in the roll frame
-    # because IMU is aligned with the roll frame coordinates
-    C.ang_vel_in(N).dot(C_lam['1']),
-    C.ang_vel_in(N).dot(C_lam['2']),
-    C.ang_vel_in(N).dot(C_lam['3']),
-    # body fixed linear acceleration of point P (including gravity) expressed
-    # in the roll frame because IMU is aligned with the roll frame coordinates
-    (P.acc(N) - g*A['3']).dot(C_lam['1']),
-    (P.acc(N) - g*A['3']).dot(C_lam['2']),
-    (P.acc(N) - g*A['3']).dot(C_lam['3']),
-    # body fixed angular velocity components of the steer frame
-    E.ang_vel_in(N).dot(E['1']),
-    E.ang_vel_in(N).dot(E['2']),
-    E.ang_vel_in(N).dot(E['3']),
-    # body fixed linear acceleration components of a point on the steer frame
-    (Q.acc(N) - g*A['3']).dot(E['1']),
-    (Q.acc(N) - g*A['3']).dot(E['2']),
-    (Q.acc(N) - g*A['3']).dot(E['3']),
-])
-
-eqs = eqs.xreplace(kindiffdict).xreplace(diff_subs).xreplace(non_diff_subs)
-
-gen = OctaveMatrixGenerator([[q4, q5, q7],
-                             [u3, u4, u5, u6, u7],
-                             [u3p, u4p, u5p, u6p, u7p],
-                             [bx, by, bz, d1, d2, d3, ex, ey, ez, g, lam, rr]],
-                            [eqs])
-gen.write('eval_imu', path=os.path.dirname(__file__))
-
-
-###########################
-# Generate Octave Functions
-###########################
 
 gen = OctaveMatrixGenerator([[q4, q5, q7],
                              [d1, d2, d3, rf, rr]],

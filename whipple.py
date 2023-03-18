@@ -89,8 +89,8 @@ u5, u6, u7, u8 = mec.dynamicsymbols('u5, u6, u7, u8')
 
 # u9: speed of the front wheel contact point in the n1> direction
 # u10: speed of the front wheel contact point in the n2> direction
-# u11: auxiliary speed to determine the rear tire lateral force
-# u12: auxiliary speed to determine the front tire lateral force
+# u11: auxiliary speed to determine the rear tire vertical force
+# u12: auxiliary speed to determine the front tire vertical force
 u9, u10, u11, u12 = mec.dynamicsymbols('u9, u10, u11, u12')
 
 ###########
@@ -98,15 +98,22 @@ u9, u10, u11, u12 = mec.dynamicsymbols('u9, u10, u11, u12')
 ###########
 
 # kickplate lateral position
-y = mec.dynamicsymbols('y')
+y, yd, ydd = mec.dynamicsymbols('y, y_d, y_dd')
 
 # control torques
 # T4 : roll torque
 # T6 : rear wheel torque
 # T7 : steer torque
-# Fr : rear wheel-ground contact lateral force
-# Ff : front wheel-ground contact lateral force
-T4, T6, T7, Fr, Ff = mec.dynamicsymbols('T4, T6, T7, Fr, Ff')
+T4, T6, T7 = mec.dynamicsymbols('T4, T6, T7')
+
+# Fry : rear wheel-ground contact lateral force
+# Frz : rear wheel-ground contact normal force
+# Mrz : rear wheel-ground contact self-aligning moment
+# Ffy : front wheel-ground contact lateral force
+# Ffz : front wheel-ground contact normal force
+# Mfz : front rear wheel-ground contact self-aligning moment
+Fry, Frz, Mrz, Ffy, Ffz, Mfz = mec.dynamicsymbols(
+    'Fry, Frz, Mrz, Ffy, Ffz, Mfz')
 
 #################################
 # Orientation of Reference Frames
@@ -128,6 +135,15 @@ B.orient(A, 'Axis', (q4, A['1']))
 C.orient(B, 'Axis', (q5, B['2']))
 # front frame steer
 E.orient(C, 'Axis', (q7, C['3']))
+
+# create a front "yaw" frame that is equivalent to the A frame for the rear
+# wheel.
+# G['1'] lies in the ground plane and points in the direction of the wheel
+# contact path E['2'] X A['3'] gives this unit vector.
+# G['2'] lies in the ground plane and points perpendicular to the wheel
+# contact path. A['3'] X G['1'] gives this unit vector.
+g1_hat = E['2'].cross(A['3'])
+g2_hat = A['3'].cross(g1_hat)
 
 ###########
 # Constants
@@ -173,8 +189,12 @@ if11, if22 = sm.symbols('if11, if22')
 
 print('Defining position vectors.')
 
-# rear wheel contact point
+# point fixed on the ground
+o = mec.Point('o')
+
+# rear wheel contact point, y is the kickplate lateral location
 dn = mec.Point('dn')
+dn.set_pos(o, q1*N['1'] + (y + q2)*N['2'])
 
 # newtonian origin to rear wheel center
 do = mec.Point('do')
@@ -215,10 +235,16 @@ holonomic = fn.pos_from(dn).dot(A['3'])
 
 print('Defining kinematical differential equations.')
 
-kinematical = [q3.diff(t) - u3,  # yaw
-               q4.diff(t) - u4,  # roll
-               q5.diff(t) - u5,  # pitch
-               q7.diff(t) - u7]  # steer
+kinematical = [
+    q1.diff(t) - u1,  # rear x contact speed
+    q2.diff(t) - u2,  # rear y contact speed
+    q3.diff(t) - u3,  # yaw
+    q4.diff(t) - u4,  # roll
+    q5.diff(t) - u5,  # pitch
+    q6.diff(t) - u6,  # rear wheel rotation
+    q7.diff(t) - u7,  # steer
+    q8.diff(t) - u8,  # front wheel rotation
+]
 
 ####################
 # Angular Velocities
@@ -243,11 +269,12 @@ F.set_ang_vel(E, u8*E['2'])  # front wheel rate
 print('Defining linear velocities.')
 
 # rear wheel contact stays in ground plane and does not slip but the auxiliary
-# speed, u11, is included which corresponds to the later force
-dn.set_vel(N, 0)
+# speed, u11, is included which corresponds to the vertical force
+o.set_vel(N, 0)
+dn.set_vel(N, u1*N['1'] + (y.diff(t) + u2)*N['2'])
 dn_ = mec.Point('dn')
 dn_.set_pos(dn, 0)
-dn_.set_vel(N, dn.vel(N) + u11*A['2'])
+dn_.set_vel(N, dn.vel(N) + u11*A['3'])
 
 # mass centers
 do.v2pt_theory(dn_, N, D)  # ensures u11 in present in velocities
@@ -259,27 +286,26 @@ eo.v2pt_theory(fo, N, E)
 # front wheel contact velocity
 fn.v2pt_theory(fo, N, F)
 
-# create a front "yaw" frame that is equivalent to the A frame for the rear
-# wheel.
-# G['1'] lies in the ground plane and points in the direction of the wheel
-# contact path E['2'] X A['3'] gives this unit vector.
-# G['2'] lies in the ground plane and points perpendicular to the wheel
-# contact path. A['3'] X G['1'] gives this unit vector.
-g1_hat = E['2'].cross(A['3'])
-g2_hat = A['3'].cross(g1_hat)
 fn_ = mec.Point('fn')
 fn_.set_pos(fn, 0)
-fn_.set_vel(N, fn.vel(N) + u12*g2_hat)  # includes u11 and u12
+fn_.set_vel(N, fn.vel(N) + u12*A['3'])  # includes u11 and u12
 
 ####################
 # Motion Constraints
 ####################
 
+# impose rolling without longitudinal slip on the front and rear wheel
+# contacts, but allow lateral slip
+# add a velocity contraint for the holonomic constraint (front wheel contacts
+# the ground)
+
 print('Defining nonholonomic constraints.')
 
-nonholonomic = [fn_.vel(N).dot(A['1']),
-                fn_.vel(N).dot(A['2']),
-                fn_.vel(N).dot(A['3'])]
+nonholonomic = [
+    dn_.vel(N).dot(A['1']),  # no rear longitudinal slip
+    fn_.vel(N).dot(g1_hat),  # no front longitudinal slip
+    fn_.vel(N).dot(A['3']),  # time derivative of the holonomic constraint
+]
 
 #########
 # Inertia
@@ -317,46 +343,49 @@ Fdo = (do, md*g*A['3'])
 Feo = (eo, me*g*A['3'])
 Ffo = (fo, mf*g*A['3'])
 
-# lateral tire forces, need equal and opposite forces
-Fdn = (dn, Fr*A['2'])
-Fdn_ = (dn_, -Fr*A['2'])
-Ffn = (fn, Ff*g2_hat)
-Ffn_ = (fn_, -Ff*g2_hat)
+# tire-ground lateral forces
+Fydn = (dn, Fry*A['2'])
+Fyfn = (fn, Ffy*g2_hat)
+
+# tire-ground normal forces (non-contributing), need equal and opposite forces
+Fzdn = (dn, Frz*A['3'])
+Fzdn_ = (dn_, -Frz*A['3'])
+Fzfn = (fn, Ffz*A['3'])
+Fzfn_ = (fn_, -Ffz*A['3'])
 
 # input torques
 Tc = (C, T4*A['1'] - T6*B['2'] - T7*C['3'])
-Td = (D, T6*C['2'])
+Td = (D, T6*C['2'] + Mrz*A['3'])
 Te = (E, T7*C['3'])
+Tf = (F, Mfz*A['3'])
 
-forces = [Fco, Fdo, Feo, Ffo, Fdn, Ffn, Fdn_, Ffn_, Tc, Td, Te]
-
-# Manually compute the ground contact velocities.
-kindiffdict = sm.solve(kinematical, [q3.diff(t), q4.diff(t), q5.diff(t),
-                                     q7.diff(t)], dict=True)[0]
-u1_def = -rr*(u5 + u6)*sm.cos(q3)
-u1p_def = u1_def.diff(t).xreplace(kindiffdict)
-u2_def = -rr*(u5 + u6)*sm.sin(q3)
-u2p_def = u2_def.diff(t).xreplace(kindiffdict)
+loads = [
+    Fco, Fdo, Feo, Ffo,
+    Fydn, Fyfn, Fzdn, Fzfn,
+    Fzdn_, Fzfn_,
+    Tc, Td, Te, Tf
+]
 
 ####################
 # Prep symbolic data
 ####################
 
 newto = N
-q_ind = (q3, q4, q7)  # yaw, roll, steer
+# rear contact x, rear contact y, yaw, roll, rear wheel angle, steer, front
+# wheel angle
+q_ind = (q1, q2, q3, q4, q6, q7, q8)
 q_dep = (q5,)  # pitch
-# rear contact 1 dist, rear contact 2 dist, rear wheel angle, front wheel angle
-q_ign = (q1, q2, q6, q8)
-qs = tuple(sm.ordered(q_ign + q_ind + q_dep))
+qs = tuple(sm.ordered(q_ind + q_dep))
 
-u_ind = (u4, u6, u7)  # roll rate, rear wheel rate, steer rate
-u_dep = (u3, u5, u8)  # yaw rate, pitch rate, front wheel rate
+# longitudinal rear speed, roll rate, yaw rate, rear wheel rate, steer rate
+u_ind = (u1, u3, u4, u6, u7)
+u_dep = (u2, u5, u8)  # lateral rear speed, pitch rate, front wheel rate
 u_aux = (u11, u12)
-us = tuple(sm.ordered((u1, u2) + u_ind + u_dep + u_aux))
+us = tuple(sm.ordered(u_ind + u_dep + u_aux))
 
 const = (d1, d2, d3, g, ic11, ic22, ic31, ic33, id11, id22, ie11, ie22, ie31,
          ie33, if11, if22, l1, l2, l3, l4, mc, md, me, mf, rf, rr)
-speci = (T4, T6, T7, Fr, Ff)
+speci = (T4, T6, T7, Fry, Frz, Mrz, Ffy, Ffz, Mfz, y, y.diff(t), y.diff(t, 2))
 holon = [holonomic]
 nonho = tuple(nonholonomic)
 
@@ -378,14 +407,14 @@ kane = mec.KanesMethod(
     u_auxiliary=u_aux,
 )
 
-kane.kanes_equations(bodies, loads=forces)
+kane.kanes_equations(bodies, loads=loads)
 
 ###########################
 # Generate Octave Functions
 ###########################
 
-u4p, u6p, u7p = mec.dynamicsymbols('u4p, u6p, u7p')
-u3p, u5p, u8p = mec.dynamicsymbols('u3p, u5p, u8p')
+u1p, u3p, u4p, u6p, u7p = mec.dynamicsymbols('u1p, u3p, u4p, u6p, u7p')
+u2p, u5p, u8p = mec.dynamicsymbols('u2p, u5p, u8p')
 u_dots = [mec.dynamicsymbols(ui.name + 'p') for ui in us]
 u_dot_subs = {ui.diff(): upi for ui, upi in zip(us, u_dots)}
 
@@ -395,14 +424,15 @@ gen = OctaveMatrixGenerator([[q4, q5, q7],
 gen.write('eval_holonomic', path=os.path.dirname(__file__))
 
 # Create matrices for solving for the dependent speeds.
-nonholonomic = sm.Matrix(nonholonomic).xreplace({u11: 0, u12: 0})
+nonholonomic = sm.Matrix(nonholonomic).xreplace({u11: 0, u12: 0, y.diff(t): yd})
 
 print('The nonholonomic constraints a function of these dynamic variables:')
 print(list(sm.ordered(mec.find_dynamicsymbols(nonholonomic))))
 
-A_nh, B_nh = decompose_linear_parts(nonholonomic, [u3, u5, u8])
-gen = OctaveMatrixGenerator([[q4, q5, q7],
-                             [u4, u6, u7],
+A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
+gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
+                             u_ind,
+                             [yd],
                              [d1, d2, d3, rf, rr]],
                             [A_nh, -B_nh])
 gen.write('eval_dep_speeds', path=os.path.dirname(__file__))
@@ -410,20 +440,39 @@ gen.write('eval_dep_speeds', path=os.path.dirname(__file__))
 # Create function for solving for the derivatives of the dependent speeds.
 nonholonomic_dot = sm.Matrix(nonholonomic).diff(t).xreplace(kane.kindiffdict())
 
-nonholonomic_dot = nonholonomic_dot.xreplace(u_dot_subs)
+nonholonomic_dot = nonholonomic_dot.xreplace(u_dot_subs).xreplace({yd.diff(t): ydd})
 
 print('The derivative of the nonholonomic constraints a function of these '
       'dynamic variables:')
 print(list(sm.ordered(mec.find_dynamicsymbols(nonholonomic_dot))))
 
 A_pnh, B_pnh = decompose_linear_parts(nonholonomic_dot,
-                                      [u3p, u5p, u8p])
-gen = OctaveMatrixGenerator([[q4, q5, q7],
-                             [u3, u4, u5, u6, u7, u8],
-                             [u4p, u6p, u7p],
+                                      [u2p, u5p, u8p])
+gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
+                             [u1, u2, u3, u4, u5, u6, u7, u8],
+                             [yd, ydd],
+                             [u1p, u3p, u4p, u6p, u7p],
                              [d1, d2, d3, rf, rr]],
                             [A_pnh, -B_pnh])
 gen.write('eval_dep_speeds_derivs', path=os.path.dirname(__file__))
+
+# Create function for solving for the derivatives of the dependent speeds.
+
+A = kane.mass_matrix
+B = kane.forcing.xreplace({
+    u11.diff(t): 0, u12.diff(t): 0,
+    u11: 0, u12: 0,
+    y.diff(t, 2): ydd, y.diff(t): yd, Ffz: 0})
+
+gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
+                             [u1, u2, u3, u4, u5, u6, u7, u8],
+                             [T4, T6, T7, yd, ydd, Fry, Mrz, Ffy, Mfz],
+
+                             const],
+                            [A, B])
+gen.write('eval_dynamic_eqs', path=os.path.dirname(__file__))
+
+pause
 
 # Create function for solving for the lateral forces.
 """

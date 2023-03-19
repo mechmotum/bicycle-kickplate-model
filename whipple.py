@@ -27,6 +27,7 @@ import sympy.physics.mechanics as mec
 from pydy.codegen.octave_code import OctaveMatrixGenerator
 from scipy.optimize import fsolve
 import numpy as np
+from scipy.integrate import solve_ivp
 
 from utils import ReferenceFrame, decompose_linear_parts
 
@@ -279,7 +280,7 @@ dn_.set_pos(dn, 0)
 dn_.set_vel(N, dn.vel(N) + u11*A['3'])
 
 # mass centers
-do.v2pt_theory(dn_, N, D)  # ensures u11 in present in velocities
+do.v2pt_theory(dn_, N, D)  # ensures u11 is present in velocities
 co.v2pt_theory(do, N, C)
 ce.v2pt_theory(do, N, C)
 fo.v2pt_theory(ce, N, E)
@@ -292,7 +293,9 @@ fn_ = mec.Point('fn')
 fn_.set_pos(fn, 0)
 fn_.set_vel(N, fn.vel(N) + u12*A['3'])  # includes u11 and u12
 
-# Slip angle
+# Slip angle components
+# project the velocity vectors at the contact point onto each wheel's yaw
+# direction
 
 yd_repl = {y.diff(t, 2): ydd, y.diff(t): yd}
 
@@ -392,11 +395,11 @@ qs = tuple(sm.ordered(q_ind + q_dep))
 u_ind = (u1, u3, u4, u6, u7)
 u_dep = (u2, u5, u8)  # lateral rear speed, pitch rate, front wheel rate
 u_aux = (u11, u12)
-us = tuple(sm.ordered(u_ind + u_dep + u_aux))
+us = tuple(sm.ordered(u_ind + u_dep))
 
-const = (d1, d2, d3, g, ic11, ic22, ic31, ic33, id11, id22, ie11, ie22, ie31,
-         ie33, if11, if22, l1, l2, l3, l4, mc, md, me, mf, rf, rr)
-speci = (T4, T6, T7, Fry, Frz, Mrz, Ffy, Ffz, Mfz, y, y.diff(t), y.diff(t, 2))
+ps = (d1, d2, d3, g, ic11, ic22, ic31, ic33, id11, id22, ie11, ie22, ie31,
+      ie33, if11, if22, l1, l2, l3, l4, mc, md, me, mf, rf, rr)
+rs = (T4, T6, T7, Fry, Frz, Mrz, Ffy, Ffz, Mfz, y, yd, ydd)
 holon = [holonomic]
 nonho = tuple(nonholonomic)
 
@@ -418,7 +421,7 @@ kane = mec.KanesMethod(
     u_auxiliary=u_aux,
 )
 
-kane.kanes_equations(bodies, loads=loads)
+Fr, Frstar = kane.kanes_equations(bodies, loads=loads)
 
 ###########################
 # Generate Octave Functions
@@ -427,6 +430,7 @@ kane.kanes_equations(bodies, loads=loads)
 u1p, u3p, u4p, u6p, u7p = mec.dynamicsymbols('u1p, u3p, u4p, u6p, u7p')
 u2p, u5p, u8p = mec.dynamicsymbols('u2p, u5p, u8p')
 u_dots = [mec.dynamicsymbols(ui.name + 'p') for ui in us]
+ups = tuple(sm.ordered(u_dots))
 u_dot_subs = {ui.diff(): upi for ui, upi in zip(us, u_dots)}
 
 gen = OctaveMatrixGenerator([[q4, q5, q7],
@@ -474,8 +478,8 @@ print(list(sm.ordered(mec.find_dynamicsymbols(kane.mass_matrix))))
 print('The forcing function is a function of these dynamic variables:')
 print(list(sm.ordered(mec.find_dynamicsymbols(kane.forcing))))
 
-A = kane.mass_matrix
-B = kane.forcing.xreplace({
+A_dyn = kane.mass_matrix
+B_dyn = kane.forcing.xreplace({
     u11.diff(t): 0,
     u12.diff(t): 0,
     u11: 0,
@@ -488,8 +492,8 @@ B = kane.forcing.xreplace({
 gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
                              [u1, u2, u3, u4, u5, u6, u7, u8],
                              [T4, T6, T7, yd, ydd, Fry, Mrz, Ffy, Mfz],
-                             const],
-                            [A, B])
+                             ps],
+                            [A_dyn, B_dyn])
 gen.write('eval_dynamic_eqs', path=os.path.dirname(__file__))
 
 # Create function for solving for the lateral forces.
@@ -507,97 +511,125 @@ aux_eqs = kane.auxiliary_eqs.xreplace(u_dot_subs).xreplace({y.diff(t, 2): ydd,
 print('The auxiliary equations are a function of these dynamic variables:')
 print(list(sm.ordered(mec.find_dynamicsymbols(aux_eqs))))
 
-A, b = decompose_linear_parts(aux_eqs, [Frz, Ffz])
+A_normal, b_normal = decompose_linear_parts(aux_eqs, [Frz, Ffz])
 
 print('A is a function of these dynamic variables:')
-print(list(sm.ordered(mec.find_dynamicsymbols(A))))
+print(list(sm.ordered(mec.find_dynamicsymbols(A_normal))))
 print('b is a function of these dynamic variables:')
-print(list(sm.ordered(mec.find_dynamicsymbols(b))))
+print(list(sm.ordered(mec.find_dynamicsymbols(b_normal))))
+
+slip_components = sm.Matrix([N_v_dn1, N_v_dn2, N_v_fn1, N_v_fn2])
 
 gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
                              [u1, u2, u3, u4, u5, u6, u7, u8],
                              [T4, T6, T7, yd, ydd, Fry, Mrz, Ffy, Mfz],
                              [u1p, u2p, u3p, u4p, u5p, u6p, u7p, u8p],
-                             const],
-                            [A, -b, sm.Matrix([N_v_dn1, N_v_dn2, N_v_fn1, N_v_fn2])])
-gen.write('eval_normal_forces', path=os.path.dirname(__file__))
-
-
-#gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
-                             #[u1, u2],
-                             #[y, yd],
-                             #const],
-                             #sm.Matrix([N_v_dn1, N_v_dn2, N_v_fn1, N_v_fn2]))
-#gen.write('eval_slip_components', path=os.path.dirname(__file__))
-
+                             ps],
+                            [A_normal, -b_normal, slip_components])
+gen.write('eval_tire_force_inputs', path=os.path.dirname(__file__))
 
 # Test simulation
 
-from pydy.system import System
-sys = System(kane)
-sys.constants = {
-   rf: 0.35,
-   rr: 0.3,
+p_vals = {
    d1: 0.9534570696121849,
-   d3: 0.03207142672761929,
    d2: 0.2676445084476887,
-   l1: 0.4707271515135145,
-   l2: -0.47792881146460797,
-   l4: -0.3699518200282974,
-   l3: -0.00597083392418685,
-   mc: 85.0,
-   md: 2.0,
-   me: 4.0,
-   mf: 3.0,
-   id11: 0.0603,
-   id22: 0.12,
-   if11: 0.1405,
-   if22: 0.28,
+   d3: 0.03207142672761929,
+   g: 9.81,
    ic11: 7.178169776497895,
    ic22: 11.0,
    ic31: 3.8225535938357873,
    ic33: 4.821830223502103,
+   id11: 0.0603,
+   id22: 0.12,
    ie11: 0.05841337700152972,
    ie22: 0.06,
    ie31: 0.009119225261946298,
    ie33: 0.007586622998470264,
-   g: 9.81
+   if11: 0.1405,
+   if22: 0.28,
+   l1: 0.4707271515135145,
+   l2: -0.47792881146460797,
+   l3: -0.00597083392418685,
+   l4: -0.3699518200282974,
+   mc: 85.0,
+   md: 2.0,
+   me: 4.0,
+   mf: 3.0,
+   rf: 0.35,
+   rr: 0.3,
 }
 
+# We need to solve the dynamic equations and the auxiliary equations
+# simultaneously to avoid having to solve the dynamic equations first and then
+# substitute in the deritavies of the speeds. So reconstruct the equations of
+# motion.
+fr_plus_fr_star = kane.mass_matrix*kane.u.diff(t) - kane.forcing.xreplace({
+    u11.diff(t): 0,
+    u12.diff(t): 0,
+    u11: 0,
+    u12: 0,
+    y.diff(t, 2): ydd,
+    y.diff(t): yd,
+    Ffz: 0
+})
+aux_eqs = kane.auxiliary_eqs.xreplace({y.diff(t, 2): ydd, y.diff(t): yd})
+all_dyn_eqs = fr_plus_fr_star.col_join(aux_eqs)
 
-def calc_tire_forces(Frz, Ffz, alphar, alphaf):
-    """
-    Frz : float
-        Normal contact force at the rear wheel.
-    Ffz : float
-        Normal contact force at the front wheel.
-    alphar : float
-        Slip angle in radians of the rear wheel contact point.
-    alphaf : float
-        Slip angle in radians of the front wheel contact point.
-    """
-    # vertical load cornering stiffness approximation from Dressel and Rahman
-    # 2012, Figure 11
-    normalized_cornering_coeff = (0.55 - 0.1)/np.deg2rad(3.0 - 0.5)
+
+x_all = tuple(ui.diff(t) for ui in us) + (Frz, Ffz)
+x_all_zerod = {xi: 0 for xi in x_all}
+
+A_all = all_dyn_eqs.jacobian(x_all)
+b_all = -all_dyn_eqs.xreplace(x_all_zerod)
+
+print('A_all is a function of these dynamic variables:')
+print(list(sm.ordered(mec.find_dynamicsymbols(A_all))))
+print('b_all is a function of these dynamic variables:')
+print(list(sm.ordered(mec.find_dynamicsymbols(b_all))))
+
+eval_dynamic = sm.lambdify([qs, us, rs, ps], [A_all, b_all, slip_components],
+                           cse=True)
+print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, rs, ps]]))
+
+last_vals = np.zeros(6)
+
+def rhs(t, x):
+    q = x[:8]
+    u = x[8:16]
+
+    # grab the values calculated from the last time step
+    # TODO : need way to capture and use output quantities (things that aren't
+    # states)
+    Frz, Ffz, rear_lon, rear_lat, front_lon, front_lat = last_vals
+
+    # steer, rear wheel, roll torques set to zero
+    T4, T6, T7 = 0.0, 0.0, 0.0
+
+    # kickplate motion set to zero
+    y, yd, ydd = 0.0, 0.0, 0.0
+
+    # set self-aligning moments to zero
+    Mrz, Mfz = 0.0, 0.0
+
+    # calculate later tire forces
+    # coefficient estimating form Fig 11 in Dressel & Rahman 2012
+    normalized_cornering_coeff = (0.55 - 0.1)/np.deg2rad(3.0 - 0.5)  # about 10
+    alphar = -np.sign(rear_lat)*np.arctan2(rear_lat + 1e-12, rear_lon)
+    alphaf = -np.sign(front_lat)*np.arctan2(front_lat + 1e-12, front_lon)
     Fry = Frz*normalized_cornering_coeff*alphar
     Ffy = Ffz*normalized_cornering_coeff*alphaf
-    Mrz = 0.0  # set self-aligning moments to zero for now
-    Mfz = 0.0
-    return Fry, Ffy, Mrz, Mfz
 
+    r = [T4, T6, T7, Fry, Frz, Mrz, Ffy, Ffz, Mfz, y, yd, ydd]
 
-def calc_specifieds(inputs, t):
-    y = 0.0
-    yd = 0.0
-    ydd = 0.0
-    T4 = 0.0
-    T6 = 0.0
-    T7 = 0.0
-    return np.array([Fry, Ffy, Mrz, Mfz, y, yd, ydd, T4, T6, T7])
+    A, b, slip = eval_dynamic(q, u, r, list(p_vals.values()))
 
+    slip = slip.squeeze()
 
-sys.specifieds = {(Fry, Ffy, Mrz, Mfz): calc_tire_forces,
-                  (y, yd, ydd, T4, T6, T7): np.zeros(6)}
+    xplus = np.linalg.solve(A, b).squeeze()
+
+    last_vals[:] = [xplus[8], xplus[9] , slip[0] , slip[1] , slip[2] , slip[3]]
+
+    return np.hstack((u, xplus[:8]))
 
 initial_speed = 4.6  # m/s
 initial_roll_rate = 0.5  # rad/s
@@ -606,47 +638,58 @@ eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic)
 initial_pitch_angle = float(fsolve(eval_holonomic, 0.0,
                                    args=(0.0,  # q4
                                          1e-8,  # q7
-                                         sys.constants[d1],
-                                         sys.constants[d2],
-                                         sys.constants[d3],
-                                         sys.constants[rf],
-                                         sys.constants[rr])))
+                                         p_vals[d1],
+                                         p_vals[d2],
+                                         p_vals[d3],
+                                         p_vals[rf],
+                                         p_vals[rr])))
 
-sys.initial_conditions = {q3: 0.0,
-                          q4: 0.0,
-                          q5: initial_pitch_angle,
-                          q7: 1e-8,
-                          u3: 0.0,
-                          u4: initial_roll_rate,
-                          u5: 0.0,
-                          u6: -initial_speed/sys.constants[rr],
-                          u7: 0.0,
-                          u8: -initial_speed/sys.constants[rf]}
+initial_conditions = [
+    1e-10,  # q1
+    1e-10,  # q2
+    1e-10,  # q3
+    1e-10,  # q4
+    initial_pitch_angle,  # q5
+    1e-10,  # q6
+    1e-8,  # q7
+    1e-10,  # q8
+    initial_speed,  # u1
+    1e-10,  # u2
+    1e-10,  # u3
+    initial_roll_rate,  # u4
+    1e-10,  # u5
+    -initial_speed/p_vals[rr],  # u6
+    1e-10,  # u7
+    -initial_speed/p_vals[rf],  # u8
+]
+
+print(rhs(1.2, initial_conditions))
+
 fps = 30  # frames per second
-duration = 6.0  # seconds
-sys.times = np.linspace(0.0, duration, num=int(duration*fps))
+duration = 4.0  # seconds
+t0 = 0.0
+tf = t0 + duration
+times = np.linspace(0.0, duration, num=int(duration*fps))
 
-sys.generate_ode_function(generator='cython')
+res = solve_ivp(rhs, (t0, tf), initial_conditions, t_eval=times)
+x_traj = res.y
+times = res.t
 
-x_trajectory = sys.integrate()
-
-holonomic_vs_time  = eval_holonomic(x_trajectory[:, 3],  # q5
-                                    x_trajectory[:, 1],  # q4
-                                    x_trajectory[:, 2],  # q7
-                                    sys.constants[d1],
-                                    sys.constants[d2],
-                                    sys.constants[d3],
-                                    sys.constants[rf],
-                                    sys.constants[rr])
+#holonomic_vs_time  = eval_holonomic(x_trajectory[:, 3],  # q5
+                                    #x_trajectory[:, 1],  # q4
+                                    #x_trajectory[:, 2],  # q7
+                                    #sys.constants[d1],
+                                    #sys.constants[d2],
+                                    #sys.constants[d3],
+                                    #sys.constants[rf],
+                                    #sys.constants[rr])
 
 import matplotlib.pyplot as plt
-fig, axes = plt.subplots(len(sys.states) + 1, 1, sharex=True)
+fig, axes = plt.subplots(x_traj.shape[0], 1, sharex=True)
 fig.set_size_inches(8, 10)
-for ax, traj, s in zip(axes, x_trajectory.T, sys.states):
-    ax.plot(sys.times, traj)
+for ax, traj, s in zip(axes, x_traj, qs + us):
+    ax.plot(times, traj)
     ax.set_ylabel(s)
-axes[-1].plot(sys.times, np.squeeze(holonomic_vs_time))
-axes[-1].set_ylabel('Holonomic\nconstraint [m]')
 axes[-1].set_xlabel('Time [s]')
 plt.tight_layout()
 plt.show()

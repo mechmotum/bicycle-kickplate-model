@@ -29,7 +29,7 @@ from scipy.optimize import fsolve
 import numpy as np
 from scipy.integrate import solve_ivp
 
-from utils import ReferenceFrame, decompose_linear_parts
+from utils import ReferenceFrame, decompose_linear_parts, cramer_solve, euler_integrate
 
 ##################
 # Reference Frames
@@ -317,8 +317,8 @@ print('Defining nonholonomic constraints.')
 
 nonholonomic = [
     dn_.vel(N).dot(A['1']),  # no rear longitudinal slip
-    fn_.vel(N).dot(g1_hat),  # no front longitudinal slip
     fn_.vel(N).dot(A['3']),  # time derivative of the holonomic constraint
+    fn_.vel(N).dot(g1_hat),  # no front longitudinal slip
 ]
 
 #########
@@ -419,6 +419,7 @@ kane = mec.KanesMethod(
     u_dependent=u_dep,
     velocity_constraints=nonho,
     u_auxiliary=u_aux,
+    constraint_solver=cramer_solve,
 )
 
 Fr, Frstar = kane.kanes_equations(bodies, loads=loads)
@@ -575,7 +576,6 @@ fr_plus_fr_star = kane.mass_matrix*kane.u.diff(t) - kane.forcing.xreplace({
 aux_eqs = kane.auxiliary_eqs.xreplace({y.diff(t, 2): ydd, y.diff(t): yd})
 all_dyn_eqs = fr_plus_fr_star.col_join(aux_eqs)
 
-
 x_all = tuple(ui.diff(t) for ui in us) + (Frz, Ffz)
 x_all_zerod = {xi: 0 for xi in x_all}
 
@@ -593,7 +593,8 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, rs, ps]]))
 
 last_vals = np.zeros(6)
 
-def rhs(t, x):
+
+def rhs(t, x, p):
     q = x[:8]
     u = x[8:16]
 
@@ -614,22 +615,25 @@ def rhs(t, x):
     # calculate later tire forces
     # coefficient estimating form Fig 11 in Dressel & Rahman 2012
     normalized_cornering_coeff = (0.55 - 0.1)/np.deg2rad(3.0 - 0.5)  # about 10
-    alphar = -np.sign(rear_lat)*np.arctan2(rear_lat + 1e-12, rear_lon)
-    alphaf = -np.sign(front_lat)*np.arctan2(front_lat + 1e-12, front_lon)
+    normalized_cornering_coeff = 0.0001
+    # use 1e-12 to avoid divide by zero
+    alphar = -np.sign(rear_lat)*np.arctan(rear_lat/(rear_lon + 1e-12))
+    alphaf = -np.sign(front_lat)*np.arctan(front_lat/(front_lon + 1e-12))
     Fry = Frz*normalized_cornering_coeff*alphar
-    Ffy = Ffz*normalized_cornering_coeff*alphaf
+    Ffy = -Ffz*normalized_cornering_coeff*alphaf
 
     r = [T4, T6, T7, Fry, Frz, Mrz, Ffy, Ffz, Mfz, y, yd, ydd]
 
-    A, b, slip = eval_dynamic(q, u, r, list(p_vals.values()))
+    A, b, slip = eval_dynamic(q, u, r, p)
 
     slip = slip.squeeze()
 
     xplus = np.linalg.solve(A, b).squeeze()
 
-    last_vals[:] = [xplus[8], xplus[9] , slip[0] , slip[1] , slip[2] , slip[3]]
+    last_vals[:] = [xplus[8], xplus[9], slip[0], slip[1], slip[2], slip[3]]
 
     return np.hstack((u, xplus[:8]))
+
 
 initial_speed = 4.6  # m/s
 initial_roll_rate = 0.5  # rad/s
@@ -645,35 +649,40 @@ initial_pitch_angle = float(fsolve(eval_holonomic, 0.0,
                                          p_vals[rr])))
 
 initial_conditions = [
-    1e-10,  # q1
-    1e-10,  # q2
-    1e-10,  # q3
-    1e-10,  # q4
+    1e-8,  # q1
+    1e-8,  # q2
+    1e-8,  # q3
+    1e-8,  # q4
     initial_pitch_angle,  # q5
-    1e-10,  # q6
+    1e-8,  # q6
     1e-8,  # q7
-    1e-10,  # q8
+    1e-8,  # q8
     initial_speed,  # u1
-    1e-10,  # u2
-    1e-10,  # u3
+    1e-8,  # u2
+    1e-8,  # u3
     initial_roll_rate,  # u4
-    1e-10,  # u5
+    1e-8,  # u5
     -initial_speed/p_vals[rr],  # u6
-    1e-10,  # u7
+    1e-8,  # u7
     -initial_speed/p_vals[rf],  # u8
 ]
 
-print(rhs(1.2, initial_conditions))
+print(rhs(0.0, initial_conditions, list(p_vals.values())))
+print(last_vals)
 
 fps = 30  # frames per second
 duration = 4.0  # seconds
 t0 = 0.0
 tf = t0 + duration
-times = np.linspace(0.0, duration, num=int(duration*fps))
+times = np.linspace(t0, tf, num=int(duration*fps))
 
-res = solve_ivp(rhs, (t0, tf), initial_conditions, t_eval=times)
-x_traj = res.y
+res = solve_ivp(lambda t, x: rhs(t, x, list(p_vals.values())), (t0, tf),
+            initial_conditions, t_eval=times, method='LSODA')
+x_traj = res.y.T
 times = res.t
+
+#times, x_traj = euler_integrate(rhs, (t0, tf), initial_conditions,
+                                #list(p_vals.values()), delt=0.001)
 
 #holonomic_vs_time  = eval_holonomic(x_trajectory[:, 3],  # q5
                                     #x_trajectory[:, 1],  # q4
@@ -685,9 +694,9 @@ times = res.t
                                     #sys.constants[rr])
 
 import matplotlib.pyplot as plt
-fig, axes = plt.subplots(x_traj.shape[0], 1, sharex=True)
+fig, axes = plt.subplots(x_traj.shape[1], 1, sharex=True)
 fig.set_size_inches(8, 10)
-for ax, traj, s in zip(axes, x_traj, qs + us):
+for ax, traj, s in zip(axes, x_traj.T, qs + us):
     ax.plot(times, traj)
     ax.set_ylabel(s)
 axes[-1].set_xlabel('Time [s]')

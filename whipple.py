@@ -317,8 +317,8 @@ print('Defining nonholonomic constraints.')
 
 nonholonomic = [
     dn_.vel(N).dot(A['1']),  # no rear longitudinal slip
-    fn_.vel(N).dot(A['3']),  # time derivative of the holonomic constraint
     fn_.vel(N).dot(g1_hat),  # no front longitudinal slip
+    fn_.vel(N).dot(A['3']),  # time derivative of the holonomic constraint
 ]
 
 #########
@@ -364,8 +364,8 @@ Fyfn = (fn, Ffy*g2_hat)
 # tire-ground normal forces (non-contributing), need equal and opposite forces
 Fzdn = (dn, Frz*A['3'])
 Fzdn_ = (dn_, -Frz*A['3'])
-Fzfn = (fn, Ffz*A['3'])
-Fzfn_ = (fn_, -Ffz*A['3'])
+Fzfn = (fn, -Ffz*A['3'])
+Fzfn_ = (fn_, Ffz*A['3'])
 
 # input torques
 Tc = (C, T4*A['1'] - T6*B['2'] - T7*C['3'])
@@ -620,7 +620,7 @@ def rhs(t, x, p):
     alphar = -np.sign(rear_lat)*np.arctan(rear_lat/(rear_lon + 1e-12))
     alphaf = -np.sign(front_lat)*np.arctan(front_lat/(front_lon + 1e-12))
     Fry = Frz*normalized_cornering_coeff*alphar
-    Ffy = -Ffz*normalized_cornering_coeff*alphaf
+    Ffy = Ffz*normalized_cornering_coeff*alphaf
 
     r = [T4, T6, T7, Fry, Frz, Mrz, Ffy, Ffz, Mfz, y, yd, ydd]
 
@@ -648,25 +648,29 @@ initial_pitch_angle = float(fsolve(eval_holonomic, 0.0,
                                          p_vals[rf],
                                          p_vals[rr])))
 
+print('Initial pitch angle:', np.rad2deg(initial_pitch_angle))
+
 initial_conditions = [
-    1e-8,  # q1
-    1e-8,  # q2
-    1e-8,  # q3
-    1e-8,  # q4
+    0.0,  # q1
+    0.0,  # q2
+    1e-10,  # q3  (divide by zero)
+    0.0,  # q4
     initial_pitch_angle,  # q5
-    1e-8,  # q6
-    1e-8,  # q7
-    1e-8,  # q8
+    0.0,  # q6
+    0.0,  # q7
+    0.0,  # q8
     initial_speed,  # u1
-    1e-8,  # u2
-    1e-8,  # u3
+    0.0,  # u2
+    0.0,  # u3
     initial_roll_rate,  # u4
-    1e-8,  # u5
+    0.0,  # u5
     -initial_speed/p_vals[rr],  # u6
-    1e-8,  # u7
+    0.0,  # u7
     -initial_speed/p_vals[rf],  # u8
 ]
 
+print('here')
+print(last_vals)
 print(rhs(0.0, initial_conditions, list(p_vals.values())))
 print(last_vals)
 
@@ -677,7 +681,7 @@ tf = t0 + duration
 times = np.linspace(t0, tf, num=int(duration*fps))
 
 res = solve_ivp(lambda t, x: rhs(t, x, list(p_vals.values())), (t0, tf),
-            initial_conditions, t_eval=times, method='LSODA')
+            initial_conditions, t_eval=times) #, method='LSODA')
 x_traj = res.y.T
 times = res.t
 

@@ -223,6 +223,8 @@ eo.set_pos(fo, l3*E['1'] + l4*E['3'])
 fn = mec.Point('fn')
 fn.set_pos(fo, rf*E['2'].cross(A['3']).cross(E['2']).normalize())
 
+N_v_nf = fn.pos_from(o).dt(N)  # velocity the point moving in the ground plane at the contact
+
 ######################
 # Holonomic Constraint
 ######################
@@ -248,6 +250,9 @@ kinematical = [
     q7.diff(t) - u7,  # steer
     q8.diff(t) - u8,  # front wheel rotation
 ]
+
+kindiff_repl = {qi.diff(t): ui for qi, ui in zip([q1, q2, q3, q4, q5, q6, q7, q8],
+                                                 [u1, u2, u3, u4, u5, u6, u7, u8])}
 
 ####################
 # Angular Velocities
@@ -279,6 +284,10 @@ dn_ = mec.Point('dn')
 dn_.set_pos(dn, 0)
 dn_.set_vel(N, dn.vel(N) + u11*A['3'])
 
+nd = mec.Point('nd')
+nd.set_pos(do, rr*B['3'])
+nd.v2pt_theory(do, N, D)
+
 # mass centers
 do.v2pt_theory(dn_, N, D)  # ensures u11 is present in velocities
 co.v2pt_theory(do, N, C)
@@ -286,7 +295,8 @@ ce.v2pt_theory(do, N, C)
 fo.v2pt_theory(ce, N, E)
 eo.v2pt_theory(fo, N, E)
 
-# front wheel contact velocity
+# front wheel contact velocity (override from prior calc so this is the point
+# fixed in the wheel)
 fn.v2pt_theory(fo, N, F)
 
 fn_ = mec.Point('fn')
@@ -299,10 +309,12 @@ fn_.set_vel(N, fn.vel(N) + u12*A['3'])  # includes u11 and u12
 
 yd_repl = {y.diff(t, 2): ydd, y.diff(t): yd}
 
-N_v_dn1 = dn.vel(N).dot(A['1']).xreplace(yd_repl)
-N_v_dn2 = dn.vel(N).dot(A['2']).xreplace(yd_repl)
-N_v_fn1 = dn.vel(N).dot(g1_hat).xreplace(yd_repl)
-N_v_fn2 = dn.vel(N).dot(g2_hat).xreplace(yd_repl)
+# TODO : Should this be the point fixed on the wheel or the point moving in the
+# ground? I think it is the point moving in the ground.
+N_v_dn1 = dn.vel(N).dot(A['1']).xreplace(yd_repl).xreplace(kindiff_repl)
+N_v_dn2 = dn.vel(N).dot(A['2']).xreplace(yd_repl).xreplace(kindiff_repl)
+N_v_fn1 = N_v_nf.dot(g1_hat).xreplace({u11: 0}).xreplace(yd_repl).xreplace(kindiff_repl)
+N_v_fn2 = N_v_nf.dot(g2_hat).xreplace({u11: 0}).xreplace(yd_repl).xreplace(kindiff_repl)
 
 ####################
 # Motion Constraints
@@ -316,7 +328,7 @@ N_v_fn2 = dn.vel(N).dot(g2_hat).xreplace(yd_repl)
 print('Defining nonholonomic constraints.')
 
 nonholonomic = [
-    dn_.vel(N).dot(A['1']),  # no rear longitudinal slip
+    nd.vel(N).dot(A['1']),  # no rear longitudinal slip
     fn_.vel(N).dot(g1_hat),  # no front longitudinal slip
     fn_.vel(N).dot(A['3']),  # time derivative of the holonomic constraint
 ]
@@ -434,9 +446,7 @@ u_dots = [mec.dynamicsymbols(ui.name + 'p') for ui in us]
 ups = tuple(sm.ordered(u_dots))
 u_dot_subs = {ui.diff(): upi for ui, upi in zip(us, u_dots)}
 
-gen = OctaveMatrixGenerator([[q4, q5, q7],
-                             [d1, d2, d3, rf, rr]],
-                            [sm.Matrix([holonomic])])
+gen = OctaveMatrixGenerator([qs, ps], [sm.Matrix([holonomic])])
 gen.write('eval_holonomic', path=os.path.dirname(__file__))
 
 # Create matrices for solving for the dependent speeds.
@@ -446,11 +456,7 @@ print('The nonholonomic constraints a function of these dynamic variables:')
 print(list(sm.ordered(mec.find_dynamicsymbols(nonholonomic))))
 
 A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
-gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
-                             u_ind,
-                             [yd],
-                             [d1, d2, d3, rf, rr]],
-                            [A_nh, -B_nh])
+gen = OctaveMatrixGenerator([qs, u_ind, [yd], ps], [A_nh, -B_nh])
 gen.write('eval_dep_speeds', path=os.path.dirname(__file__))
 
 # Create function for solving for the derivatives of the dependent speeds.
@@ -463,7 +469,7 @@ print('The derivative of the nonholonomic constraints a function of these '
 print(list(sm.ordered(mec.find_dynamicsymbols(nonholonomic_dot))))
 
 A_pnh, B_pnh = decompose_linear_parts(nonholonomic_dot, [u2p, u5p, u8p])
-gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
+gen = OctaveMatrixGenerator([qs,
                              [u1, u2, u3, u4, u5, u6, u7, u8],
                              [yd, ydd],
                              [u1p, u3p, u4p, u6p, u7p],
@@ -490,7 +496,7 @@ B_dyn = kane.forcing.xreplace({
     Ffz: 0
 })
 
-gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
+gen = OctaveMatrixGenerator([qs,
                              [u1, u2, u3, u4, u5, u6, u7, u8],
                              [T4, T6, T7, yd, ydd, Fry, Mrz, Ffy, Mfz],
                              ps],
@@ -521,7 +527,7 @@ print(list(sm.ordered(mec.find_dynamicsymbols(b_normal))))
 
 slip_components = sm.Matrix([N_v_dn1, N_v_dn2, N_v_fn1, N_v_fn2])
 
-gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
+gen = OctaveMatrixGenerator([qs,
                              [u1, u2, u3, u4, u5, u6, u7, u8],
                              [T4, T6, T7, yd, ydd, Fry, Mrz, Ffy, Mfz],
                              [u1p, u2p, u3p, u4p, u5p, u6p, u7p, u8p],

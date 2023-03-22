@@ -241,7 +241,7 @@ fn.set_pos(fo, rf*E['2'].cross(A['3']).cross(E['2']).normalize())
 print('Defining holonomic constraints.')
 
 # this constraint is enforced so that the front wheel contacts the ground
-holonomic = fn.pos_from(dn).dot(A['3'])
+holonomic = fn.pos_from(nd).dot(A['3'])
 
 print_syms(holonomic, "Holonomic constraint is a function of: ")
 
@@ -573,8 +573,8 @@ normalized_cornering_coeff = (0.55 - 0.1)/np.deg2rad(3.0 - 0.5)  # about 10
 normalized_cornering_coeff = 0.0001
 
 p_vals = {
-   cf: 0.0001,
-   cr: 0.0001,
+   cf: 0.01,
+   cr: 0.01,
    d1: 0.9534570696121849,
    d2: 0.2676445084476887,
    d3: 0.03207142672761929,

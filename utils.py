@@ -5,6 +5,13 @@ import sympy.physics.mechanics as mec
 import numpy as np
 
 
+def print_syms(expr, note=''):
+    dy_syms = list(sm.ordered(mec.find_dynamicsymbols(expr)))
+    co_syms = list(sm.ordered(expr.free_symbols))
+    co_syms.remove(mec.dynamicsymbols._t)
+    print(note + str(dy_syms) + ' & ' + str(co_syms))
+
+
 @cacheit
 def det_laplace(matrix):
     n = matrix.shape[0]

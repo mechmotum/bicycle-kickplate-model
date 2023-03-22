@@ -8,7 +8,10 @@ import numpy as np
 def print_syms(expr, note=''):
     dy_syms = list(sm.ordered(mec.find_dynamicsymbols(expr)))
     co_syms = list(sm.ordered(expr.free_symbols))
-    co_syms.remove(mec.dynamicsymbols._t)
+    try:
+        co_syms.remove(mec.dynamicsymbols._t)
+    except ValueError:
+        pass
     print(note + str(dy_syms) + ' & ' + str(co_syms))
 
 

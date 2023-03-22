@@ -438,7 +438,7 @@ us = tuple(sm.ordered(u_ind + u_dep))
 
 ps = (cf, cr, d1, d2, d3, g, ic11, ic22, ic31, ic33, id11, id22, ie11, ie22,
       ie31, ie33, if11, if22, l1, l2, l3, l4, mc, md, me, mf, rf, rr)
-rs = (T4, T6, T7, Frz, Mrz, Ffz, Mfz, y, yd, ydd)
+rs = (T4, T6, T7, Mrz, Mfz, y, yd, ydd)
 holon = (holonomic,)
 nonho = tuple(nonholonomic)
 
@@ -473,11 +473,6 @@ u_dots = [mec.dynamicsymbols(ui.name + 'p') for ui in us]
 ups = tuple(sm.ordered(u_dots))
 u_dot_subs = {ui.diff(): upi for ui, upi in zip(us, u_dots)}
 
-gen = OctaveMatrixGenerator([[q4, q5, q7],
-                             [d1, d2, d3, rf, rr]],
-                            [sm.Matrix([holonomic])])
-gen.write('eval_holonomic', path=os.path.dirname(__file__))
-
 # Create matrices for solving for the dependent speeds.
 nonholonomic = sm.Matrix(nonholonomic).xreplace({u11: 0, u12: 0, y.diff(t): yd})
 
@@ -485,12 +480,6 @@ print_syms(nonholonomic,
            'The nonholonomic constraints a function of these dynamic variables:')
 
 A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
-gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
-                             u_ind,
-                             [yd],
-                             [d1, d2, d3, rf, rr]],
-                            [A_nh, -B_nh])
-gen.write('eval_dep_speeds', path=os.path.dirname(__file__))
 
 # Create function for solving for the derivatives of the dependent speeds.
 nonholonomic_dot = sm.Matrix(nonholonomic).diff(t).xreplace(kane.kindiffdict())
@@ -500,37 +489,7 @@ print_syms(nonholonomic_dot, 'The derivative of the nonholonomic constraints'
            'a function of these dynamic variables: ')
 
 A_pnh, B_pnh = decompose_linear_parts(nonholonomic_dot, [u2p, u5p, u8p])
-gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
-                             [u1, u2, u3, u4, u5, u6, u7, u8],
-                             [yd, ydd],
-                             [u1p, u3p, u4p, u6p, u7p],
-                             [d1, d2, d3, rf, rr]],
-                            [A_pnh, -B_pnh])
-gen.write('eval_dep_speeds_derivs', path=os.path.dirname(__file__))
 
-
-# Create function for solving for the derivatives of the dependent speeds.
-
-print_syms(kane.mass_matrix,
-           'The mass matrix is a function of these dynamic variables:')
-print_syms(kane.forcing,
-           'The forcing function is a function of these dynamic variables: ')
-
-A_dyn = kane.mass_matrix
-B_dyn = kane.forcing.xreplace({
-    u11.diff(t): 0,
-    u12.diff(t): 0,
-    u11: 0,
-    u12: 0,
-    y.diff(t, 2): ydd,
-    y.diff(t): yd,
-    # TODO : Should I be setting this to zero here?
-    Ffz: 0
-})
-
-gen = OctaveMatrixGenerator([qs, us, rs, ps],
-                            [A_dyn, B_dyn])
-gen.write('eval_dynamic_eqs', path=os.path.dirname(__file__))
 
 # Create function for solving for the lateral forces.
 """
@@ -541,22 +500,15 @@ A(q, t)*[Ffz] - b(u', u, q, t) = 0
         [Frz]
 
 """
-aux_eqs = kane.auxiliary_eqs.xreplace(u_dot_subs).xreplace({y.diff(t, 2): ydd,
-                                                            y.diff(t): yd})
+aux_eqs = kane.auxiliary_eqs.xreplace({y.diff(t, 2): ydd, y.diff(t): yd})
 
 print_syms(aux_eqs,
            'The auxiliary equations are a function of these dynamic variables: ')
 
-A_normal, b_normal = decompose_linear_parts(aux_eqs, [Frz, Ffz])
+A_aux, b_aux = decompose_linear_parts(aux_eqs, [Frz, Ffz])
 
-print_syms(A_normal, 'A_aux is a function of these dynamic variables: ')
-print_syms(b_normal, 'b_aux is a function of these dynamic variables: ')
-
-slip_components = sm.Matrix([N_v_nd1, N_v_nd2, N_v_fn1, N_v_fn2])
-
-gen = OctaveMatrixGenerator([qs, us, rs, ups, ps],
-                            [A_normal, -b_normal, slip_components])
-gen.write('eval_tire_force_inputs', path=os.path.dirname(__file__))
+print_syms(A_aux, 'A_aux is a function of these dynamic variables: ')
+print_syms(b_aux, 'b_aux is a function of these dynamic variables: ')
 
 # We need to solve the dynamic equations and the auxiliary equations
 # simultaneously to avoid having to solve the dynamic equations first and then
@@ -569,10 +521,7 @@ fr_plus_fr_star = kane.mass_matrix*kane.u.diff(t) - kane.forcing.xreplace({
     u12: 0,
     y.diff(t, 2): ydd,
     y.diff(t): yd,
-    # TODO : Should I be setting this to zero here?
-    Ffz: 0
 })
-aux_eqs = kane.auxiliary_eqs.xreplace({y.diff(t, 2): ydd, y.diff(t): yd})
 all_dyn_eqs = fr_plus_fr_star.col_join(aux_eqs)
 
 x_all = tuple(ui.diff(t) for ui in us) + (Frz, Ffz)
@@ -584,14 +533,16 @@ b_all = -all_dyn_eqs.xreplace(x_all_zerod)
 print_syms(A_all, 'A_all is a function of these dynamic variables: ')
 print_syms(b_all, 'b_all is a function of these dynamic variables: ')
 
-eval_dynamic = sm.lambdify([qs, us, rs, ps], [A_all, b_all, slip_components],
-                           cse=True)
+eval_dynamic = sm.lambdify([qs, us, rs, ps], [A_all, b_all], cse=True)
 print('Test eval_dynamics with all ones: ')
 print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, rs, ps]]))
 
-# Test simulation
 
 def rhs(t, x, p):
+    """
+    x = [q1, q2, q3, q4, q5, q6, q7, q8,
+         u1, u2, u3, u4, u5, u6, u7, u8]
+    """
     q = x[:8]
     u = x[8:16]
 
@@ -604,11 +555,15 @@ def rhs(t, x, p):
     # set self-aligning moments to zero
     Mrz, Mfz = 0.0, 0.0
 
-    r = [T4, T6, T7, Frz, Mrz, Ffz, Mfz, y, yd, ydd]
+    r = [T4, T6, T7, Mrz, Mfz, y, yd, ydd]
 
-    A, b, slip = eval_dynamic(q, u, r, p)
-
+    # This solves for the generalized accelerations and the normal forces at
+    # the tire contact.
+    A, b = eval_dynamic(q, u, r, p)
+    # xplus = [us', Frz, Ffz]
     xplus = np.linalg.solve(A, b).squeeze()
+
+    print(xplus[-2:])
 
     return np.hstack((u, xplus[:8]))
 

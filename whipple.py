@@ -499,6 +499,8 @@ coefficient is 1?
 A(q, t)*[Ffz] - b(u', u, q, t) = 0
         [Frz]
 
+M_a * u' + b_a * Ff + f_a(u, q, t) = 0
+
 """
 aux_eqs = kane.auxiliary_eqs.xreplace({y.diff(t, 2): ydd, y.diff(t): yd})
 
@@ -563,9 +565,7 @@ def rhs(t, x, p):
     # xplus = [us', Frz, Ffz]
     xplus = np.linalg.solve(A, b).squeeze()
 
-    print(xplus[-2:])
-
-    return np.hstack((u, xplus[:8]))
+    return np.hstack((u, xplus[:8])), xplus[-2:]
 
 # calculate later tire forces
 # coefficient estimating form Fig 11 in Dressel & Rahman 2012
@@ -603,19 +603,20 @@ p_vals = {
    rr: 0.3,
 }
 
-initial_speed = 4.6  # m/s
-initial_roll_rate = 0.5  # rad/s
-
 eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic)
 initial_pitch_angle = float(fsolve(eval_holonomic, 0.0,
                                    args=(0.0,  # q4
-                                         1e-8,  # q7
+                                         0.0,  # q7
                                          p_vals[d1],
                                          p_vals[d2],
                                          p_vals[d3],
                                          p_vals[rf],
                                          p_vals[rr])))
 
+initial_speed = 4.6  # m/s
+
+initial_yaw_rate = 0.0
+initial_roll_rate = 0.5  # rad/s
 
 eval_dep_speeds = sm.lambdify([qs, u_ind, [yd], ps], [A_nh, -B_nh], cse=True)
 q_vals = [1e-10, 1e-10, 1e-10, 1e-10, initial_pitch_angle, 1e-10, 1e-10, 1e-10]
@@ -655,8 +656,8 @@ t0 = 0.0
 tf = t0 + duration
 times = np.linspace(t0, tf, num=int(duration*fps))
 
-res = solve_ivp(lambda t, x: rhs(t, x, list(p_vals.values())), (t0, tf),
-            initial_conditions, t_eval=times, method='LSODA')
+res = solve_ivp(lambda t, x: rhs(t, x, list(p_vals.values()))[0], (t0, tf),
+                initial_conditions, t_eval=times, method='LSODA')
 x_traj = res.y.T
 times = res.t
 

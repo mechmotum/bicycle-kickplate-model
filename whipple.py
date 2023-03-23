@@ -310,6 +310,8 @@ fn.v2pt_theory(fo, N, F)
 
 fn_ = mec.Point('fn')
 fn_.set_pos(fn, 0)
+# TODO : if we let the front contact point move with u12, then I may need the
+# v1pt_theory here to properly calculate the velocity with u12 included.
 fn_.set_vel(N, nd_.vel(N) + fn.pos_from(nd_).dt(N).xreplace(qdot_repl) + u12*A['3'])  # includes u11 and u12
 
 # Slip angle components
@@ -346,6 +348,8 @@ nonholonomic = [
     # TODO: Probably needs u11 and u12 in this equation.
     #holonomic.diff(t).xreplace(qdot_repl),  # time derivative of the holonomic constraint
 ]
+
+tire_contact_vert_vel_expr = nonholonomic[2]
 
 print_syms(nonholonomic[0], "rear slip constraint is a function of: ")
 print_syms(nonholonomic[1], "front slip constraint is a function of: ")
@@ -393,8 +397,10 @@ Feo = (eo, me*g*A['3'])
 Ffo = (fo, mf*g*A['3'])
 
 # tire-ground lateral forces
-Fry = -sm.sign(N_v_nd2)*cr*Frz*sm.atan(N_v_nd2/N_v_nd1)
-Ffy = -sm.sign(N_v_fn2)*cf*Ffz*sm.atan(N_v_fn2/N_v_fn1)
+#Fry = -sm.sign(N_v_nd2)*cr*Frz*sm.atan(N_v_nd2/N_v_nd1)
+Fry = -cr*Frz*sm.atan(N_v_nd2/N_v_nd1)
+#Ffy = -sm.sign(N_v_fn2)*cf*Ffz*sm.atan(N_v_fn2/N_v_fn1)
+Ffy = -cf*Ffz*sm.atan(N_v_fn2/N_v_fn1)
 Fydn = (nd_, Fry*A['2'])
 Fyfn = (fn_, Ffy*g2_hat)
 
@@ -544,6 +550,12 @@ def rhs(t, x, p):
     """
     x = [q1, q2, q3, q4, q5, q6, q7, q8,
          u1, u2, u3, u4, u5, u6, u7, u8]
+
+    Returns
+    =======
+    xdot : ndarray, shape(16,)
+    forc : ndarray, shape(2,)
+        [Frz, Ffz]
     """
     q = x[:8]
     u = x[8:16]
@@ -570,11 +582,10 @@ def rhs(t, x, p):
 # calculate later tire forces
 # coefficient estimating form Fig 11 in Dressel & Rahman 2012
 normalized_cornering_coeff = (0.55 - 0.1)/np.deg2rad(3.0 - 0.5)  # about 10
-normalized_cornering_coeff = 0.0001
 
 p_vals = {
-   cf: 0.01,
-   cr: 0.01,
+   cf: 1.0,
+   cr: 1.0,
    d1: 0.9534570696121849,
    d2: 0.2676445084476887,
    d3: 0.03207142672761929,
@@ -625,6 +636,7 @@ initial_pitch_angle = float(fsolve(eval_holonomic, 0.0,
                                          p_vals[rr])))
 print('Initial pitch angle:', np.rad2deg(initial_pitch_angle))
 q_vals[4] = initial_pitch_angle
+print('Initial coordinates: ', q_vals)
 
 # initial speeds
 initial_speed = 4.6  # m/s
@@ -644,6 +656,7 @@ A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals, u_vals[[2, 3, 5, 6, 7]], [0.0],
 u_vals[[0, 1, 4]] = np.linalg.solve(A_nh_vals, B_nh_vals).squeeze()
 print('Initial dependent speeds (u1, u2, u5): ',
       u_vals[0], u_vals[1], np.rad2deg(u_vals[4]))
+print('Initial speeds: ', u_vals)
 
 initial_conditions = np.hstack((q_vals, u_vals))
 

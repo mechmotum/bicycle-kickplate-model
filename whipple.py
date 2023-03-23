@@ -111,14 +111,11 @@ y, yd, ydd = mec.dynamicsymbols('y, y_d, y_dd')
 # T7 : steer torque
 T4, T6, T7 = mec.dynamicsymbols('T4, T6, T7')
 
-# Fry : rear wheel-ground contact lateral force
 # Frz : rear wheel-ground contact normal force
 # Mrz : rear wheel-ground contact self-aligning moment
-# Ffy : front wheel-ground contact lateral force
 # Ffz : front wheel-ground contact normal force
 # Mfz : front rear wheel-ground contact self-aligning moment
-Fry, Frz, Mrz, Ffy, Ffz, Mfz = mec.dynamicsymbols(
-    'Fry, Frz, Mrz, Ffy, Ffz, Mfz')
+Frz, Mrz, Ffz, Mfz = mec.dynamicsymbols('Frz, Mrz, Ffz, Mfz')
 
 #################################
 # Orientation of Reference Frames
@@ -126,11 +123,11 @@ Fry, Frz, Mrz, Ffy, Ffz, Mfz = mec.dynamicsymbols(
 
 print('Orienting frames.')
 
-# The following defines a 3-1-2 Tait-Bryan rotation with yaw (q3), roll
-# (q4), pitch (q5) angles to orient the rear frame relative to the ground
-# (Newtonian frame). The front frame is then rotated through the steer
-# angle (q7) about the rear frame's 3 axis. The wheels are not oriented, as
-# q6 and q8 end up being ignorable coordinates.
+# The following defines a 3-1-2 Tait-Bryan rotation with yaw (q3), roll (q4),
+# pitch (q5) angles to orient the rear frame relative to the ground (Newtonian
+# frame). The front frame is then rotated through the steer angle (q7) about
+# the rear frame's 3 axis. The wheels are not oriented, as q6 and q8 end up
+# being ignorable coordinates.
 
 # rear frame yaw
 A.orient(N, 'Axis', (q3, N['3']))
@@ -343,8 +340,6 @@ nonholonomic = [
     sm.trigsimp(dn.vel(N).dot(A['1'])),  # no rear longitudinal slip
     fn.vel(N).dot(g1_hat),  # no front longitudinal slip
     fn_.vel(N).dot(A['3']),
-    # TODO: Probably needs u11 and u12 in this equation.
-    #holonomic.diff(t).xreplace(qdot_repl),  # time derivative of the holonomic constraint
 ]
 
 tire_contact_vert_vel_expr = nonholonomic[2]
@@ -395,9 +390,9 @@ Feo = (eo, me*g*A['3'])
 Ffo = (fo, mf*g*A['3'])
 
 # tire-ground lateral forces
-#Fry = -sm.sign(N_v_nd2)*cr*Frz*sm.atan(N_v_nd2/N_v_nd1)
+# Fry : rear wheel-ground contact lateral force
+# Ffy : front wheel-ground contact lateral force
 Fry = -cr*Frz*sm.atan(N_v_nd2/N_v_nd1)
-#Ffy = -sm.sign(N_v_fn2)*cf*Ffz*sm.atan(N_v_fn2/N_v_fn1)
 Ffy = -cf*Ffz*sm.atan(N_v_fn2/N_v_fn1)
 Fydn = (nd_, Fry*A['2'])
 Fyfn = (fn_, Ffy*g2_hat)
@@ -543,6 +538,19 @@ print('Test eval_dynamics with all ones: ')
 print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, rs, ps]]))
 
 
+@np.vectorize
+def calc_y(t):
+
+    if t < 0.2:
+        y = 0.8*t
+        yd = 0.2
+        ydd = 0.0
+    else:
+        y, yd, ydd = 0.0, 0.0, 0.0
+
+    return y, yd, ydd
+
+
 def rhs(t, x, p):
     """
     x = [q1, q2, q3, q4, q5, q6, q7, q8,
@@ -561,12 +569,7 @@ def rhs(t, x, p):
     T4, T6, T7 = 0.0, 0.0, 0.0
 
     # kickplate motion set to zero
-    if t < 0.2:
-        y = 0.2*t
-        yd = 0.2
-        ydd = 0.0
-    else:
-        y, yd, ydd = 0.0, 0.0, 0.0
+    y, yd, ydd = calc_y(t)
 
     # set self-aligning moments to zero
     Mrz, Mfz = 0.0, 0.0
@@ -618,14 +621,14 @@ p_vals = {
 
 # initial coordinates
 q_vals = np.array([
-    1e-14,  # q1
-    1e-14,  # q2
-    1e-14,  # q3
-    1e-14,  # q4
+    0.0,  # q1
+    0.0,  # q2
+    0.0,  # q3
+    0.0,  # q4
     np.nan,  # q5
-    1e-14,  # q6
-    1e-14,  # q7
-    1e-14,  # q8
+    0.0,  # q6
+    1e-14,  # q7  # setting to zero gives singular matrix
+    0.0,  # q8
 ])
 eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic)
 initial_pitch_angle = float(fsolve(eval_holonomic, 0.0,
@@ -645,11 +648,11 @@ initial_speed = 4.6  # m/s
 u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
-    1e-14,  # u3, rad/s
+    0.0,  # u3, rad/s
     0.5,  # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
-    1e-14,  # u7
+    0.0,  # u7
     -initial_speed/p_vals[rf],  # u8
 ])
 eval_dep_speeds = sm.lambdify([qs, u_ind, [yd], ps], [A_nh, -B_nh], cse=True)
@@ -665,7 +668,7 @@ initial_conditions = np.hstack((q_vals, u_vals))
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, list(p_vals.values())))
 
-fps = 30  # frames per second
+fps = 100  # frames per second
 duration = 6.0  # seconds
 t0 = 0.0
 tf = t0 + duration
@@ -693,7 +696,10 @@ import matplotlib.pyplot as plt
 deg = [False, False, True, True, True, True, True, True,]
 fig, axes = plt.subplots(x_traj.shape[1], 1, sharex=True)
 fig.set_size_inches(8, 10)
-for ax, traj, s, degi in zip(axes, x_traj.T, qs + us, deg + deg):
+for i, (ax, traj, s, degi) in enumerate(zip(axes, x_traj.T,
+                                            qs + us, deg + deg)):
+    if i == 1:
+        traj = traj + calc_y(times)[0]
     if degi:
         traj = np.rad2deg(traj)
     ax.plot(times, traj)

@@ -310,8 +310,6 @@ fn.v2pt_theory(fo, N, F)
 
 fn_ = mec.Point('fn')
 fn_.set_pos(fn, 0)
-# TODO : if we let the front contact point move with u12, then I may need the
-# v1pt_theory here to properly calculate the velocity with u12 included.
 fn_.set_vel(N, nd_.vel(N) + fn.pos_from(nd_).dt(N).xreplace(qdot_repl) + u12*A['3'])  # includes u11 and u12
 
 # Slip angle components
@@ -407,7 +405,6 @@ Fyfn = (fn_, Ffy*g2_hat)
 # tire-ground normal forces (non-contributing), need equal and opposite forces
 Fzdn = (nd, Frz*A['3'])
 Fzdn_ = (nd_, -Frz*A['3'])
-# TODO : shouldn't be fn_ be a point with u12
 Fzfn = (fn, -Ffz*A['3'])
 Fzfn_ = (fn_, Ffz*A['3'])
 
@@ -584,8 +581,8 @@ def rhs(t, x, p):
 normalized_cornering_coeff = (0.55 - 0.1)/np.deg2rad(3.0 - 0.5)  # about 10
 
 p_vals = {
-   cf: 1.0,
-   cr: 1.0,
+   cf: 100.0,
+   cr: 100.0,
    d1: 0.9534570696121849,
    d2: 0.2676445084476887,
    d3: 0.03207142672761929,
@@ -674,7 +671,8 @@ res = solve_ivp(lambda t, x: rhs(t, x, list(p_vals.values()))[0], (t0, tf),
 x_traj = res.y.T
 times = res.t
 
-#times, x_traj = euler_integrate(rhs, (t0, tf), initial_conditions,
+#times, x_traj = euler_integrate(lambda t, x, p: rhs(t, x, p)[0],
+                                #(t0, tf), initial_conditions,
                                 #list(p_vals.values()), delt=0.001)
 
 #holonomic_vs_time  = eval_holonomic(x_trajectory[:, 3],  # q5

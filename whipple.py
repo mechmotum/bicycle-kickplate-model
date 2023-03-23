@@ -603,49 +603,49 @@ p_vals = {
    rr: 0.3,
 }
 
+# initial coordinates
+q_vals = np.array([
+    1e-14,  # q1
+    1e-14,  # q2
+    1e-14,  # q3
+    1e-14,  # q4
+    np.nan,  # q5
+    1e-14,  # q6
+    1e-14,  # q7
+    1e-14,  # q8
+])
 eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic)
 initial_pitch_angle = float(fsolve(eval_holonomic, 0.0,
-                                   args=(0.0,  # q4
-                                         0.0,  # q7
+                                   args=(q_vals[3],  # q4
+                                         q_vals[6],  # q7
                                          p_vals[d1],
                                          p_vals[d2],
                                          p_vals[d3],
                                          p_vals[rf],
                                          p_vals[rr])))
-
-initial_speed = 4.6  # m/s
-
-initial_yaw_rate = 0.0
-initial_roll_rate = 0.5  # rad/s
-
-eval_dep_speeds = sm.lambdify([qs, u_ind, [yd], ps], [A_nh, -B_nh], cse=True)
-q_vals = [1e-10, 1e-10, 1e-10, 1e-10, initial_pitch_angle, 1e-10, 1e-10, 1e-10]
-# u_ind = (u3, u4, u6, u7, u8)
-u_ind_vals = [1e-10, initial_roll_rate, -initial_speed/p_vals[rr], 1e-10, -initial_speed/p_vals[rf]]
-A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals, u_ind_vals, [0.0], list(p_vals.values()))
-# u_dep = (u1, u2, u5)
-u_dep_vals = np.linalg.solve(A_nh_vals, B_nh_vals).squeeze()
-
 print('Initial pitch angle:', np.rad2deg(initial_pitch_angle))
+q_vals[4] = initial_pitch_angle
 
-initial_conditions = [
-    1e-10,  # q1
-    1e-10,  # q2
-    1e-10,  # q3  (divide by zero)
-    1e-10,  # q4
-    initial_pitch_angle,  # q5
-    1e-10,  # q6
-    1e-10,  # q7
-    1e-10,  # q8
-    u_dep_vals[0],  # u1
-    u_dep_vals[1],  # u2
-    1e-10,  # u3
-    initial_roll_rate,  # u4
-    u_dep_vals[2],  # u5
+# initial speeds
+initial_speed = 4.6  # m/s
+u_vals = np.array([
+    np.nan,  # u1
+    np.nan,  # u2
+    1e-14,  # u3, rad/s
+    0.5,  # u4, rad/s
+    np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
-    1e-10,  # u7
+    1e-14,  # u7
     -initial_speed/p_vals[rf],  # u8
-]
+])
+eval_dep_speeds = sm.lambdify([qs, u_ind, [yd], ps], [A_nh, -B_nh], cse=True)
+A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals, u_vals[[2, 3, 5, 6, 7]], [0.0],
+                                       list(p_vals.values()))
+u_vals[[0, 1, 4]] = np.linalg.solve(A_nh_vals, B_nh_vals).squeeze()
+print('Initial dependent speeds (u1, u2, u5): ',
+      u_vals[0], u_vals[1], np.rad2deg(u_vals[4]))
+
+initial_conditions = np.hstack((q_vals, u_vals))
 
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, list(p_vals.values())))

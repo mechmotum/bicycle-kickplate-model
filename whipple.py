@@ -561,7 +561,12 @@ def rhs(t, x, p):
     T4, T6, T7 = 0.0, 0.0, 0.0
 
     # kickplate motion set to zero
-    y, yd, ydd = 0.0, 0.0, 0.0
+    if t < 0.2:
+        y = 0.2*t
+        yd = 0.2
+        ydd = 0.0
+    else:
+        y, yd, ydd = 0.0, 0.0, 0.0
 
     # set self-aligning moments to zero
     Mrz, Mfz = 0.0, 0.0
@@ -581,8 +586,8 @@ def rhs(t, x, p):
 normalized_cornering_coeff = (0.55 - 0.1)/np.deg2rad(3.0 - 0.5)  # about 10
 
 p_vals = {
-   cf: 100.0,
-   cr: 100.0,
+   cf: 10.0,
+   cr: 10.0,
    d1: 0.9534570696121849,
    d2: 0.2676445084476887,
    d3: 0.03207142672761929,
@@ -661,7 +666,7 @@ print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, list(p_vals.values())))
 
 fps = 30  # frames per second
-duration = 2.0  # seconds
+duration = 6.0  # seconds
 t0 = 0.0
 tf = t0 + duration
 times = np.linspace(t0, tf, num=int(duration*fps))

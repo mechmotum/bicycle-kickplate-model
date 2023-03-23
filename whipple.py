@@ -408,7 +408,7 @@ Fyfn = (fn_, Ffy*g2_hat)
 Fzdn = (nd, Frz*A['3'])
 Fzdn_ = (nd_, -Frz*A['3'])
 # TODO : shouldn't be fn_ be a point with u12
-Fzfn = (fn_, -Ffz*A['3'])
+Fzfn = (fn, -Ffz*A['3'])
 Fzfn_ = (fn_, Ffz*A['3'])
 
 # input torques

@@ -489,29 +489,29 @@ print_syms(nonholonomic,
            'The nonholonomic constraints are a function of these variables:')
 A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
 
-aux_eqs = kane.auxiliary_eqs.xreplace({y.diff(t, 2): ydd, y.diff(t): yd})
-Af, Aup, B_aux = decompose_linear_parts(aux_eqs, [Frz, Ffz], ups)
+aux_eqs = kane.auxiliary_eqs.xreplace(yd_repl)
 print_syms(aux_eqs, 'The auxiliary equations are a function of: ')
 
 # We need to solve the dynamic equations and the auxiliary equations
 # simultaneously to avoid having to solve the dynamic equations first and then
 # substitute in the derivatives of the speeds. So reconstruct the equations of
-# motion.
-# TODO : simplify this by only decomposing the auxiliary equations and
-# constructing A_all, b_all from submatrices.
-# [M,     0]*[up] = [F]
-# [Aup, Auf] [fz]   [-B_aux]
-# need to reorder the rows/cols of M and F to match the order of ups
-print('Generating full equations of motion.')
-fr_plus_fr_star = (kane.mass_matrix*kane.u.diff(t) -
-                   kane.forcing.xreplace(aux_zerod | yd_repl))
-all_dyn_eqs = fr_plus_fr_star.col_join(aux_eqs)
-
-x_all = tuple(ui.diff(t) for ui in us) + (Frz, Ffz)
-x_all_zerod = {xi: 0 for xi in x_all}
-
-A_all = all_dyn_eqs.jacobian(x_all)
-b_all = -all_dyn_eqs.xreplace(x_all_zerod)
+# motion to this form:
+# [M,   -Mf]*[up] = [F]
+# [Ap,   Af] [fz]   [-B_aux]
+print('Assembling full equations of motion.')
+Af, Ap, B_aux = decompose_linear_parts(aux_eqs, [Frz, Ffz],
+                                       sm.Matrix(us).diff(t))
+new_order = [2, 3, 5, 6, 7, 0, 1, 4]
+mass_matrix = sm.zeros(*kane.mass_matrix.shape)
+forcing = sm.zeros(*kane.forcing.shape)
+forcing_orig = kane.forcing.xreplace(aux_zerod | yd_repl)
+for i in range(mass_matrix.shape[0]):
+    forcing[new_order[i], 0] = forcing_orig[i, 0]
+    for j in range(mass_matrix.shape[1]):
+        mass_matrix[new_order[i], new_order[j]] = kane.mass_matrix[i, j]
+Mf, forcing = decompose_linear_parts(forcing, [Frz, Ffz])
+A_all = mass_matrix.row_join(-Mf).col_join(Ap.row_join(Af))
+b_all = forcing.col_join(-B_aux)
 
 print_syms(A_all, 'A_all is a function of these dynamic variables: ')
 print_syms(b_all, 'b_all is a function of these dynamic variables: ')

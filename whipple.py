@@ -506,6 +506,9 @@ print_syms(b_aux, 'b_aux is a function of these variables: ')
 # simultaneously to avoid having to solve the dynamic equations first and then
 # substitute in the deritavies of the speeds. So reconstruct the equations of
 # motion.
+# TODO : simplify this by only decomposing the auxiliary equations and
+# constructing A_all, b_all from submatrices.
+print('Generating full equations of motion.')
 fr_plus_fr_star = kane.mass_matrix*kane.u.diff(t) - kane.forcing.xreplace({
     u11.diff(t): 0,
     u12.diff(t): 0,
@@ -525,6 +528,7 @@ b_all = -all_dyn_eqs.xreplace(x_all_zerod)
 print_syms(A_all, 'A_all is a function of these dynamic variables: ')
 print_syms(b_all, 'b_all is a function of these dynamic variables: ')
 
+print('Lambdifying full equations of motion.')
 eval_dynamic = sm.lambdify([qs, us, rs, ps], [A_all, b_all], cse=True)
 print('Test eval_dynamics with all ones: ')
 print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, rs, ps]]))
@@ -533,27 +537,42 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, rs, ps]]))
 @np.vectorize
 def calc_y(t):
 
-    if t < 0.5:
-        y = 0.2*t
-        yd = 0.2
+    slope = 0.2
+    dur = 0.5
+
+    if t < dur:
+        y = slope*t
+        yd = slope
         ydd = 0.0
     else:
-        y, yd, ydd = 0.2*0.5, 0.0, 0.0
+        y, yd, ydd = slope*dur, 0.0, 0.0
 
     return y, yd, ydd
 
 
 def rhs(t, x, p):
     """
-    x = [q1, q2, q3, q4, q5, q6, q7, q8,
-         u1, u2, u3, u4, u5, u6, u7, u8]
+    Parameters
+    ==========
+    t : float
+        Time value in seconds.
+    x : array_like, shape(16,)
+        State values where x = [q1, q2, q3, q4, q5, q6, q7, q8, u1, u2, u3, u4,
+        u5, u6, u7, u8].
+    p : array_like, shape(28,)
+        Constant values.
 
     Returns
     =======
     xdot : ndarray, shape(16,)
-    forc : ndarray, shape(2,)
-        [Frz, Ffz]
+        Time derivative of the state.
+    force : ndarray, shape(2,)
+        Ground normal force magnitudes at the rear and front wheel contacts.
+        force = [Frz, Ffz]
+
     """
+    # TODO : add new argument to pass in a function to calculate r.
+
     q = x[:8]
     u = x[8:16]
 

@@ -2,9 +2,11 @@
 
 """This file derives the non-linear equations of motion of the Carvallo-Whipple
 bicycle model ([Carvallo1899]_, [Whippl1899]_) following the description and
-nomenclature in [Moore2012]_ and produces Octave functions that calculate the
-lateral wheel-ground constraint force for each wheel given the essential
-kinematics of the vehicle.
+nomenclature in [Moore2012]_ but with the tire-ground lateral slip nonholonomic
+constraint removed and replaced with a lateral tire force and self-aligning
+moment that are functions of the slip and camber angle of the wheels as well as
+a specified lateral displacement of the rear wheel contact to simulate
+perturbations applied by a kick plate.
 
 References
 ==========
@@ -28,7 +30,7 @@ import sympy as sm
 import sympy.physics.mechanics as mec
 
 from utils import (ReferenceFrame, decompose_linear_parts, cramer_solve,
-                   euler_integrate, print_syms)
+                   print_syms)
 
 ##################
 # Reference Frames
@@ -78,6 +80,9 @@ q1, q2, q3, q4 = mec.dynamicsymbols('q1, q2, q3, q4')
 q5, q6, q7, q8 = mec.dynamicsymbols('q5, q6, q7, q8')
 q9, q10 = mec.dynamicsymbols('q9, q10')
 
+# q's that will have kinematical differential equations
+qs = [q1, q2, q3, q4, q5, q6, q7, q8]
+
 # u1: speed of the rear wheel contact point in the n1> direction
 # u2: speed of the rear wheel contact point in the n2> direction
 # u3: frame yaw angular rate
@@ -88,6 +93,9 @@ q9, q10 = mec.dynamicsymbols('q9, q10')
 # u8: front wheel rotation angular rate
 u1, u2, u3, u4 = mec.dynamicsymbols('u1, u2, u3, u4')
 u5, u6, u7, u8 = mec.dynamicsymbols('u5, u6, u7, u8')
+
+# u's that will have dynamical differential equations
+us = [u1, u2, u3, u4, u5, u6, u7, u8]
 
 # u9: speed of the front wheel contact point in the n1> direction
 # u10: speed of the front wheel contact point in the n2> direction
@@ -245,9 +253,6 @@ print_syms(holonomic, "Holonomic constraint is a function of: ")
 
 print('Defining kinematical differential equations.')
 
-qs = [q1, q2, q3, q4, q5, q6, q7, q8]
-us = [u1, u2, u3, u4, u5, u6, u7, u8]
-
 kinematical = [
     q1.diff(t) - u1,  # rear x contact speed
     q2.diff(t) - u2,  # rear y contact speed
@@ -338,7 +343,7 @@ print('Defining nonholonomic constraints.')
 nonholonomic = [
     sm.trigsimp(dn.vel(N).dot(A['1'])),  # no rear longitudinal slip
     fn.vel(N).dot(g1_hat),  # no front longitudinal slip
-    fn_.vel(N).dot(A['3']),
+    fn_.vel(N).dot(A['3']),  # front contact can move vertically wrt ground
 ]
 
 tire_contact_vert_vel_expr = nonholonomic[2]
@@ -471,52 +476,35 @@ u_dots = [mec.dynamicsymbols(ui.name + 'p') for ui in us]
 ups = tuple(sm.ordered(u_dots))
 u_dot_subs = {ui.diff(): upi for ui, upi in zip(us, u_dots)}
 
-# Create matrices for solving for the dependent speeds.
-nonholonomic = sm.Matrix(nonholonomic).xreplace({u11: 0, u12: 0,
-                                                 y.diff(t): yd})
-print_syms(nonholonomic,
-           'The nonholonomic constraints are a function of these variables:')
-A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
-
-# Create function for solving for the derivatives of the dependent speeds.
-nonh_dot = sm.Matrix(nonholonomic).diff(t).xreplace(kane.kindiffdict())
-nonh_dot = nonh_dot.xreplace(u_dot_subs).xreplace({yd.diff(t): ydd})
-print_syms(nonh_dot, 'The derivative of the nonholonomic constraints'
-           'a function of these dynamic variables: ')
-A_pnh, B_pnh = decompose_linear_parts(nonh_dot, [u2p, u5p, u8p])
-
-# Create function for solving for the lateral forces.
-"""
-Should be linear in the forces? Or even always F1 + F2 + ... = 0, i.e.
-coefficient is 1?
-
-A(q, t)*[Ffz] - b(u', u, q, t) = 0
-        [Frz]
-
-M_a * u' + b_a * Ff + f_a(u, q, t) = 0
-
-"""
-aux_eqs = kane.auxiliary_eqs.xreplace({y.diff(t, 2): ydd, y.diff(t): yd})
-print_syms(aux_eqs, 'The auxiliary equations are a function of: ')
-A_aux, b_aux = decompose_linear_parts(aux_eqs, [Frz, Ffz])
-print_syms(A_aux, 'A_aux is a function of these variables: ')
-print_syms(b_aux, 'b_aux is a function of these variables: ')
-
-# We need to solve the dynamic equations and the auxiliary equations
-# simultaneously to avoid having to solve the dynamic equations first and then
-# substitute in the deritavies of the speeds. So reconstruct the equations of
-# motion.
-# TODO : simplify this by only decomposing the auxiliary equations and
-# constructing A_all, b_all from submatrices.
-print('Generating full equations of motion.')
-fr_plus_fr_star = kane.mass_matrix*kane.u.diff(t) - kane.forcing.xreplace({
+aux_zerod = {
     u11.diff(t): 0,
     u12.diff(t): 0,
     u11: 0,
     u12: 0,
-    y.diff(t, 2): ydd,
-    y.diff(t): yd,
-})
+}
+
+# Create matrices for solving for the dependent speeds.
+nonholonomic = sm.Matrix(nonholonomic).xreplace(aux_zerod | yd_repl)
+print_syms(nonholonomic,
+           'The nonholonomic constraints are a function of these variables:')
+A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
+
+aux_eqs = kane.auxiliary_eqs.xreplace({y.diff(t, 2): ydd, y.diff(t): yd})
+Af, Aup, B_aux = decompose_linear_parts(aux_eqs, [Frz, Ffz], ups)
+print_syms(aux_eqs, 'The auxiliary equations are a function of: ')
+
+# We need to solve the dynamic equations and the auxiliary equations
+# simultaneously to avoid having to solve the dynamic equations first and then
+# substitute in the derivatives of the speeds. So reconstruct the equations of
+# motion.
+# TODO : simplify this by only decomposing the auxiliary equations and
+# constructing A_all, b_all from submatrices.
+# [M,     0]*[up] = [F]
+# [Aup, Auf] [fz]   [-B_aux]
+# need to reorder the rows/cols of M and F to match the order of ups
+print('Generating full equations of motion.')
+fr_plus_fr_star = (kane.mass_matrix*kane.u.diff(t) -
+                   kane.forcing.xreplace(aux_zerod | yd_repl))
 all_dyn_eqs = fr_plus_fr_star.col_join(aux_eqs)
 
 x_all = tuple(ui.diff(t) for ui in us) + (Frz, Ffz)
@@ -690,10 +678,6 @@ res = solve_ivp(lambda t, x: rhs(t, x, p_arr)[0], (t0, tf),
                 initial_conditions, t_eval=times, method='LSODA')
 x_traj = res.y.T
 times = res.t
-
-#times, x_traj = euler_integrate(lambda t, x, p: rhs(t, x, p)[0],
-                                #(t0, tf), initial_conditions,
-                                #p_arr, delt=0.001)
 
 holonomic_vs_time = eval_holonomic(x_traj[:, 4],  # q5
                                    x_traj[:, 3],  # q4

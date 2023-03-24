@@ -20,18 +20,15 @@ References
 
 """
 
-import os
-
+from scipy.integrate import solve_ivp
+from scipy.optimize import fsolve
+import matplotlib.pyplot as plt
+import numpy as np
 import sympy as sm
 import sympy.physics.mechanics as mec
-from pydy.codegen.octave_code import OctaveMatrixGenerator
-from scipy.optimize import fsolve
-import numpy as np
-from scipy.integrate import solve_ivp
 
 from utils import (ReferenceFrame, decompose_linear_parts, cramer_solve,
                    euler_integrate, print_syms)
-
 
 ##################
 # Reference Frames
@@ -307,7 +304,9 @@ fn.v2pt_theory(fo, N, F)
 
 fn_ = mec.Point('fn')
 fn_.set_pos(fn, 0)
-fn_.set_vel(N, nd_.vel(N) + fn.pos_from(nd_).dt(N).xreplace(qdot_repl) + u12*A['3'])  # includes u11 and u12
+# includes u11 and u12
+fn_.set_vel(N, nd_.vel(N) + fn.pos_from(nd_).dt(N).xreplace(qdot_repl) +
+            u12*A['3'])
 
 # Slip angle components
 # project the velocity vectors at the contact point onto each wheel's yaw
@@ -346,7 +345,8 @@ tire_contact_vert_vel_expr = nonholonomic[2]
 
 print_syms(nonholonomic[0], "rear slip constraint is a function of: ")
 print_syms(nonholonomic[1], "front slip constraint is a function of: ")
-print_syms(nonholonomic[2], "wheel vertical contact vel constraint is a function of: ")
+print_syms(nonholonomic[2],
+           "wheel vertical contact vel constraint is a function of: ")
 
 common = mec.find_dynamicsymbols(nonholonomic[0]).intersection(
     mec.find_dynamicsymbols(nonholonomic[0])).intersection(
@@ -472,22 +472,18 @@ ups = tuple(sm.ordered(u_dots))
 u_dot_subs = {ui.diff(): upi for ui, upi in zip(us, u_dots)}
 
 # Create matrices for solving for the dependent speeds.
-nonholonomic = sm.Matrix(nonholonomic).xreplace({u11: 0, u12: 0, y.diff(t): yd})
-
+nonholonomic = sm.Matrix(nonholonomic).xreplace({u11: 0, u12: 0,
+                                                 y.diff(t): yd})
 print_syms(nonholonomic,
-           'The nonholonomic constraints a function of these dynamic variables:')
-
+           'The nonholonomic constraints are a function of these variables:')
 A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
 
 # Create function for solving for the derivatives of the dependent speeds.
-nonholonomic_dot = sm.Matrix(nonholonomic).diff(t).xreplace(kane.kindiffdict())
-nonholonomic_dot = nonholonomic_dot.xreplace(u_dot_subs).xreplace({yd.diff(t): ydd})
-
-print_syms(nonholonomic_dot, 'The derivative of the nonholonomic constraints'
+nonh_dot = sm.Matrix(nonholonomic).diff(t).xreplace(kane.kindiffdict())
+nonh_dot = nonh_dot.xreplace(u_dot_subs).xreplace({yd.diff(t): ydd})
+print_syms(nonh_dot, 'The derivative of the nonholonomic constraints'
            'a function of these dynamic variables: ')
-
-A_pnh, B_pnh = decompose_linear_parts(nonholonomic_dot, [u2p, u5p, u8p])
-
+A_pnh, B_pnh = decompose_linear_parts(nonh_dot, [u2p, u5p, u8p])
 
 # Create function for solving for the lateral forces.
 """
@@ -501,14 +497,10 @@ M_a * u' + b_a * Ff + f_a(u, q, t) = 0
 
 """
 aux_eqs = kane.auxiliary_eqs.xreplace({y.diff(t, 2): ydd, y.diff(t): yd})
-
-print_syms(aux_eqs,
-           'The auxiliary equations are a function of these dynamic variables: ')
-
+print_syms(aux_eqs, 'The auxiliary equations are a function of: ')
 A_aux, b_aux = decompose_linear_parts(aux_eqs, [Frz, Ffz])
-
-print_syms(A_aux, 'A_aux is a function of these dynamic variables: ')
-print_syms(b_aux, 'b_aux is a function of these dynamic variables: ')
+print_syms(A_aux, 'A_aux is a function of these variables: ')
+print_syms(b_aux, 'b_aux is a function of these variables: ')
 
 # We need to solve the dynamic equations and the auxiliary equations
 # simultaneously to avoid having to solve the dynamic equations first and then
@@ -541,12 +533,12 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, rs, ps]]))
 @np.vectorize
 def calc_y(t):
 
-    if t < 0.2:
-        y = 0.8*t
+    if t < 0.5:
+        y = 0.2*t
         yd = 0.2
         ydd = 0.0
     else:
-        y, yd, ydd = 0.0, 0.0, 0.0
+        y, yd, ydd = 0.2*0.5, 0.0, 0.0
 
     return y, yd, ydd
 
@@ -584,13 +576,13 @@ def rhs(t, x, p):
 
     return np.hstack((u, xplus[:8])), xplus[-2:]
 
-# calculate later tire forces
+
 # coefficient estimating form Fig 11 in Dressel & Rahman 2012
 normalized_cornering_coeff = (0.55 - 0.1)/np.deg2rad(3.0 - 0.5)  # about 10
 
 p_vals = {
-   cf: 10.0,
-   cr: 10.0,
+   cf: normalized_cornering_coeff,
+   cr: normalized_cornering_coeff,
    d1: 0.9534570696121849,
    d2: 0.2676445084476887,
    d3: 0.03207142672761929,
@@ -618,6 +610,7 @@ p_vals = {
    rf: 0.35,
    rr: 0.3,
 }
+p_arr = np.array(list(p_vals.values()))
 
 # initial coordinates
 q_vals = np.array([
@@ -627,7 +620,7 @@ q_vals = np.array([
     0.0,  # q4
     np.nan,  # q5
     0.0,  # q6
-    1e-14,  # q7  # setting to zero gives singular matrix
+    1e-14,  # q7, setting to zero gives singular matrix
     0.0,  # q8
 ])
 eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic)
@@ -657,7 +650,7 @@ u_vals = np.array([
 ])
 eval_dep_speeds = sm.lambdify([qs, u_ind, [yd], ps], [A_nh, -B_nh], cse=True)
 A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals, u_vals[[2, 3, 5, 6, 7]], [0.0],
-                                       list(p_vals.values()))
+                                       p_arr)
 u_vals[[0, 1, 4]] = np.linalg.solve(A_nh_vals, B_nh_vals).squeeze()
 print('Initial dependent speeds (u1, u2, u5): ',
       u_vals[0], u_vals[1], np.rad2deg(u_vals[4]))
@@ -666,7 +659,7 @@ print('Initial speeds: ', u_vals)
 initial_conditions = np.hstack((q_vals, u_vals))
 
 print('Test rhs with initial conditions and correct constants:')
-print(rhs(0.0, initial_conditions, list(p_vals.values())))
+print(rhs(0.0, initial_conditions, p_arr))
 
 fps = 100  # frames per second
 duration = 6.0  # seconds
@@ -674,36 +667,37 @@ t0 = 0.0
 tf = t0 + duration
 times = np.linspace(t0, tf, num=int(duration*fps))
 
-res = solve_ivp(lambda t, x: rhs(t, x, list(p_vals.values()))[0], (t0, tf),
+res = solve_ivp(lambda t, x: rhs(t, x, p_arr)[0], (t0, tf),
                 initial_conditions, t_eval=times, method='LSODA')
 x_traj = res.y.T
 times = res.t
 
 #times, x_traj = euler_integrate(lambda t, x, p: rhs(t, x, p)[0],
                                 #(t0, tf), initial_conditions,
-                                #list(p_vals.values()), delt=0.001)
+                                #p_arr, delt=0.001)
 
-#holonomic_vs_time  = eval_holonomic(x_trajectory[:, 3],  # q5
-                                    #x_trajectory[:, 1],  # q4
-                                    #x_trajectory[:, 2],  # q7
-                                    #sys.constants[d1],
-                                    #sys.constants[d2],
-                                    #sys.constants[d3],
-                                    #sys.constants[rf],
-                                    #sys.constants[rr])
+holonomic_vs_time = eval_holonomic(x_traj[:, 4],  # q5
+                                   x_traj[:, 3],  # q4
+                                   x_traj[:, 6],  # q7
+                                   p_vals[d1],
+                                   p_vals[d2],
+                                   p_vals[d3],
+                                   p_vals[rf],
+                                   p_vals[rr])
 
-import matplotlib.pyplot as plt
-deg = [False, False, True, True, True, True, True, True,]
-fig, axes = plt.subplots(x_traj.shape[1], 1, sharex=True)
+deg = [False, False, True, True, True, True, True, True]
+fig, axes = plt.subplots(x_traj.shape[1] + 1, 1, sharex=True)
 fig.set_size_inches(8, 10)
 for i, (ax, traj, s, degi) in enumerate(zip(axes, x_traj.T,
                                             qs + us, deg + deg)):
     if i == 1:
-        traj = traj + calc_y(times)[0]
+        traj = traj  # + calc_y(times)[0]
     if degi:
         traj = np.rad2deg(traj)
     ax.plot(times, traj)
     ax.set_ylabel(s)
+axes[-1].plot(times, holonomic_vs_time)
+axes[-1].set_ylabel('holo')
 axes[-1].set_xlabel('Time [s]')
 plt.tight_layout()
 plt.show()

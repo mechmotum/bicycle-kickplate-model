@@ -1,3 +1,6 @@
+import os
+
+from pydy.codegen.octave_code import OctaveMatrixGenerator
 ###########################
 # Generate Octave Functions
 ###########################

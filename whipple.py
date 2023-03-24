@@ -584,6 +584,10 @@ def rhs(t, x, p):
     return np.hstack((u, xplus[:8])), xplus[-2:]
 
 
+########################
+# Setup Numerical Values
+########################
+
 # coefficient estimating form Fig 11 in Dressel & Rahman 2012
 normalized_cornering_coeff = (0.55 - 0.1)/np.deg2rad(3.0 - 0.5)  # about 10
 
@@ -667,6 +671,10 @@ initial_conditions = np.hstack((q_vals, u_vals))
 
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, p_arr))
+
+##########
+# Simulate
+##########
 
 fps = 100  # frames per second
 duration = 6.0  # seconds

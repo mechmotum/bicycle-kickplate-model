@@ -151,6 +151,7 @@ E.orient(C, 'Axis', (q7, C['3']))
 # contact path. A['3'] X G['1'] gives this unit vector.
 g1_hat = E['2'].cross(A['3']).normalize()
 g2_hat = A['3'].cross(g1_hat)
+g3_hat = g1_hat.cross(g2_hat)
 
 ###########
 # Constants
@@ -191,7 +192,7 @@ ie11, ie22, ie33, ie31 = sm.symbols('ie11, ie22, ie33, ie31')
 if11, if22 = sm.symbols('if11, if22')
 
 # tire lateral load normalized cornering coefficient
-cr, cf = sm.symbols('cr, cf')
+c_ar, c_af, c_pr, c_pf = sm.symbols('c_ar, c_af, c_pr, c_pf')
 
 ##################
 # Position Vectors
@@ -397,8 +398,8 @@ Ffo = (fo, mf*g*A['3'])
 # tire-ground lateral forces
 # Fry : rear wheel-ground contact lateral force
 # Ffy : front wheel-ground contact lateral force
-Fry = -cr*Frz*sm.atan(N_v_nd2/N_v_nd1)
-Ffy = -cf*Ffz*sm.atan(N_v_fn2/N_v_fn1)
+Fry = -c_ar*Frz*sm.atan(N_v_nd2/N_v_nd1) + c_pr*Frz*q4
+Ffy = -c_af*Ffz*sm.atan(N_v_fn2/N_v_fn1) + c_pf*Ffz*g3_hat.angle_between(A['3'])
 Fydn = (nd_, Fry*A['2'])
 Fyfn = (fn_, Ffy*g2_hat)
 
@@ -439,8 +440,9 @@ u_dep = (u1, u2, u5)
 u_aux = (u11, u12)
 us = tuple(sm.ordered(u_ind + u_dep))
 
-ps = (cf, cr, d1, d2, d3, g, ic11, ic22, ic31, ic33, id11, id22, ie11, ie22,
-      ie31, ie33, if11, if22, l1, l2, l3, l4, mc, md, me, mf, rf, rr)
+ps = (c_af, c_ar, c_pf, c_pr, d1, d2, d3, g, ic11, ic22, ic31, ic33, id11,
+      id22, ie11, ie22, ie31, ie33, if11, if22, l1, l2, l3, l4, mc, md, me, mf,
+      rf, rr)
 rs = (T4, T6, T7, Mrz, Mfz, y, yd, ydd)
 holon = (holonomic,)
 nonho = tuple(nonholonomic)
@@ -588,12 +590,11 @@ def rhs(t, x, p):
 # Setup Numerical Values
 ########################
 
-# coefficient estimating form Fig 11 in Dressel & Rahman 2012
-normalized_cornering_coeff = (0.55 - 0.1)/np.deg2rad(3.0 - 0.5)  # about 10
-
 p_vals = {
-   cf: normalized_cornering_coeff,
-   cr: normalized_cornering_coeff,
+   c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
+   c_ar: 11.46,
+   c_pf: 0.573,
+   c_pr: 0.573,
    d1: 0.9534570696121849,
    d2: 0.2676445084476887,
    d3: 0.03207142672761929,

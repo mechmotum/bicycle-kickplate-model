@@ -665,7 +665,7 @@ u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
-    0.5,  # u4, rad/s
+    -0.5,  # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7
@@ -715,18 +715,29 @@ holonomic_vs_time = eval_holonomic(x_traj[:, 4],  # q5
                                    p_vals[rr])
 
 deg = [False, False, True, True, True, True, True, True]
-fig, axes = plt.subplots(x_traj.shape[1] + 2, 1, sharex=True)
+fig, axes = plt.subplots(9, 2, sharex=True)
+q_traj = x_traj[:, :8]
+u_traj = x_traj[:, 8:]
 fig.set_size_inches(8, 10)
-for i, (ax, traj, s, degi) in enumerate(zip(axes, x_traj.T,
-                                            qs + us, deg + deg)):
+for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 0], q_traj.T, qs, deg)):
+    unit = '[m]'
     if degi:
         traj = np.rad2deg(traj)
+        unit = '[deg]'
     ax.plot(times, traj)
-    ax.set_ylabel(s)
-axes[-2].plot(times, calc_y(times)[0])
-axes[-2].set_ylabel('y')
-axes[-1].plot(times, holonomic_vs_time)
-axes[-1].set_ylabel('holo')
-axes[-1].set_xlabel('Time [s]')
+    ax.set_ylabel(str(s) + ' ' + unit)
+for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 1], u_traj.T, us, deg)):
+    unit = '[m/s]'
+    if degi:
+        traj = np.rad2deg(traj)
+        unit = '[deg/s]'
+    ax.plot(times, traj)
+    ax.set_ylabel(str(s) + ' ' + unit)
+axes[-1, 0].plot(times, calc_y(times)[0])
+axes[-1, 0].set_ylabel('y [m]')
+axes[-1, 0].set_xlabel('Time [s]')
+axes[-1, 1].plot(times, holonomic_vs_time)
+axes[-1, 1].set_ylabel('constraint [m]')
+axes[-1, 1].set_xlabel('Time [s]')
 plt.tight_layout()
 plt.show()

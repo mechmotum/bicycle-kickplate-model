@@ -536,18 +536,16 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, rs, ps]]))
 ############################
 
 
-@np.vectorize
 def calc_y(t):
 
-    slope = 0.2
-    dur = 0.5
+    a = 0.1  # height
+    b = -4.0  # shift to the right (neg val)
+    c = 10.0  # narrow the pulse
 
-    if t < dur:
-        y = slope*t
-        yd = slope
-        ydd = 0.0
-    else:
-        y, yd, ydd = slope*dur, 0.0, 0.0
+    # Gaussian error function exp(-x**2)
+    y = a*np.exp(-(b + c*t)**2)
+    yd = -2*a*c*(b + c*t)*np.exp(-(b + c*t)**2)
+    ydd = 2*a*c**2*(2*(b + c*t)**2 - 1)*np.exp(-(b + c*t)**2)
 
     return y, yd, ydd
 
@@ -717,16 +715,16 @@ holonomic_vs_time = eval_holonomic(x_traj[:, 4],  # q5
                                    p_vals[rr])
 
 deg = [False, False, True, True, True, True, True, True]
-fig, axes = plt.subplots(x_traj.shape[1] + 1, 1, sharex=True)
+fig, axes = plt.subplots(x_traj.shape[1] + 2, 1, sharex=True)
 fig.set_size_inches(8, 10)
 for i, (ax, traj, s, degi) in enumerate(zip(axes, x_traj.T,
                                             qs + us, deg + deg)):
-    if i == 1:
-        traj = traj  # + calc_y(times)[0]
     if degi:
         traj = np.rad2deg(traj)
     ax.plot(times, traj)
     ax.set_ylabel(s)
+axes[-2].plot(times, calc_y(times)[0])
+axes[-2].set_ylabel('y')
 axes[-1].plot(times, holonomic_vs_time)
 axes[-1].set_ylabel('holo')
 axes[-1].set_xlabel('Time [s]')

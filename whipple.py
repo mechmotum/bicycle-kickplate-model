@@ -117,10 +117,8 @@ y, yd, ydd = mec.dynamicsymbols('y, y_d, y_dd')
 T4, T6, T7 = mec.dynamicsymbols('T4, T6, T7')
 
 # Frz : rear wheel-ground contact normal force
-# Mrz : rear wheel-ground contact self-aligning moment
 # Ffz : front wheel-ground contact normal force
-# Mfz : front rear wheel-ground contact self-aligning moment
-Frz, Mrz, Ffz, Mfz = mec.dynamicsymbols('Frz, Mrz, Ffz, Mfz')
+Frz, Ffz = mec.dynamicsymbols('Frz, Ffz')
 
 #################################
 # Orientation of Reference Frames
@@ -191,8 +189,10 @@ id11, id22 = sm.symbols('id11, id22')
 ie11, ie22, ie33, ie31 = sm.symbols('ie11, ie22, ie33, ie31')
 if11, if22 = sm.symbols('if11, if22')
 
-# tire lateral load normalized cornering coefficient
+# tire vertical load normalized cornering coefficient
 c_ar, c_af, c_pr, c_pf = sm.symbols('c_ar, c_af, c_pr, c_pf')
+# veritcal load normalized coefficients for self aligning moment
+c_mar, c_maf, c_mpr, c_mpf = sm.symbols('c_mar, c_maf, c_mpr, c_mpf')
 
 ##################
 # Position Vectors
@@ -398,8 +398,20 @@ Ffo = (fo, mf*g*A['3'])
 # tire-ground lateral forces
 # Fry : rear wheel-ground contact lateral force
 # Ffy : front wheel-ground contact lateral force
-Fry = -c_ar*Frz*sm.atan(N_v_nd2/N_v_nd1) + c_pr*Frz*q4
-Ffy = -c_af*Ffz*sm.atan(N_v_fn2/N_v_fn1) + c_pf*Ffz*g3_hat.angle_between(A['3'])
+# slip angle
+alphar = sm.atan(N_v_nd2/N_v_nd1)
+alphaf = sm.atan(N_v_fn2/N_v_fn1)
+# camber angle
+phir = q4
+phif = g3_hat.angle_between(A['3'])
+Fry = -c_ar*Frz*alphar + c_pr*Frz*phir
+Ffy = -c_af*Ffz*alphaf + c_pf*Ffz*phif
+# Mrz : rear wheel-ground contact self-aligning moment
+# Mfz : front rear wheel-ground contact self-aligning moment
+# TODO : Check the signs of these components in the moments
+Mrz = c_mar*Frz*alphar + c_mpr*Frz*phir
+Mfz = c_maf*Ffz*alphaf + c_mpf*Ffz*phif
+
 Fydn = (nd_, Fry*A['2'])
 Fyfn = (fn_, Ffy*g2_hat)
 
@@ -440,10 +452,10 @@ u_dep = (u1, u2, u5)
 u_aux = (u11, u12)
 us = tuple(sm.ordered(u_ind + u_dep))
 
-ps = (c_af, c_ar, c_pf, c_pr, d1, d2, d3, g, ic11, ic22, ic31, ic33, id11,
-      id22, ie11, ie22, ie31, ie33, if11, if22, l1, l2, l3, l4, mc, md, me, mf,
-      rf, rr)
-rs = (T4, T6, T7, Mrz, Mfz, y, yd, ydd)
+ps = (c_af, c_ar, c_pf, c_pr, c_maf, c_mar, c_mpf, c_mpr, d1, d2, d3, g, ic11,
+      ic22, ic31, ic33, id11, id22, ie11, ie22, ie31, ie33, if11, if22, l1, l2,
+      l3, l4, mc, md, me, mf, rf, rr)
+rs = (T4, T6, T7, y, yd, ydd)
 holon = (holonomic,)
 nonho = tuple(nonholonomic)
 
@@ -572,10 +584,7 @@ def rhs(t, x, p):
     # kickplate motion set to zero
     y, yd, ydd = calc_y(t)
 
-    # set self-aligning moments to zero
-    Mrz, Mfz = 0.0, 0.0
-
-    r = [T4, T6, T7, Mrz, Mfz, y, yd, ydd]
+    r = [T4, T6, T7, y, yd, ydd]
 
     # This solves for the generalized accelerations and the normal forces at
     # the tire contact.
@@ -595,6 +604,10 @@ p_vals = {
    c_ar: 11.46,
    c_pf: 0.573,
    c_pr: 0.573,
+   c_maf: 0.0001,  # need real numbers for these
+   c_mar: 0.0001,
+   c_mpf: 0.0001,
+   c_mpr: 0.0001,
    d1: 0.9534570696121849,
    d2: 0.2676445084476887,
    d3: 0.03207142672761929,

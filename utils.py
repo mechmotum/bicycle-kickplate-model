@@ -12,7 +12,7 @@ def print_syms(expr, note=''):
         co_syms.remove(mec.dynamicsymbols._t)
     except ValueError:
         pass
-    print(note + str(dy_syms) + ' & ' + str(co_syms))
+    print('{}\n    {}\n    {}'.format(note, dy_syms, co_syms))
 
 
 @cacheit

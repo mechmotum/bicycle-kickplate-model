@@ -468,9 +468,9 @@ kane = mec.KanesMethod(
 
 Fr, Frstar = kane.kanes_equations(bodies, loads=loads)
 
-###########################
-# Generate Octave Functions
-###########################
+###################
+# Assemble Full EoM
+###################
 
 u1p, u3p, u4p, u6p, u7p = mec.dynamicsymbols('u1p, u3p, u4p, u6p, u7p')
 u2p, u5p, u8p = mec.dynamicsymbols('u2p, u5p, u8p')
@@ -485,11 +485,6 @@ aux_zerod = {
     u12: 0,
 }
 
-# Create matrices for solving for the dependent speeds.
-nonholonomic = sm.Matrix(nonholonomic).xreplace(aux_zerod | yd_repl)
-print_syms(nonholonomic,
-           'The nonholonomic constraints are a function of these variables:')
-A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
 
 aux_eqs = kane.auxiliary_eqs.xreplace(yd_repl)
 print_syms(aux_eqs, 'The auxiliary equations are a function of: ')
@@ -503,6 +498,7 @@ print_syms(aux_eqs, 'The auxiliary equations are a function of: ')
 print('Assembling full equations of motion.')
 Af, Ap, B_aux = decompose_linear_parts(aux_eqs, [Frz, Ffz],
                                        sm.Matrix(us).diff(t))
+# KanesMethod stores the qs and us unordered, so fix.
 new_order = [2, 3, 5, 6, 7, 0, 1, 4]
 mass_matrix = sm.zeros(*kane.mass_matrix.shape)
 forcing = sm.zeros(*kane.forcing.shape)
@@ -522,6 +518,10 @@ print('Lambdifying full equations of motion.')
 eval_dynamic = sm.lambdify([qs, us, rs, ps], [A_all, b_all], cse=True)
 print('Test eval_dynamics with all ones: ')
 print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, rs, ps]]))
+
+############################
+# Create ODE right hand side
+############################
 
 
 @np.vectorize
@@ -660,6 +660,12 @@ u_vals = np.array([
     0.0,  # u7
     -initial_speed/p_vals[rf],  # u8
 ])
+
+# Create matrices for solving for the dependent speeds.
+nonholonomic = sm.Matrix(nonholonomic).xreplace(aux_zerod | yd_repl)
+print_syms(nonholonomic,
+           'The nonholonomic constraints are a function of these variables:')
+A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
 eval_dep_speeds = sm.lambdify([qs, u_ind, [yd], ps], [A_nh, -B_nh], cse=True)
 A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals, u_vals[[2, 3, 5, 6, 7]], [0.0],
                                        p_arr)

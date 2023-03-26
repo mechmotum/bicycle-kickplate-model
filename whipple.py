@@ -573,8 +573,8 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
 
 def calc_y(t):
 
-    L = 0.1  # height
-    k = 20.0  # steepness
+    L = 0.4  # height
+    k = 100.0  # steepness
     t0 = 1.0  # shift to the right
 
     # logistic function
@@ -669,10 +669,10 @@ p_vals = {
    mf: 3.0,
    rf: 0.35,
    rr: 0.3,
-   s_yf: 0.1,  # need real numbers for this
-   s_yr: 0.1,  # need real numbers for this
-   s_zf: 0.1,  # need real numbers for this
-   s_zr: 0.1,  # need real numbers for this
+   s_yf: 0.15,  # need real numbers for this
+   s_yr: 0.15,  # need real numbers for this
+   s_zf: 0.15,  # need real numbers for this
+   s_zr: 0.15,  # need real numbers for this
 }
 p_arr = np.array(list(p_vals.values()))
 
@@ -706,7 +706,7 @@ u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
-    0.0,  # u4, rad/s
+    0.1,  # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7

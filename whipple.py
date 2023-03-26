@@ -120,6 +120,14 @@ T4, T6, T7 = mec.dynamicsymbols('T4, T6, T7')
 # Ffz : front wheel-ground contact normal force
 Frz, Ffz = mec.dynamicsymbols('Frz, Ffz')
 
+# Fry : rear wheel-ground contact lateral force
+# Ffy : front wheel-ground contact lateral force
+Fry, Ffy = mec.dynamicsymbols('Fry, Ffy')
+
+# Mrz : rear wheel-ground contact self-aligning moment
+# Mfz : front rear wheel-ground contact self-aligning moment
+Mrz, Mfz = mec.dynamicsymbols('Mrz, Mfz')
+
 #################################
 # Orientation of Reference Frames
 #################################
@@ -193,6 +201,9 @@ if11, if22 = sm.symbols('if11, if22')
 c_ar, c_af, c_pr, c_pf = sm.symbols('c_ar, c_af, c_pr, c_pf')
 # veritcal load normalized coefficients for self aligning moment
 c_mar, c_maf, c_mpr, c_mpf = sm.symbols('c_mar, c_maf, c_mpr, c_mpf')
+
+# relaxation lengths for the lateral force and self-aligning moments
+s_yr, s_yf, s_zr, s_zf = sm.symbols('s_yr, s_yf, s_zr, s_zf')
 
 ##################
 # Position Vectors
@@ -396,21 +407,6 @@ Feo = (eo, me*g*A['3'])
 Ffo = (fo, mf*g*A['3'])
 
 # tire-ground lateral forces
-# Fry : rear wheel-ground contact lateral force
-# Ffy : front wheel-ground contact lateral force
-# slip angle
-alphar = sm.atan(N_v_nd2/N_v_nd1)
-alphaf = sm.atan(N_v_fn2/N_v_fn1)
-# camber angle
-phir = q4
-phif = g3_hat.angle_between(A['3'])
-Fry = -c_ar*Frz*alphar + c_pr*Frz*phir
-Ffy = -c_af*Ffz*alphaf + c_pf*Ffz*phif
-# Mrz : rear wheel-ground contact self-aligning moment
-# Mfz : front rear wheel-ground contact self-aligning moment
-# TODO : Check the signs of these components in the moments
-Mrz = c_mar*Frz*alphar + c_mpr*Frz*phir
-Mfz = c_maf*Ffz*alphaf + c_mpf*Ffz*phif
 
 Fydn = (nd_, Fry*A['2'])
 Fyfn = (fn_, Ffy*g2_hat)
@@ -452,9 +448,11 @@ u_dep = (u1, u2, u5)
 u_aux = (u11, u12)
 us = tuple(sm.ordered(u_ind + u_dep))
 
+fs = (Fry, Ffy, Mrz, Mfz)
+
 ps = (c_af, c_ar, c_pf, c_pr, c_maf, c_mar, c_mpf, c_mpr, d1, d2, d3, g, ic11,
       ic22, ic31, ic33, id11, id22, ie11, ie22, ie31, ie33, if11, if22, l1, l2,
-      l3, l4, mc, md, me, mf, rf, rr)
+      l3, l4, mc, md, me, mf, rf, rr, s_yf, s_yr, s_zf, s_zr)
 rs = (T4, T6, T7, y, yd, ydd)
 holon = (holonomic,)
 nonho = tuple(nonholonomic)
@@ -478,7 +476,7 @@ kane = mec.KanesMethod(
     constraint_solver=cramer_solve,
 )
 
-Fr, Frstar = kane.kanes_equations(bodies, loads=loads)
+kane.kanes_equations(bodies, loads=loads)
 
 ###################
 # Assemble Full EoM
@@ -501,12 +499,43 @@ aux_zerod = {
 aux_eqs = kane.auxiliary_eqs.xreplace(yd_repl)
 print_syms(aux_eqs, 'The auxiliary equations are a function of: ')
 
+# Tire forces
+# Relaxation length differential equation looks like so:
+# (s_r/N_v_nd1)*Fyr' + Fyr = (-c_ar*alphar + c_pr*phir)*Frz
+# slip angle
+alphar = sm.atan(N_v_nd2/N_v_nd1)
+alphaf = sm.atan(N_v_fn2/N_v_fn1)
+# camber angle
+phir = q4
+phif = g3_hat.angle_between(A['3'])
+
+Cf = sm.Matrix([
+    [(s_yr/N_v_nd1), 0],
+    [0, (s_yf/N_v_fn1)],
+])
+Cz = sm.Matrix([
+    [-(-c_ar*alphar + c_pr*phir), 0],
+    [0, -(-c_af*alphaf + c_pf*phif)],
+])
+Df = sm.Matrix([
+    [(s_zr/N_v_nd1), 0],
+    [0, (s_zf/N_v_fn1)],
+])
+Dz = sm.Matrix([
+    [-(-c_mar*alphar + c_mpr*phir), 0],
+    [0, -(-c_maf*alphaf + c_mpf*phif)],
+])
+nFy = -sm.Matrix([Fry, Ffy])
+nMz = -sm.Matrix([Mrz, Mfz])
+
 # We need to solve the dynamic equations and the auxiliary equations
 # simultaneously to avoid having to solve the dynamic equations first and then
 # substitute in the derivatives of the speeds. So reconstruct the equations of
 # motion to this form:
-# [M,   -Mf]*[up] = [F]
-# [Ap,   Af] [fz]   [-B_aux]
+# [Mp  0,  0, -Mf]*[up ] = [F     ]
+# [0, Cf,  0,  Cz] [fyp]   [-Fy   ]
+# [0,  0, Df,  Dz] [mzp]   [-Mz   ]
+# [Ap, 0,  0,  Af] [fz ]   [-B_aux]
 print('Assembling full equations of motion.')
 Af, Ap, B_aux = decompose_linear_parts(aux_eqs, [Frz, Ffz],
                                        sm.Matrix(us).diff(t))
@@ -520,16 +549,22 @@ for i in range(mass_matrix.shape[0]):
     for j in range(mass_matrix.shape[1]):
         mass_matrix[new_order[i], new_order[j]] = kane.mass_matrix[i, j]
 Mf, forcing = decompose_linear_parts(forcing, [Frz, Ffz])
-A_all = mass_matrix.row_join(-Mf).col_join(Ap.row_join(Af))
-b_all = forcing.col_join(-B_aux)
+
+row1 = mass_matrix.row_join(sm.zeros(8, 4)).row_join(-Mf)
+row2 = sm.zeros(2, 8).row_join(Cf).row_join(sm.zeros(2, 2)).row_join(Cz)
+row3 = sm.zeros(2, 8).row_join(sm.zeros(2, 2)).row_join(Df).row_join(Dz)
+row4 = Ap.row_join(sm.zeros(2, 4)).row_join(Af)
+
+A_all = row1.col_join(row2).col_join(row3).col_join(row4)
+b_all = forcing.col_join(nFy).col_join(nMz).col_join(-B_aux)
 
 print_syms(A_all, 'A_all is a function of these dynamic variables: ')
 print_syms(b_all, 'b_all is a function of these dynamic variables: ')
 
 print('Lambdifying full equations of motion.')
-eval_dynamic = sm.lambdify([qs, us, rs, ps], [A_all, b_all], cse=True)
+eval_dynamic = sm.lambdify([qs, us, fs, rs, ps], [A_all, b_all], cse=True)
 print('Test eval_dynamics with all ones: ')
-print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, rs, ps]]))
+print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
 
 ############################
 # Create ODE right hand side
@@ -538,8 +573,8 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, rs, ps]]))
 
 def calc_y(t):
 
-    L = 0.1  # height
-    k = 20.0  # steepness
+    L = 0.4  # height
+    k = 100.0  # steepness
     t0 = 1.0  # shift to the right
 
     # logistic function
@@ -557,15 +592,15 @@ def rhs(t, x, p):
     ==========
     t : float
         Time value in seconds.
-    x : array_like, shape(16,)
+    x : array_like, shape(20,)
         State values where x = [q1, q2, q3, q4, q5, q6, q7, q8, u1, u2, u3, u4,
-        u5, u6, u7, u8].
+        u5, u6, u7, u8, Fry, Ffy, Mrz, Mfz].
     p : array_like, shape(28,)
         Constant values.
 
     Returns
     =======
-    xdot : ndarray, shape(16,)
+    xdot : ndarray, shape(20,)
         Time derivative of the state.
     force : ndarray, shape(2,)
         Ground normal force magnitudes at the rear and front wheel contacts.
@@ -576,6 +611,7 @@ def rhs(t, x, p):
 
     q = x[:8]
     u = x[8:16]
+    f = x[16:20]
 
     # steer, rear wheel, roll torques set to zero
     T4, T6, T7 = 0.0, 0.0, 0.0
@@ -587,11 +623,11 @@ def rhs(t, x, p):
 
     # This solves for the generalized accelerations and the normal forces at
     # the tire contact.
-    A, b = eval_dynamic(q, u, r, p)
+    A, b = eval_dynamic(q, u, f, r, p)
     # xplus = [us', Frz, Ffz]
     xplus = np.linalg.solve(A, b).squeeze()
 
-    return np.hstack((u, xplus[:8])), xplus[-2:]
+    return np.hstack((u, xplus[:12])), xplus[-2:]
 
 
 ########################
@@ -603,10 +639,10 @@ p_vals = {
    c_ar: 11.46,
    c_pf: 0.573,
    c_pr: 0.573,
-   c_maf: 0.0001,  # need real numbers for these
-   c_mar: 0.0001,
-   c_mpf: 0.0001,
-   c_mpr: 0.0001,
+   c_maf: 0.01,  # need real numbers for this
+   c_mar: 0.01,  # need real numbers for this
+   c_mpf: 0.01,  # need real numbers for this
+   c_mpr: 0.01,  # need real numbers for this
    d1: 0.9534570696121849,
    d2: 0.2676445084476887,
    d3: 0.03207142672761929,
@@ -633,6 +669,10 @@ p_vals = {
    mf: 3.0,
    rf: 0.35,
    rr: 0.3,
+   s_yf: 0.15,  # need real numbers for this
+   s_yr: 0.15,  # need real numbers for this
+   s_zf: 0.15,  # need real numbers for this
+   s_zr: 0.15,  # need real numbers for this
 }
 p_arr = np.array(list(p_vals.values()))
 
@@ -666,7 +706,7 @@ u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
-    0.0,  # u4, rad/s
+    0.1,  # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7
@@ -686,7 +726,11 @@ print('Initial dependent speeds (u1, u2, u5): ',
       u_vals[0], u_vals[1], np.rad2deg(u_vals[4]))
 print('Initial speeds: ', u_vals)
 
-initial_conditions = np.hstack((q_vals, u_vals))
+# initial tire forces
+# TODO : Need to figure out how we know the initial state of the tire forces.
+f_vals = np.array([0.0, 0.0, 0.0, 0.0])
+
+initial_conditions = np.hstack((q_vals, u_vals, f_vals))
 
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, p_arr))
@@ -716,9 +760,10 @@ holonomic_vs_time = eval_holonomic(x_traj[:, 4],  # q5
                                    p_vals[rr])
 
 deg = [False, False, True, True, True, True, True, True]
-fig, axes = plt.subplots(9, 2, sharex=True)
+fig, axes = plt.subplots(11, 2, sharex=True)
 q_traj = x_traj[:, :8]
-u_traj = x_traj[:, 8:]
+u_traj = x_traj[:, 8:16]
+f_traj = x_traj[:, 16:]
 fig.set_size_inches(8, 10)
 for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 0], q_traj.T, qs, deg)):
     unit = '[m]'
@@ -726,19 +771,29 @@ for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 0], q_traj.T, qs, deg)):
         traj = np.rad2deg(traj)
         unit = '[deg]'
     ax.plot(times, traj)
-    ax.set_ylabel(str(s) + ' ' + unit)
+    ax.set_ylabel(str(s) + '\n' + unit)
 for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 1], u_traj.T, us, deg)):
     unit = '[m/s]'
     if degi:
         traj = np.rad2deg(traj)
         unit = '[deg/s]'
     ax.plot(times, traj)
-    ax.set_ylabel(str(s) + ' ' + unit)
+    ax.set_ylabel(str(s) + '\n' + unit)
+
+axes[8, 0].plot(times, f_traj[:, 0])
+axes[8, 0].set_ylabel(str(fs[0]) + '\n[N]')
+axes[9, 0].plot(times, f_traj[:, 1])
+axes[9, 0].set_ylabel(str(fs[1]) + '\n[N]')
+axes[8, 1].plot(times, f_traj[:, 2])
+axes[8, 1].set_ylabel(str(fs[2]) + '\n[N-m]')
+axes[9, 1].plot(times, f_traj[:, 3])
+axes[9, 1].set_ylabel(str(fs[3]) + '\n[N-m]')
+
 axes[-1, 0].plot(times, calc_y(times)[0])
-axes[-1, 0].set_ylabel('y [m]')
+axes[-1, 0].set_ylabel('y\n[m]')
 axes[-1, 0].set_xlabel('Time [s]')
 axes[-1, 1].plot(times, holonomic_vs_time)
-axes[-1, 1].set_ylabel('constraint [m]')
+axes[-1, 1].set_ylabel('constraint\n[m]')
 axes[-1, 1].set_xlabel('Time [s]')
 plt.tight_layout()
 plt.show()

@@ -538,14 +538,15 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, rs, ps]]))
 
 def calc_y(t):
 
-    a = 0.1  # height
-    b = -4.0  # shift to the right (neg val)
-    c = 10.0  # narrow the pulse
+    L = 0.1  # height
+    k = 20.0  # steepness
+    t0 = 1.0  # shift to the right
 
-    # Gaussian error function exp(-x**2)
-    y = a*np.exp(-(b + c*t)**2)
-    yd = -2*a*c*(b + c*t)*np.exp(-(b + c*t)**2)
-    ydd = 2*a*c**2*(2*(b + c*t)**2 - 1)*np.exp(-(b + c*t)**2)
+    # logistic function
+    y = L/(1+np.exp(-k*(t-t0)))
+    yd = L*k*np.exp(-k*(t - t0))/(1 + np.exp(-k*(t - t0)))**2
+    ydd = (-L*k**2*(1 - 2*np.exp(-k*(t - t0))/(1 + np.exp(-k*(t - t0))))*
+           np.exp(-k*(t - t0))/(1 + np.exp(-k*(t - t0)))**2)
 
     return y, yd, ydd
 
@@ -665,7 +666,7 @@ u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
-    0.5,  # u4, rad/s
+    0.0,  # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7

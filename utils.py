@@ -1,8 +1,8 @@
-import sympy as sm
 from sympy import ImmutableMatrix, zeros
 from sympy.core.cache import cacheit
-import sympy.physics.mechanics as mec
 import numpy as np
+import sympy as sm
+import sympy.physics.mechanics as mec
 
 
 def print_syms(expr, note=''):
@@ -100,48 +100,3 @@ class ReferenceFrame(mec.ReferenceFrame):
                                                      tex.format(lab, '2'),
                                                      tex.format(lab, '3')),
                                              **kwargs)
-
-
-def euler_integrate(rhs_func, tspan, x0_vals, p_vals, delt=0.03):
-    """Returns state trajectory and corresponding values of time resulting
-    from integrating the ordinary differential equations with Euler's
-    Method.
-
-    Parameters
-    ==========
-    rhs_func : function
-       Python function that evaluates the derivative of the state and takes
-       this form ``dxdt = f(t, x, p)``.
-    tspan : 2-tuple of floats
-       The initial time and final time values: (t0, tf).
-    x0_vals : array_like, shape(2*n,)
-       Values of the state x at t0.
-    p_vals : array_like, shape(o,)
-       Values of constant parameters.
-    delt : float
-       Integration time step in seconds/step.
-
-    Returns
-    =======
-    ts : ndarray(m, )
-       Monotonically increasing values of time.
-    xs : ndarray(m, 2*n)
-       State values at each time in ts.
-
-    """
-    # generate monotonically increasing values of time.
-    duration = tspan[1] - tspan[0]
-    num_samples = round(duration/delt) + 1
-    ts = np.arange(tspan[0], tspan[0] + delt*num_samples, delt)
-
-    # create an empty array to hold the state values.
-    x = np.empty((len(ts), len(x0_vals)))
-
-    # set the initial conditions to the first element.
-    x[0, :] = x0_vals
-
-    # use a for loop to sequentially calculate each new x.
-    for i, ti in enumerate(ts[:-1]):
-        x[i + 1, :] = x[i, :] + delt*rhs_func(ti, x[i, :], p_vals)
-
-    return ts, x

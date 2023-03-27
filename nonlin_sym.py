@@ -104,7 +104,7 @@ u9, u10, u11, u12 = mec.dynamicsymbols('u9, u10, u11, u12')
 ###########
 
 # kickplate lateral position
-y, yd, ydd = mec.dynamicsymbols('y, y_d, y_dd')
+y, yd, ydd = mec.dynamicsymbols('y, yd, ydd')
 
 # control torques
 # T4 : roll torque
@@ -153,6 +153,7 @@ E.orient(C, 'Axis', (q7, C['3']))
 # contact path. A['3'] X G['1'] gives this unit vector.
 g1_hat = E['2'].cross(A['3']).normalize()
 g2_hat = A['3'].cross(g1_hat)
+# TODO : should be g1_hat.cross(E['2']).normalize() I think
 g3_hat = g1_hat.cross(g2_hat)
 
 ###########
@@ -403,7 +404,6 @@ Feo = (eo, me*g*A['3'])
 Ffo = (fo, mf*g*A['3'])
 
 # tire-ground lateral forces
-
 Fydn = (nd_, Fry*A['2'])
 Fyfn = (fn_, Ffy*g2_hat)
 
@@ -497,13 +497,17 @@ print_syms(aux_eqs, 'The auxiliary equations are a function of: ')
 
 # Tire forces
 # Relaxation length differential equation looks like so:
-# (s_r/N_v_nd1)*Fyr' + Fyr = (-c_ar*alphar + c_pr*phir)*Frz
+# (s_yr/N_v_nd1)*Fyr' + Fyr = (-c_ar*alphar + c_pr*phir)*Frz
+# (s_yf/N_v_fn1)*Fyf' + Fyf = (-c_af*alphaf + c_pf*phif)*Ffz
 # slip angle
 alphar = sm.atan(N_v_nd2/N_v_nd1)
 alphaf = sm.atan(N_v_fn2/N_v_fn1)
 # camber angle
 phir = q4
-phif = g3_hat.angle_between(A['3'])
+# TODO : only gives positive solution with acos()
+phif = (-A['3']).angle_between(fo.pos_from(fn))
+# TODO : This may mean g3_hat is incorrect, check.
+#phif = g3_hat.angle_between(A['3'])
 
 Cf = sm.Matrix([
     [(s_yr/N_v_nd1), 0],

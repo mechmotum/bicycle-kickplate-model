@@ -23,7 +23,7 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
 def calc_y(t):
 
     L = 0.4  # height
-    k = 100.0  # steepness
+    k = 10.0  # steepness
     t0 = 1.0  # shift to the right
 
     # logistic function
@@ -88,10 +88,10 @@ p_vals = {
    c_ar: 11.46,
    c_pf: 0.573,
    c_pr: 0.573,
-   c_maf: 0.01,  # need real numbers for this
-   c_mar: 0.01,  # need real numbers for this
-   c_mpf: 0.01,  # need real numbers for this
-   c_mpr: 0.01,  # need real numbers for this
+   c_maf: 0.001,  # need real numbers for this
+   c_mar: 0.001,  # need real numbers for this
+   c_mpf: 0.001,  # need real numbers for this
+   c_mpr: 0.001,  # need real numbers for this
    d1: 0.9534570696121849,
    d2: 0.2676445084476887,
    d3: 0.03207142672761929,
@@ -118,10 +118,10 @@ p_vals = {
    mf: 3.0,
    rf: 0.35,
    rr: 0.3,
-   s_yf: 0.15,  # need real numbers for this
-   s_yr: 0.15,  # need real numbers for this
-   s_zf: 0.15,  # need real numbers for this
-   s_zr: 0.15,  # need real numbers for this
+   s_yf: 0.175,  # Andrew's estimates from his dissertation data
+   s_yr: 0.175,
+   s_zf: 0.175,
+   s_zr: 0.175,
 }
 p_arr = np.array(list(p_vals.values()))
 
@@ -155,7 +155,7 @@ u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
-    0.1,  # u4, rad/s
+    0.0,  # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7
@@ -203,11 +203,21 @@ holonomic_vs_time = eval_holonomic(x_traj[:, 4],  # q5
                                    p_vals[rf],
                                    p_vals[rr])
 
+eval_angles = sm.lambdify((qs, us, [yd], ps), [alphar, alphaf, phir, phif], cse=True)
+
 deg = [False, False, True, True, True, True, True, True]
-fig, axes = plt.subplots(11, 2, sharex=True)
+fig, axes = plt.subplots(14, 2, sharex=True)
 q_traj = x_traj[:, :8]
 u_traj = x_traj[:, 8:16]
 f_traj = x_traj[:, 16:]
+
+fz_traj = np.zeros((len(times), 2))
+angle_traj = np.zeros((len(times), 4))
+for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
+    statei = np.hstack((qi, ui, fi))
+    _, fz_traj[i, :] = rhs(ti, statei, p_arr)
+    angle_traj[i, :] = eval_angles(qi, ui, [calc_y(ti)[1]], p_arr)
+
 fig.set_size_inches(8, 10)
 for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 0], q_traj.T, qs, deg)):
     unit = '[m]'
@@ -226,14 +236,28 @@ for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 1], u_traj.T, us, deg)):
 
 axes[8, 0].plot(times, f_traj[:, 0])
 axes[8, 0].set_ylabel(str(fs[0]) + '\n[N]')
-axes[9, 0].plot(times, f_traj[:, 1])
-axes[9, 0].set_ylabel(str(fs[1]) + '\n[N]')
-axes[8, 1].plot(times, f_traj[:, 2])
-axes[8, 1].set_ylabel(str(fs[2]) + '\n[N-m]')
+axes[8, 1].plot(times, f_traj[:, 1])
+axes[8, 1].set_ylabel(str(fs[1]) + '\n[N]')
+axes[9, 0].plot(times, f_traj[:, 2])
+axes[9, 0].set_ylabel(str(fs[2]) + '\n[N-m]')
 axes[9, 1].plot(times, f_traj[:, 3])
 axes[9, 1].set_ylabel(str(fs[3]) + '\n[N-m]')
 
-axes[-1, 0].plot(times, calc_y(times)[0])
+axes[10, 0].plot(times, fz_traj[:, 0])
+axes[10, 0].set_ylabel(str(Frz) + '\n[N]')
+axes[10, 1].plot(times, fz_traj[:, 1])
+axes[10, 1].set_ylabel(str(Ffz) + '\n[N]')
+
+axes[11, 0].plot(times, np.rad2deg(angle_traj[:, 0]))
+axes[11, 0].set_ylabel('alphar\n[deg]')
+axes[11, 1].plot(times, np.rad2deg(angle_traj[:, 1]))
+axes[11, 1].set_ylabel('alphaf\n[deg]')
+axes[12, 0].plot(times, np.rad2deg(angle_traj[:, 2]))
+axes[12, 0].set_ylabel('phir\n[deg]')
+axes[12, 1].plot(times, np.rad2deg(angle_traj[:, 3]))
+axes[12, 1].set_ylabel('phif\n[deg]')
+
+axes[-1, 0].plot(times, calc_y(times)[1])
 axes[-1, 0].set_ylabel('y\n[m]')
 axes[-1, 0].set_xlabel('Time [s]')
 axes[-1, 1].plot(times, holonomic_vs_time)

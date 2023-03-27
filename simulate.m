@@ -32,10 +32,10 @@ p.me = 4.0;
 p.mf = 3.0;
 p.rf = 0.35;
 p.rr = 0.3;
-p.s_yf = 0.15;
-p.s_yr = 0.15;
-p.s_zf = 0.15;
-p.s_zr = 0.15;
+p.s_yf = 0.175;
+p.s_yr = 0.175;
+p.s_zf = 0.175;
+p.s_zr = 0.175;
 
 % initial coordinates
 q_vals = [0.0, 0.0, 0.0, 0.0, nan, 0.0, 1e-10, 0.0];

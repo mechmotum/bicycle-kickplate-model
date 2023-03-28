@@ -124,6 +124,13 @@ Fry, Ffy = mec.dynamicsymbols('Fry, Ffy')
 # Mfz : front rear wheel-ground contact self-aligning moment
 Mrz, Mfz = mec.dynamicsymbols('Mrz, Mfz')
 
+##############
+# Replacements
+##############
+
+qdot_repl = {qi.diff(t): ui for qi, ui in zip(qs, us)}
+yd_repl = {y.diff(t, 2): ydd, y.diff(t): yd}
+
 #################################
 # Orientation of Reference Frames
 #################################
@@ -273,7 +280,6 @@ kinematical = [
     q8.diff(t) - u8,  # front wheel rotation
 ]
 
-qdot_repl = {qi.diff(t): ui for qi, ui in zip(qs, us)}
 
 ####################
 # Angular Velocities
@@ -325,9 +331,6 @@ fn_.set_vel(N, nd_.vel(N) + fn.pos_from(nd_).dt(N).xreplace(qdot_repl) +
 # Slip angle components
 # project the velocity vectors at the contact point onto each wheel's yaw
 # direction
-
-yd_repl = {y.diff(t, 2): ydd, y.diff(t): yd}
-
 N_v_nd1 = nd.vel(N).dot(A['1']).xreplace(yd_repl)
 N_v_nd2 = nd.vel(N).dot(A['2']).xreplace(yd_repl)
 N_v_fn1 = fn_.vel(N).dot(g1_hat).xreplace(yd_repl).xreplace(qdot_repl)
@@ -504,7 +507,7 @@ alphar = sm.atan(N_v_nd2/N_v_nd1)
 alphaf = sm.atan(N_v_fn2/N_v_fn1)
 # camber angle
 phir = q4
-# TODO : only gives positive solution with acos()
+# TODO : only gives positive solution with acos(), is this a bug in SymPy?
 phif = (-A['3']).angle_between(fo.pos_from(fn))
 # TODO : This may mean g3_hat is incorrect, check.
 #phif = g3_hat.angle_between(A['3'])

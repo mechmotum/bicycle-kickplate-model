@@ -8,13 +8,11 @@ SymPy, so install both from development versions.
 
 ::
 
-   mamba env create -n env.yml
-   mamba activate bicycle-kickplate-model
-   git clone https://github.com/sympy/sympy.git
-   cd sympy
-   python setup.py develop
-   git clone https://github.com/pydy/pydy.git
-   cd pydy
-   python setup.py develop
-   cd ..
+   conda env create -n env.yml
+   conda activate bicycle-kickplate-model
+   pip install https://github.com/sympy/sympy.git
+   pip install https://github.com/pydy/pydy.git
+
+After that you can run the simulation, e.g.::
+
    python simulate.py

@@ -35,6 +35,7 @@ def calc_y(t):
     return y, yd, ydd
 
 
+@np.vectorize
 def calc_fkp(t):
 
     if t > 1.0 and t < 1.1:
@@ -99,8 +100,8 @@ p_vals = {
    c_ar: 11.46,
    c_pf: 0.573,
    c_pr: 0.573,
-   c_maf: 0.001,  # need real numbers for this
-   c_mar: 0.001,  # need real numbers for this
+   c_maf: 0.01,  # need real numbers for this
+   c_mar: 0.01,  # need real numbers for this
    c_mpf: 0.001,  # need real numbers for this
    c_mpr: 0.001,  # need real numbers for this
    d1: 0.9534570696121849,
@@ -268,8 +269,8 @@ axes[12, 0].set_ylabel('phir\n[deg]')
 axes[12, 1].plot(times, np.rad2deg(angle_traj[:, 3]))
 axes[12, 1].set_ylabel('phif\n[deg]')
 
-axes[-1, 0].plot(times, calc_y(times)[1])
-axes[-1, 0].set_ylabel('y\n[m]')
+axes[-1, 0].plot(times, calc_fkp(times))
+axes[-1, 0].set_ylabel('$F_{kp}$\n[N]')
 axes[-1, 0].set_xlabel('Time [s]')
 axes[-1, 1].plot(times, holonomic_vs_time)
 axes[-1, 1].set_ylabel('constraint\n[m]')

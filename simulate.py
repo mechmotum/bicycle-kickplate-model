@@ -29,7 +29,20 @@ def calc_fkp(t):
         return 0.0
 
 
-def rhs(t, x, p):
+def calc_inputs(t, x, p):
+
+    # steer, rear wheel, roll torques set to zero
+    T4, T6, T7 = 0.0, 0.0, 0.0
+
+    # kick plate force
+    fkp = calc_fkp(t)
+
+    r = [T4, T6, T7, fkp]
+
+    return r
+
+
+def rhs(t, x, r_func, p):
     """
     Parameters
     ==========
@@ -50,22 +63,14 @@ def rhs(t, x, p):
         force = [Frz, Ffz]
 
     """
-    # TODO : add new argument to pass in a function to calculate r.
 
     q = x[:8]
     u = x[8:16]
     f = x[16:20]
+    r = r_func(t, x, p)
 
-    # steer, rear wheel, roll torques set to zero
-    T4, T6, T7 = 0.0, 0.0, 0.0
-
-    # kick plate force
-    fkp = calc_fkp(t)
-
-    r = [T4, T6, T7, fkp]
-
-    # This solves for the generalized accelerations and the normal forces at
-    # the tire contact.
+    # This solves for the state derivatives and the normal forces at the tire
+    # contact.
     A, b = eval_dynamic(q, u, f, r, p)
     # xplus = [us', Frz, Ffz]
     xplus = np.linalg.solve(A, b).squeeze()
@@ -170,7 +175,7 @@ f_vals = np.array([0.0, 0.0, 0.0, 0.0])
 initial_conditions = np.hstack((q_vals, u_vals, f_vals))
 
 print('Test rhs with initial conditions and correct constants:')
-print(rhs(0.0, initial_conditions, p_arr))
+print(rhs(0.0, initial_conditions, calc_inputs, p_arr))
 
 ##########
 # Simulate
@@ -182,7 +187,7 @@ t0 = 0.0
 tf = t0 + duration
 times = np.linspace(t0, tf, num=int(duration*fps))
 
-res = solve_ivp(lambda t, x: rhs(t, x, p_arr)[0], (t0, tf),
+res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p_arr)[0], (t0, tf),
                 initial_conditions, t_eval=times, method='LSODA')
 x_traj = res.y.T
 times = res.t
@@ -210,7 +215,7 @@ fz_traj = np.zeros((len(times), 2))
 angle_traj = np.zeros((len(times), 4))
 for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
     statei = np.hstack((qi, ui, fi))
-    _, fz_traj[i, :] = rhs(ti, statei, p_arr)
+    _, fz_traj[i, :] = rhs(ti, statei, calc_inputs, p_arr)
     angle_traj[i, :] = eval_angles(qi, ui, p_arr)
 
 fig.set_size_inches(8, 10)

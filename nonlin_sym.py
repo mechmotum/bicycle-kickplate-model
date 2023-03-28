@@ -514,10 +514,8 @@ alphar = sm.atan(N_v_nd2/N_v_nd1)
 alphaf = sm.atan(N_v_fn2/N_v_fn1)
 # camber angle
 phir = q4
-# TODO : only gives positive solution with acos(), is this a bug in SymPy?
-phif = (-A['3']).angle_between(fo.pos_from(fn))
-# TODO : This may mean g3_hat is incorrect, check.
-#phif = g3_hat.angle_between(A['3'])
+phif = -sm.atan((mec.dot(fo.pos_from(fn), g2_hat) /
+                 mec.dot(fo.pos_from(fn), A['3'])))
 
 Cf = sm.Matrix([
     [(s_yr/N_v_nd1), 0],

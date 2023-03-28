@@ -106,6 +106,9 @@ u9, u10, u11, u12 = mec.dynamicsymbols('u9, u10, u11, u12')
 # kickplate lateral position
 y, yd, ydd = mec.dynamicsymbols('y, yd, ydd')
 
+# kickplate force
+Fkp = mec.dynamicsymbols('Fkp')
+
 # control torques
 # T4 : roll torque
 # T6 : rear wheel torque
@@ -410,6 +413,9 @@ Ffo = (fo, mf*g*A['3'])
 Fydn = (nd_, Fry*A['2'])
 Fyfn = (fn_, Ffy*g2_hat)
 
+# kickplate force
+Fykp = (nd, Fkp*N['2'])
+
 # tire-ground normal forces (non-contributing), need equal and opposite forces
 Fzdn = (nd, Frz*A['3'])
 Fzdn_ = (nd_, -Frz*A['3'])
@@ -426,6 +432,7 @@ loads = [
     Fco, Fdo, Feo, Ffo,
     Fydn, Fyfn, Fzdn, Fzfn,
     Fzdn_, Fzfn_,
+    Fykp,
     Tc, Td, Te, Tf
 ]
 
@@ -452,7 +459,7 @@ fs = (Fry, Ffy, Mrz, Mfz)
 ps = (c_af, c_ar, c_pf, c_pr, c_maf, c_mar, c_mpf, c_mpr, d1, d2, d3, g, ic11,
       ic22, ic31, ic33, id11, id22, ie11, ie22, ie31, ie33, if11, if22, l1, l2,
       l3, l4, mc, md, me, mf, rf, rr, s_yf, s_yr, s_zf, s_zr)
-rs = (T4, T6, T7, y, yd, ydd)
+rs = (T4, T6, T7, y, yd, ydd, Fkp)
 holon = (holonomic,)
 nonho = tuple(nonholonomic)
 

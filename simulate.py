@@ -35,6 +35,14 @@ def calc_y(t):
     return y, yd, ydd
 
 
+def calc_fkp(t):
+
+    if t > 1.0 and t < 1.1:
+        return 500.0
+    else:
+        return 0.0
+
+
 def rhs(t, x, p):
     """
     Parameters
@@ -67,8 +75,11 @@ def rhs(t, x, p):
 
     # kickplate motion set to zero
     y, yd, ydd = calc_y(t)
+    y, yd, ydd = 0.0, 0.0, 0.0
 
-    r = [T4, T6, T7, y, yd, ydd]
+    fkp = calc_fkp(t)
+
+    r = [T4, T6, T7, y, yd, ydd, fkp]
 
     # This solves for the generalized accelerations and the normal forces at
     # the tire contact.
@@ -155,7 +166,7 @@ u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
-    0.0,  # u4, rad/s
+    0.0001,  # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7

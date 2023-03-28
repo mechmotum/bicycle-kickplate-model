@@ -39,7 +39,7 @@ def calc_y(t):
 def calc_fkp(t):
 
     if t > 1.0 and t < 1.1:
-        return 500.0
+        return 100.0
     else:
         return 0.0
 
@@ -100,10 +100,10 @@ p_vals = {
    c_ar: 11.46,
    c_pf: 0.573,
    c_pr: 0.573,
-   c_maf: 0.01,  # need real numbers for this
-   c_mar: 0.01,  # need real numbers for this
-   c_mpf: 0.001,  # need real numbers for this
-   c_mpr: 0.001,  # need real numbers for this
+   c_maf: 0.03, #0.34,  # 0.34 is rough calc from gabriele's data, but causes instability (check signs)
+   c_mar: 0.03, #0.34,  # need real numbers for this
+   c_mpf: 0.0,  # need real numbers for this
+   c_mpr: 0.0,  # need real numbers for this
    d1: 0.9534570696121849,
    d2: 0.2676445084476887,
    d3: 0.03207142672761929,
@@ -217,6 +217,8 @@ holonomic_vs_time = eval_holonomic(x_traj[:, 4],  # q5
 
 eval_angles = sm.lambdify((qs, us, [yd], ps), [alphar, alphaf, phir, phif], cse=True)
 
+eval_front_contact = sm.lambdify((qs, y, ps), [q9, q10], cse=True)
+
 deg = [False, False, True, True, True, True, True, True]
 fig, axes = plt.subplots(14, 2, sharex=True)
 q_traj = x_traj[:, :8]
@@ -228,7 +230,7 @@ angle_traj = np.zeros((len(times), 4))
 for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
     statei = np.hstack((qi, ui, fi))
     _, fz_traj[i, :] = rhs(ti, statei, p_arr)
-    angle_traj[i, :] = eval_angles(qi, ui, [calc_y(ti)[1]], p_arr)
+    angle_traj[i, :] = eval_angles(qi, ui, [0.0], p_arr)
 
 fig.set_size_inches(8, 10)
 for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 0], q_traj.T, qs, deg)):
@@ -276,4 +278,14 @@ axes[-1, 1].plot(times, holonomic_vs_time)
 axes[-1, 1].set_ylabel('constraint\n[m]')
 axes[-1, 1].set_xlabel('Time [s]')
 plt.tight_layout()
+
+fig, ax = plt.subplots(1, 1)
+ax.plot(q_traj[:, 0], q_traj[:, 1])
+q9_traj = np.zeros_like(times)
+q10_traj = np.zeros_like(times)
+for i, qi in enumerate(q_traj):
+    q9_traj[i], q10_traj[i] = eval_front_contact(qi, 0.0, p_arr)
+ax.plot(q9_traj, q10_traj)
+#ax.set_aspect('equal')
+
 plt.show()

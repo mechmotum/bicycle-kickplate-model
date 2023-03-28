@@ -575,3 +575,7 @@ nonholonomic = sm.Matrix(nonholonomic).xreplace(aux_zerod | yd_repl)
 print_syms(nonholonomic,
            'The nonholonomic constraints are a function of these variables:')
 A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
+
+# Front wheel contact point position.
+q9 = fn.pos_from(o).dot(N['1'])
+q10 = fn.pos_from(o).dot(N['2'])

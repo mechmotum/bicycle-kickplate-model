@@ -20,26 +20,11 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
 ############################
 
 
-def calc_y(t):
-
-    L = 0.4  # height
-    k = 10.0  # steepness
-    t0 = 1.0  # shift to the right
-
-    # logistic function
-    y = L/(1+np.exp(-k*(t-t0)))
-    yd = L*k*np.exp(-k*(t - t0))/(1 + np.exp(-k*(t - t0)))**2
-    ydd = (-L*k**2*(1 - 2*np.exp(-k*(t - t0))/(1 + np.exp(-k*(t - t0))))*
-           np.exp(-k*(t - t0))/(1 + np.exp(-k*(t - t0)))**2)
-
-    return y, yd, ydd
-
-
 @np.vectorize
 def calc_fkp(t):
 
     if t > 1.0 and t < 1.1:
-        return 100.0
+        return 600.0
     else:
         return 0.0
 
@@ -74,13 +59,10 @@ def rhs(t, x, p):
     # steer, rear wheel, roll torques set to zero
     T4, T6, T7 = 0.0, 0.0, 0.0
 
-    # kickplate motion set to zero
-    y, yd, ydd = calc_y(t)
-    y, yd, ydd = 0.0, 0.0, 0.0
-
+    # kick plate force
     fkp = calc_fkp(t)
 
-    r = [T4, T6, T7, y, yd, ydd, fkp]
+    r = [T4, T6, T7, fkp]
 
     # This solves for the generalized accelerations and the normal forces at
     # the tire contact.
@@ -174,9 +156,8 @@ u_vals = np.array([
     -initial_speed/p_vals[rf],  # u8
 ])
 
-eval_dep_speeds = sm.lambdify([qs, u_ind, [yd], ps], [A_nh, -B_nh], cse=True)
-A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals, u_vals[[2, 3, 5, 6, 7]], [0.0],
-                                       p_arr)
+eval_dep_speeds = sm.lambdify([qs, u_ind, ps], [A_nh, -B_nh], cse=True)
+A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals, u_vals[[2, 3, 5, 6, 7]], p_arr)
 u_vals[[0, 1, 4]] = np.linalg.solve(A_nh_vals, B_nh_vals).squeeze()
 print('Initial dependent speeds (u1, u2, u5): ',
       u_vals[0], u_vals[1], np.rad2deg(u_vals[4]))
@@ -215,9 +196,9 @@ holonomic_vs_time = eval_holonomic(x_traj[:, 4],  # q5
                                    p_vals[rf],
                                    p_vals[rr])
 
-eval_angles = sm.lambdify((qs, us, [yd], ps), [alphar, alphaf, phir, phif], cse=True)
+eval_angles = sm.lambdify((qs, us, ps), [alphar, alphaf, phir, phif], cse=True)
 
-eval_front_contact = sm.lambdify((qs, y, ps), [q9, q10], cse=True)
+eval_front_contact = sm.lambdify((qs, ps), [q9, q10], cse=True)
 
 deg = [False, False, True, True, True, True, True, True]
 fig, axes = plt.subplots(14, 2, sharex=True)
@@ -230,7 +211,7 @@ angle_traj = np.zeros((len(times), 4))
 for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
     statei = np.hstack((qi, ui, fi))
     _, fz_traj[i, :] = rhs(ti, statei, p_arr)
-    angle_traj[i, :] = eval_angles(qi, ui, [0.0], p_arr)
+    angle_traj[i, :] = eval_angles(qi, ui, p_arr)
 
 fig.set_size_inches(8, 10)
 for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 0], q_traj.T, qs, deg)):
@@ -284,8 +265,8 @@ ax.plot(q_traj[:, 0], q_traj[:, 1])
 q9_traj = np.zeros_like(times)
 q10_traj = np.zeros_like(times)
 for i, qi in enumerate(q_traj):
-    q9_traj[i], q10_traj[i] = eval_front_contact(qi, 0.0, p_arr)
+    q9_traj[i], q10_traj[i] = eval_front_contact(qi, p_arr)
 ax.plot(q9_traj, q10_traj)
-#ax.set_aspect('equal')
+ax.set_aspect('equal')
 
 plt.show()

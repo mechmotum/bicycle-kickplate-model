@@ -103,9 +103,6 @@ u9, u10, u11, u12 = mec.dynamicsymbols('u9, u10, u11, u12')
 # Specified
 ###########
 
-# kickplate lateral position
-y, yd, ydd = mec.dynamicsymbols('y, yd, ydd')
-
 # kickplate force
 Fkp = mec.dynamicsymbols('Fkp')
 
@@ -132,7 +129,6 @@ Mrz, Mfz = mec.dynamicsymbols('Mrz, Mfz')
 ##############
 
 qdot_repl = {qi.diff(t): ui for qi, ui in zip(qs, us)}
-yd_repl = {y.diff(t, 2): ydd, y.diff(t): yd}
 
 #################################
 # Orientation of Reference Frames
@@ -224,7 +220,7 @@ o = mec.Point('o')
 # rear wheel contact point, moves in ground plane, y is the kickplate lateral
 # location
 nd = mec.Point('nd')
-nd.set_pos(o, q1*N['1'] + (y + q2)*N['2'])
+nd.set_pos(o, q1*N['1'] + q2*N['2'])
 
 # newtonian origin to rear wheel center
 do = mec.Point('do')
@@ -309,7 +305,7 @@ print('Defining linear velocities.')
 # rear wheel contact stays in ground plane and does not slip but the auxiliary
 # speed, u11, is included which corresponds to the vertical force
 o.set_vel(N, 0)
-nd.set_vel(N, u1*N['1'] + (y.diff(t) + u2)*N['2'])
+nd.set_vel(N, u1*N['1'] + u2*N['2'])
 nd_ = mec.Point('nd')
 nd_.set_pos(nd, 0)
 nd_.set_vel(N, nd.vel(N) + u11*A['3'])
@@ -334,10 +330,10 @@ fn_.set_vel(N, nd_.vel(N) + fn.pos_from(nd_).dt(N).xreplace(qdot_repl) +
 # Slip angle components
 # project the velocity vectors at the contact point onto each wheel's yaw
 # direction
-N_v_nd1 = nd.vel(N).dot(A['1']).xreplace(yd_repl)
-N_v_nd2 = nd.vel(N).dot(A['2']).xreplace(yd_repl)
-N_v_fn1 = fn_.vel(N).dot(g1_hat).xreplace(yd_repl).xreplace(qdot_repl)
-N_v_fn2 = fn_.vel(N).dot(g2_hat).xreplace(yd_repl).xreplace(qdot_repl)
+N_v_nd1 = nd.vel(N).dot(A['1'])
+N_v_nd2 = nd.vel(N).dot(A['2'])
+N_v_fn1 = fn_.vel(N).dot(g1_hat).xreplace(qdot_repl)
+N_v_fn2 = fn_.vel(N).dot(g2_hat).xreplace(qdot_repl)
 
 print_syms(N_v_nd1, "N_v_dn1 is a function of: ")
 print_syms(N_v_nd2, "N_v_dn2 is a function of: ")
@@ -459,7 +455,7 @@ fs = (Fry, Ffy, Mrz, Mfz)
 ps = (c_af, c_ar, c_pf, c_pr, c_maf, c_mar, c_mpf, c_mpr, d1, d2, d3, g, ic11,
       ic22, ic31, ic33, id11, id22, ie11, ie22, ie31, ie33, if11, if22, l1, l2,
       l3, l4, mc, md, me, mf, rf, rr, s_yf, s_yr, s_zf, s_zr)
-rs = (T4, T6, T7, y, yd, ydd, Fkp)
+rs = (T4, T6, T7, Fkp)
 holon = (holonomic,)
 nonho = tuple(nonholonomic)
 
@@ -502,7 +498,7 @@ aux_zerod = {
 }
 
 
-aux_eqs = kane.auxiliary_eqs.xreplace(yd_repl)
+aux_eqs = kane.auxiliary_eqs
 print_syms(aux_eqs, 'The auxiliary equations are a function of: ')
 
 # Tire forces
@@ -551,7 +547,7 @@ Af, Ap, B_aux = decompose_linear_parts(aux_eqs, [Frz, Ffz],
 new_order = [2, 3, 5, 6, 7, 0, 1, 4]
 mass_matrix = sm.zeros(*kane.mass_matrix.shape)
 forcing = sm.zeros(*kane.forcing.shape)
-forcing_orig = kane.forcing.xreplace(aux_zerod | yd_repl)
+forcing_orig = kane.forcing.xreplace(aux_zerod)
 for i in range(mass_matrix.shape[0]):
     forcing[new_order[i], 0] = forcing_orig[i, 0]
     for j in range(mass_matrix.shape[1]):
@@ -571,7 +567,7 @@ print_syms(b_all, 'b_all is a function of these dynamic variables: ')
 
 
 # Create matrices for solving for the dependent speeds.
-nonholonomic = sm.Matrix(nonholonomic).xreplace(aux_zerod | yd_repl)
+nonholonomic = sm.Matrix(nonholonomic).xreplace(aux_zerod)
 print_syms(nonholonomic,
            'The nonholonomic constraints are a function of these variables:')
 A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)

@@ -99,12 +99,12 @@ us = [u1, u2, u3, u4, u5, u6, u7, u8]
 # u12: auxiliary speed to determine the front tire vertical force
 u9, u10, u11, u12 = mec.dynamicsymbols('u9, u10, u11, u12')
 
+# variables for the derivatives of the u's
+ups = tuple(sm.ordered([mec.dynamicsymbols(ui.name + 'p') for ui in us]))
+
 ###########
 # Specified
 ###########
-
-# kickplate force
-Fkp = mec.dynamicsymbols('Fkp')
 
 # control torques
 # T4 : roll torque
@@ -124,11 +124,21 @@ Fry, Ffy = mec.dynamicsymbols('Fry, Ffy')
 # Mfz : front rear wheel-ground contact self-aligning moment
 Mrz, Mfz = mec.dynamicsymbols('Mrz, Mfz')
 
+# kickplate force
+Fkp = mec.dynamicsymbols('Fkp')
+
 ##############
 # Replacements
 ##############
 
 qdot_repl = {qi.diff(t): ui for qi, ui in zip(qs, us)}
+udot_repl = {ui.diff(t): upi for ui, upi in zip(us, ups)}
+aux_zerod = {
+    u11.diff(t): 0,
+    u12.diff(t): 0,
+    u11: 0,
+    u12: 0,
+}
 
 #################################
 # Orientation of Reference Frames
@@ -449,9 +459,7 @@ u_ind = (u3, u4, u6, u7, u8)
 u_dep = (u1, u2, u5)
 u_aux = (u11, u12)
 us = tuple(sm.ordered(u_ind + u_dep))
-
 fs = (Fry, Ffy, Mrz, Mfz)
-
 ps = (c_af, c_ar, c_pf, c_pr, c_maf, c_mar, c_mpf, c_mpr, d1, d2, d3, g, ic11,
       ic22, ic31, ic33, id11, id22, ie11, ie22, ie31, ie33, if11, if22, l1, l2,
       l3, l4, mc, md, me, mf, rf, rr, s_yf, s_yr, s_zf, s_zr)
@@ -484,20 +492,6 @@ kane.kanes_equations(bodies, loads=loads)
 # Assemble Full EoM
 ###################
 
-u1p, u3p, u4p, u6p, u7p = mec.dynamicsymbols('u1p, u3p, u4p, u6p, u7p')
-u2p, u5p, u8p = mec.dynamicsymbols('u2p, u5p, u8p')
-u_dots = [mec.dynamicsymbols(ui.name + 'p') for ui in us]
-ups = tuple(sm.ordered(u_dots))
-u_dot_subs = {ui.diff(): upi for ui, upi in zip(us, u_dots)}
-
-aux_zerod = {
-    u11.diff(t): 0,
-    u12.diff(t): 0,
-    u11: 0,
-    u12: 0,
-}
-
-
 aux_eqs = kane.auxiliary_eqs
 print_syms(aux_eqs, 'The auxiliary equations are a function of: ')
 
@@ -513,6 +507,7 @@ phir = q4
 phif = -sm.atan((mec.dot(fo.pos_from(fn), g2_hat) /
                  mec.dot(fo.pos_from(fn), A['3'])))
 
+# TODO : Carefully check the sign conventions of all the tire forces.
 Cf = sm.Matrix([
     [(s_yr/N_v_nd1), 0],
     [0, (s_yf/N_v_fn1)],
@@ -564,7 +559,6 @@ b_all = forcing.col_join(nFy).col_join(nMz).col_join(-B_aux)
 
 print_syms(A_all, 'A_all is a function of these dynamic variables: ')
 print_syms(b_all, 'b_all is a function of these dynamic variables: ')
-
 
 # Create matrices for solving for the dependent speeds.
 nonholonomic = sm.Matrix(nonholonomic).xreplace(aux_zerod)

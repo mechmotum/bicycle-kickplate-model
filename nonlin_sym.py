@@ -362,9 +362,12 @@ print_syms(N_v_fn2, "N_v_fn2 is a function of: ")
 print('Defining nonholonomic constraints.')
 
 nonholonomic = [
-    sm.trigsimp(dn.vel(N).dot(A['1'])),  # no rear longitudinal slip
-    fn.vel(N).dot(g1_hat),  # no front longitudinal slip
-    fn_.vel(N).dot(A['3']),  # front contact can move vertically wrt ground
+    # no rear longitudinal slip
+    sm.trigsimp(dn.vel(N).dot(A['1'])),
+    # no front longitudinal slip
+    fn.vel(N).dot(g1_hat),
+    # front contact cannot move vertically wrt ground (include aux speeds)
+    holonomic.diff(t).xreplace(qdot_repl) + u11 + u12,
 ]
 
 tire_contact_vert_vel_expr = nonholonomic[2]

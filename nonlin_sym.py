@@ -486,7 +486,7 @@ kane = mec.KanesMethod(
     u_dependent=u_dep,
     velocity_constraints=nonho,
     u_auxiliary=u_aux,
-    constraint_solver=cramer_solve,
+    #constraint_solver=cramer_solve,
 )
 
 kane.kanes_equations(bodies, loads=loads)

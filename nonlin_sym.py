@@ -25,8 +25,7 @@ References
 import sympy as sm
 import sympy.physics.mechanics as mec
 
-from utils import (ReferenceFrame, decompose_linear_parts, cramer_solve,
-                   print_syms)
+from utils import (ReferenceFrame, decompose_linear_parts, print_syms)
 
 ##################
 # Reference Frames
@@ -169,8 +168,7 @@ E.orient(C, 'Axis', (q7, C['3']))
 # contact path. A['3'] X G['1'] gives this unit vector.
 g1_hat = E['2'].cross(A['3']).normalize()
 g2_hat = A['3'].cross(g1_hat)
-# TODO : should be g1_hat.cross(E['2']).normalize() I think
-g3_hat = g1_hat.cross(g2_hat)
+g3_hat = A['3']
 
 ###########
 # Constants
@@ -418,11 +416,18 @@ Fdo = (do, md*g*A['3'])
 Feo = (eo, me*g*A['3'])
 Ffo = (fo, mf*g*A['3'])
 
+# The forces acting on the tire from the ground are defined in this convention:
+# TODO : Change sign of Fz, so it is consistent with the other measure numbers.
+# Fr = Fx*A['1'] + Fy*A['2'] - Fz*A['3']
+# Mr = Mrz*A['3']
+# Ff = Fx*G['1'] + Fy*G['2'] - Fz*G['3']
+# Mf = Mfz*G['3']
+
 # tire-ground lateral forces
 Fydn = (nd_, Fry*A['2'])
 Fyfn = (fn_, Ffy*g2_hat)
 
-# kickplate force
+# kickplate force (acts on tire)
 Fykp = (nd, Fkp*N['2'])
 
 # tire-ground normal forces (non-contributing), need equal and opposite forces
@@ -486,7 +491,6 @@ kane = mec.KanesMethod(
     u_dependent=u_dep,
     velocity_constraints=nonho,
     u_auxiliary=u_aux,
-    #constraint_solver=cramer_solve,
 )
 
 kane.kanes_equations(bodies, loads=loads)
@@ -510,19 +514,20 @@ phir = q4
 phif = -sm.atan((mec.dot(fo.pos_from(fn), g2_hat) /
                  mec.dot(fo.pos_from(fn), A['3'])))
 
-# TODO : Carefully check the sign conventions of all the tire forces.
 Cf = sm.Matrix([
-    [(s_yr/N_v_nd1), 0],
-    [0, (s_yf/N_v_fn1)],
+    [(s_yr/sm.Abs(N_v_nd1)), 0],
+    [0, (s_yf/sm.Abs(N_v_fn1))],
 ])
 Cz = sm.Matrix([
     [-(-c_ar*alphar + c_pr*phir), 0],
     [0, -(-c_af*alphaf + c_pf*phif)],
 ])
 Df = sm.Matrix([
-    [(s_zr/N_v_nd1), 0],
-    [0, (s_zf/N_v_fn1)],
+    [(s_zr/sm.Abs(N_v_nd1)), 0],
+    [0, (s_zf/sm.Abs(N_v_fn1))],
 ])
+# TODO : Makre the sign of the camber effect on self-aligning moment is
+# correct.
 Dz = sm.Matrix([
     [-(-c_mar*alphar + c_mpr*phir), 0],
     [0, -(-c_maf*alphaf + c_mpf*phif)],

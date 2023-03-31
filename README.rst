@@ -10,8 +10,6 @@ SymPy, so install both from development versions.
 
    conda env create -f env.yml
    conda activate bicycle-kickplate-model
-   python -m pip install git+https://github.com/sympy/sympy.git
-   python -m pip install git+https://github.com/pydy/pydy.git
 
 After that you can run the simulation, e.g.::
 

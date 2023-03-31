@@ -1,12 +1,15 @@
+Description
+===========
+
 Dynamic model of a bicycle that includes linear lateral tire forces, linear
-tire self-aligning moments, relaxation lengths for both, and an input capable
-of moving the contact point under the rear wheel laterally to simulate a
-kick plate.
+tire self-aligning moments, relaxation length, and an input capable of applying
+a force to the contact point under the rear wheel to simulate a lateral kick
+plate.
 
-This script requires the development version of SymPy and PyDy depends on
-SymPy, so install both from development versions.
+Usage
+=====
 
-::
+Install the software into a conda environment and activate::
 
    conda env create -f env.yml
    conda activate bicycle-kickplate-model
@@ -14,3 +17,9 @@ SymPy, so install both from development versions.
 After that you can run the simulation, e.g.::
 
    python simulate.py
+
+License
+=======
+
+The source code and documentation in this repository are licensed under the
+3-clause BSD open source software license.

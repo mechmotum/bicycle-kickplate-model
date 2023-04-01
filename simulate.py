@@ -23,8 +23,8 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
 @np.vectorize
 def calc_fkp(t):
 
-    if t > 1.0 and t < 1.1:
-        return 600.0
+    if t > 1.0 and t < 1.3:
+        return 500.0
     else:
         return 0.0
 
@@ -87,8 +87,8 @@ p_vals = {
    c_ar: 11.46,
    c_pf: 0.573,
    c_pr: 0.573,
-   c_maf: 0.03, #0.34,  # 0.34 is rough calc from gabriele's data, but causes instability (check signs)
-   c_mar: 0.03, #0.34,  # need real numbers for this
+   c_maf: 0.0, #0.34,  # 0.34 is rough calc from gabriele's data, but causes instability (check signs)
+   c_mar: 0.0, #0.34,  # need real numbers for this
    c_mpf: 0.0,  # need real numbers for this
    c_mpr: 0.0,  # need real numbers for this
    d1: 0.9534570696121849,

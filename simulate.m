@@ -2,10 +2,10 @@ p.c_af = 11.46;
 p.c_ar = 11.46;
 p.c_pf = 0.573;
 p.c_pr = 0.573;
-p.c_maf = 0.01;
-p.c_mar = 0.01;
-p.c_mpf = 0.01;
-p.c_mpr = 0.01;
+p.c_maf = 0.001;
+p.c_mar = 0.001;
+p.c_mpf = 0.001;
+p.c_mpr = 0.001;
 p.d1 = 0.9534570696121849;
 p.d2 = 0.2676445084476887;
 p.d3 = 0.03207142672761929;
@@ -53,16 +53,16 @@ p_vals = [p.c_af, p.c_ar, p.c_pf, p.c_pr, p.c_maf, p.c_mar, p.c_mpf, ...
     p.l3, p.l4, p.mc, p.md, p.me, p.mf, p.rf, p.rr, p.s_yf, p.s_yr, p.s_zf, ...
     p.s_zr];
 
-% TODO : yd0 should be properly handled, but should mostly be zero
-[A, b] = eval_dep_speeds(q_vals, u_vals([3, 4, 6, 7, 8]), 0.0, [p.d1, p.d2, p.d3, p.rf, p.rr])
+[A, b] = eval_dep_speeds(q_vals, u_vals([3, 4, 6, 7, 8]), [p.d1, p.d2, p.d3, p.rf, p.rr])
 u_vals([1, 2, 5]) = A\b;
 u_vals
 
+% TODO : Iniital tire forces may not be zero.
 f_vals = [0.0, 0.0, 0.0, 0.0];
 
 initial_conditions = [q_vals, u_vals, f_vals]
 
-r_vals = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+r_vals = [0.0, 0.0, 0.0, 0.0];
 
 eval_rhs(0.0, initial_conditions', r_vals', p_vals')
 

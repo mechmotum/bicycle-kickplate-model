@@ -13,7 +13,6 @@ gen.write('eval_holonomic', path=os.path.dirname(__file__))
 # nonholonomic constraints: calculate dependent speeds
 gen = OctaveMatrixGenerator([[q3, q4, q5, q7],
                              u_ind,
-                             [yd],
                              [d1, d2, d3, rf, rr]],
                             [A_nh, -B_nh])
 gen.write('eval_dep_speeds', path=os.path.dirname(__file__))

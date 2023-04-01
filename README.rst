@@ -18,6 +18,14 @@ After that you can run the simulation, e.g.::
 
    python simulate.py
 
+The simulation can be run in Octave also. First generate the Octave functions::
+
+   python generate_octave_funcs.py
+
+And then run the simulation::
+
+   octave simulate.m
+
 License
 =======
 

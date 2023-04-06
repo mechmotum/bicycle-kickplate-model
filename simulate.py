@@ -6,12 +6,18 @@ import sympy as sm
 
 from nonlin_sym import *
 
+print('Lambdifying equations of motion.')
+eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic,
+                             cse=True)
+eval_dep_speeds = sm.lambdify([qs, u_ind, ps], [A_nh, -B_nh], cse=True)
+eval_dynamic = sm.lambdify([qs, us, fs, rs, ps], [A_all, b_all], cse=True)
+eval_angles = sm.lambdify((qs, us, ps), [alphar, alphaf, phir, phif], cse=True)
+eval_front_contact = sm.lambdify((qs, ps), [q9, q10], cse=True)
+
 ##########################
 # Check evaluation of EoMs
 ##########################
 
-print('Lambdifying full equations of motion.')
-eval_dynamic = sm.lambdify([qs, us, fs, rs, ps], [A_all, b_all], cse=True)
 print('Test eval_dynamics with all ones: ')
 print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
 
@@ -22,6 +28,7 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
 
 @np.vectorize
 def calc_fkp(t):
+    """Returns the lateral forced applied to the tire by the kick plate."""
 
     if t > 1.0 and t < 1.3:
         return 500.0
@@ -135,7 +142,6 @@ q_vals = np.array([
     1e-14,  # q7, setting to zero gives singular matrix
     0.0,  # q8
 ])
-eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic)
 initial_pitch_angle = float(fsolve(eval_holonomic, 0.0,
                                    args=(q_vals[3],  # q4
                                          q_vals[6],  # q7
@@ -161,7 +167,6 @@ u_vals = np.array([
     -initial_speed/p_vals[rf],  # u8
 ])
 
-eval_dep_speeds = sm.lambdify([qs, u_ind, ps], [A_nh, -B_nh], cse=True)
 A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals, u_vals[[2, 3, 5, 6, 7]], p_arr)
 u_vals[[0, 1, 4]] = np.linalg.solve(A_nh_vals, B_nh_vals).squeeze()
 print('Initial dependent speeds (u1, u2, u5): ',
@@ -185,7 +190,7 @@ fps = 100  # frames per second
 duration = 6.0  # seconds
 t0 = 0.0
 tf = t0 + duration
-times = np.linspace(t0, tf, num=int(duration*fps))
+times = np.linspace(t0, tf, num=int(duration*fps) + 1)
 
 res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p_arr)[0], (t0, tf),
                 initial_conditions, t_eval=times, method='LSODA')
@@ -201,9 +206,6 @@ holonomic_vs_time = eval_holonomic(x_traj[:, 4],  # q5
                                    p_vals[rf],
                                    p_vals[rr])
 
-eval_angles = sm.lambdify((qs, us, ps), [alphar, alphaf, phir, phif], cse=True)
-
-eval_front_contact = sm.lambdify((qs, ps), [q9, q10], cse=True)
 
 deg = [False, False, True, True, True, True, True, True]
 fig, axes = plt.subplots(14, 2, sharex=True)

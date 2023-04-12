@@ -89,45 +89,47 @@ def rhs(t, x, r_func, p):
 # Setup Numerical Values
 ########################
 
+# batavus browser with Jason sitting on it, tire parameters from
+# Andrew/Gabriele
 p_vals = {
-   c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
-   c_ar: 11.46,
-   c_pf: 0.573,
-   c_pr: 0.573,
-   c_maf: 0.0, #0.34,  # 0.34 is rough calc from gabriele's data, but causes instability (check signs)
-   c_mar: 0.0, #0.34,  # need real numbers for this
-   c_mpf: 0.0,  # need real numbers for this
-   c_mpr: 0.0,  # need real numbers for this
-   d1: 0.9534570696121849,
-   d2: 0.2676445084476887,
-   d3: 0.03207142672761929,
-   g: 9.81,
-   ic11: 7.178169776497895,
-   ic22: 11.0,
-   ic31: 3.8225535938357873,
-   ic33: 4.821830223502103,
-   id11: 0.0603,
-   id22: 0.12,
-   ie11: 0.05841337700152972,
-   ie22: 0.06,
-   ie31: 0.009119225261946298,
-   ie33: 0.007586622998470264,
-   if11: 0.1405,
-   if22: 0.28,
-   l1: 0.4707271515135145,
-   l2: -0.47792881146460797,
-   l3: -0.00597083392418685,
-   l4: -0.3699518200282974,
-   mc: 85.0,
-   md: 2.0,
-   me: 4.0,
-   mf: 3.0,
-   rf: 0.35,
-   rr: 0.3,
-   s_yf: 0.175,  # Andrew's estimates from his dissertation data
-   s_yr: 0.175,
-   s_zf: 0.175,
-   s_zr: 0.175,
+    c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
+    c_ar: 11.46,
+    c_maf: 0.0,  # 0.34 is rough calc from gabriele's data, but causes instability (check signs)
+    c_mar: 0.0,  # need real numbers for this
+    c_mpf: 0.0,  # need real numbers for this
+    c_mpr: 0.0,  # need real numbers for this
+    c_pf: 0.573,
+    c_pr: 0.573,
+    d1: 0.9631492634872098,
+    d2: 0.4338396131640938,
+    d3: 0.0705000000001252,
+    g: 9.81,
+    ic11: 11.519805885486146,
+    ic22: 12.2177848012,
+    ic31: 1.57915608541552,
+    ic33: 2.959474124693854,
+    id11: 0.0883819364527,
+    id22: 0.152467620286,
+    ie11: 0.2811355367159554,
+    ie22: 0.246138810935,
+    ie31: 0.0063377219110826045,
+    ie33: 0.06782113764394461,
+    if11: 0.0904106601579,
+    if22: 0.149389340425,
+    l1: 0.5384415640161426,
+    l2: -0.531720230353059,
+    l3: -0.07654646159268344,
+    l4: -0.47166687226492093,
+    mc: 81.86,
+    md: 3.11,
+    me: 3.22,
+    mf: 2.02,
+    rf: 0.34352982332,
+    rr: 0.340958858855,
+    s_yf: 0.175,  # Andrew's estimates from his dissertation data
+    s_yr: 0.175,
+    s_zf: 0.175,
+    s_zr: 0.175,
 }
 p_arr = np.array(list(p_vals.values()))
 
@@ -155,12 +157,12 @@ q_vals[4] = initial_pitch_angle
 print('Initial coordinates: ', q_vals)
 
 # initial speeds
-initial_speed = 4.6  # m/s
+initial_speed = 5.8  # m/s
 u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
-    0.0001,  # u4, rad/s
+    1e-10,  # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7
@@ -197,6 +199,14 @@ res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p_arr)[0], (t0, tf),
 x_traj = res.y.T
 times = res.t
 
+#########
+# Outputs
+#########
+
+q_traj = x_traj[:, :8]
+u_traj = x_traj[:, 8:16]
+f_traj = x_traj[:, 16:]
+
 holonomic_vs_time = eval_holonomic(x_traj[:, 4],  # q5
                                    x_traj[:, 3],  # q4
                                    x_traj[:, 6],  # q7
@@ -207,12 +217,6 @@ holonomic_vs_time = eval_holonomic(x_traj[:, 4],  # q5
                                    p_vals[rr])
 
 
-deg = [False, False, True, True, True, True, True, True]
-fig, axes = plt.subplots(14, 2, sharex=True)
-q_traj = x_traj[:, :8]
-u_traj = x_traj[:, 8:16]
-f_traj = x_traj[:, 16:]
-
 fz_traj = np.zeros((len(times), 2))
 angle_traj = np.zeros((len(times), 4))
 for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
@@ -220,6 +224,8 @@ for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
     _, fz_traj[i, :] = rhs(ti, statei, calc_inputs, p_arr)
     angle_traj[i, :] = eval_angles(qi, ui, p_arr)
 
+deg = [False, False, True, True, True, True, True, True]
+fig, axes = plt.subplots(14, 2, sharex=True)
 fig.set_size_inches(8, 10)
 for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 0], q_traj.T, qs, deg)):
     unit = '[m]'

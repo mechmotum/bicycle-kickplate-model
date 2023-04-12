@@ -468,9 +468,47 @@ u_dep = (u1, u2, u5)
 u_aux = (u11, u12)
 us = tuple(sm.ordered(u_ind + u_dep))
 fs = (Fry, Ffy, Mrz, Mfz)
-ps = (c_af, c_ar, c_pf, c_pr, c_maf, c_mar, c_mpf, c_mpr, d1, d2, d3, g, ic11,
-      ic22, ic31, ic33, id11, id22, ie11, ie22, ie31, ie33, if11, if22, l1, l2,
-      l3, l4, mc, md, me, mf, rf, rr, s_yf, s_yr, s_zf, s_zr)
+# the constants rely on being sorted
+ps = (
+    c_af,
+    c_ar,
+    c_maf,
+    c_mar,
+    c_mpf,
+    c_mpr,
+    c_pf,
+    c_pr,
+    d1,
+    d2,
+    d3,
+    g,
+    ic11,
+    ic22,
+    ic31,
+    ic33,
+    id11,
+    id22,
+    ie11,
+    ie22,
+    ie31,
+    ie33,
+    if11,
+    if22,
+    l1,
+    l2,
+    l3,
+    l4,
+    mc,
+    md,
+    me,
+    mf,
+    rf,
+    rr,
+    s_yf,
+    s_yr,
+    s_zf,
+    s_zr,
+)
 rs = (T4, T6, T7, Fkp)
 holon = (holonomic,)
 nonho = tuple(nonholonomic)

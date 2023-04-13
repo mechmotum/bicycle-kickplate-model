@@ -67,13 +67,8 @@ print('Defining time varying symbols.')
 # q6: rear wheel rotation angle
 # q7: steering rotation angle
 # q8: front wheel rotation angle
-# q9: perpendicular distance from the n2> axis to the front contact
-#     point in the ground plane
-# q10: perpendicular distance from the n1> axis to the front contact
-#     point in the ground plane
 q1, q2, q3, q4 = mec.dynamicsymbols('q1, q2, q3, q4')
 q5, q6, q7, q8 = mec.dynamicsymbols('q5, q6, q7, q8')
-q9, q10 = mec.dynamicsymbols('q9, q10')
 
 # q's that will have kinematical differential equations
 qs = [q1, q2, q3, q4, q5, q6, q7, q8]
@@ -208,11 +203,10 @@ id11, id22 = sm.symbols('id11, id22')
 ie11, ie22, ie33, ie31 = sm.symbols('ie11, ie22, ie33, ie31')
 if11, if22 = sm.symbols('if11, if22')
 
-# tire vertical load normalized cornering coefficient
+# vertical load normalized cornering coefficients for lateral force
 c_ar, c_af, c_pr, c_pf = sm.symbols('c_ar, c_af, c_pr, c_pf')
-# veritcal load normalized coefficients for self aligning moment
+# vertical load normalized coefficients for self aligning moment
 c_mar, c_maf, c_mpr, c_mpf = sm.symbols('c_mar, c_maf, c_mpr, c_mpf')
-
 # relaxation lengths for the lateral force and self-aligning moments
 s_yr, s_yf, s_zr, s_zf = sm.symbols('s_yr, s_yf, s_zr, s_zf')
 
@@ -564,8 +558,7 @@ Df = sm.Matrix([
     [(s_zr/sm.Abs(N_v_nd1)), 0],
     [0, (s_zf/sm.Abs(N_v_fn1))],
 ])
-# TODO : Makre the sign of the camber effect on self-aligning moment is
-# correct.
+# TODO : Make the sign of the camber effect on self-aligning moment is correct.
 Dz = sm.Matrix([
     [-(-c_mar*alphar + c_mpr*phir), 0],
     [0, -(-c_maf*alphaf + c_mpf*phif)],
@@ -613,5 +606,9 @@ print_syms(nonholonomic,
 A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
 
 # Front wheel contact point position.
+# q9: perpendicular distance from the n2> axis to the front contact
+#     point in the ground plane
+# q10: perpendicular distance from the n1> axis to the front contact
+#     point in the ground plane
 q9 = fn.pos_from(o).dot(N['1'])
 q10 = fn.pos_from(o).dot(N['2'])

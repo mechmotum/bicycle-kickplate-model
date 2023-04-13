@@ -31,7 +31,7 @@ def calc_fkp(t):
     """Returns the lateral forced applied to the tire by the kick plate."""
 
     if t > 1.0 and t < 1.3:
-        return 500.0
+        return 100.0
     else:
         return 0.0
 
@@ -94,8 +94,8 @@ def rhs(t, x, r_func, p):
 p_vals = {
     c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
     c_ar: 11.46,
-    c_maf: 0.0,  # 0.34 is rough calc from gabriele's data, but causes instability (check signs)
-    c_mar: 0.0,  # need real numbers for this
+    c_maf: 0.33,  # 0.33 is rough calc from gabriele's data, but causes instability (check signs)
+    c_mar: 0.33,  # need real numbers for this
     c_mpf: 0.0,  # need real numbers for this
     c_mpr: 0.0,  # need real numbers for this
     c_pf: 0.573,
@@ -131,7 +131,7 @@ p_vals = {
     s_zf: 0.175,
     s_zr: 0.175,
 }
-p_arr = np.array(list(p_vals.values()))
+p_arr = np.array([p_vals[pi] for pi in ps])
 
 # initial coordinates
 q_vals = np.array([
@@ -157,7 +157,7 @@ q_vals[4] = initial_pitch_angle
 print('Initial coordinates: ', q_vals)
 
 # initial speeds
-initial_speed = 5.8  # m/s
+initial_speed = 6.0  # m/s
 u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2

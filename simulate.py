@@ -95,7 +95,7 @@ p_vals = {
     c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
     c_ar: 11.46,
     c_maf: 0.33,  # 0.33 is rough calc from gabriele's data, but causes instability (check signs)
-    c_mar: 0.33,  # need real numbers for this
+    c_mar: 0.33,
     c_mpf: 0.0,  # need real numbers for this
     c_mpr: 0.0,  # need real numbers for this
     c_pf: 0.573,
@@ -162,7 +162,7 @@ u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
-    1e-10,  # u4, rad/s
+    1e-14,  # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7

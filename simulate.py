@@ -203,41 +203,47 @@ print(rhs(0.0, initial_conditions, calc_inputs, p_arr))
 # Simulate
 ##########
 
+
+def simulate(dur, rhs, x0, p, fps=60):
+
+    t0 = 0.0
+    tf = t0 + dur
+    times = np.linspace(t0, tf, num=int(dur*fps) + 1)
+
+    res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p_arr)[0], (t0, tf),
+                    initial_conditions, t_eval=times, method='LSODA')
+    times = res.t
+    x_traj = res.y.T
+    q_traj = x_traj[:, :8]
+    u_traj = x_traj[:, 8:16]
+    f_traj = x_traj[:, 16:]
+
+    con_traj = eval_holonomic(
+        q_traj[:, 4],  # q5
+        q_traj[:, 3],  # q4
+        q_traj[:, 6],  # q7
+        p[8],  # d1
+        p[9],  # d2
+        p[10],  # d3
+        p[32],  # rf
+        p[33],  # rr
+    )
+
+    fz_traj = np.zeros((len(times), 2))
+    slip_traj = np.zeros((len(times), 4))
+    for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
+        statei = np.hstack((qi, ui, fi))
+        _, fz_traj[i, :] = rhs(ti, statei, calc_inputs, p_arr)
+        slip_traj[i, :] = eval_angles(qi, ui, p_arr)
+
+    return times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj
+
+
 fps = 100  # frames per second
 duration = 6.0  # seconds
-t0 = 0.0
-tf = t0 + duration
-times = np.linspace(t0, tf, num=int(duration*fps) + 1)
+times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj = simulate(
+    duration, rhs, initial_conditions, p_arr, fps=fps)
 
-res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p_arr)[0], (t0, tf),
-                initial_conditions, t_eval=times, method='LSODA')
-x_traj = res.y.T
-times = res.t
-
-#########
-# Outputs
-#########
-
-q_traj = x_traj[:, :8]
-u_traj = x_traj[:, 8:16]
-f_traj = x_traj[:, 16:]
-
-holonomic_vs_time = eval_holonomic(x_traj[:, 4],  # q5
-                                   x_traj[:, 3],  # q4
-                                   x_traj[:, 6],  # q7
-                                   p_vals[d1],
-                                   p_vals[d2],
-                                   p_vals[d3],
-                                   p_vals[rf],
-                                   p_vals[rr])
-
-
-fz_traj = np.zeros((len(times), 2))
-angle_traj = np.zeros((len(times), 4))
-for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
-    statei = np.hstack((qi, ui, fi))
-    _, fz_traj[i, :] = rhs(ti, statei, calc_inputs, p_arr)
-    angle_traj[i, :] = eval_angles(qi, ui, p_arr)
 
 deg = [False, False, True, True, True, True, True, True]
 fig, axes = plt.subplots(14, 2, sharex=True)
@@ -271,19 +277,19 @@ axes[10, 0].set_ylabel(str(Frz) + '\n[N]')
 axes[10, 1].plot(times, fz_traj[:, 1])
 axes[10, 1].set_ylabel(str(Ffz) + '\n[N]')
 
-axes[11, 0].plot(times, np.rad2deg(angle_traj[:, 0]))
+axes[11, 0].plot(times, np.rad2deg(slip_traj[:, 0]))
 axes[11, 0].set_ylabel('alphar\n[deg]')
-axes[11, 1].plot(times, np.rad2deg(angle_traj[:, 1]))
+axes[11, 1].plot(times, np.rad2deg(slip_traj[:, 1]))
 axes[11, 1].set_ylabel('alphaf\n[deg]')
-axes[12, 0].plot(times, np.rad2deg(angle_traj[:, 2]))
+axes[12, 0].plot(times, np.rad2deg(slip_traj[:, 2]))
 axes[12, 0].set_ylabel('phir\n[deg]')
-axes[12, 1].plot(times, np.rad2deg(angle_traj[:, 3]))
+axes[12, 1].plot(times, np.rad2deg(slip_traj[:, 3]))
 axes[12, 1].set_ylabel('phif\n[deg]')
 
 axes[-1, 0].plot(times, calc_fkp(times))
 axes[-1, 0].set_ylabel('$F_{kp}$\n[N]')
 axes[-1, 0].set_xlabel('Time [s]')
-axes[-1, 1].plot(times, holonomic_vs_time)
+axes[-1, 1].plot(times, con_traj)
 axes[-1, 1].set_ylabel('constraint\n[m]')
 axes[-1, 1].set_xlabel('Time [s]')
 plt.tight_layout()
@@ -319,7 +325,7 @@ def plot_minimal(t, q4, ar, af, fkp, fyr, fyf, axes=None, **kwargs):
     return axes
 
 
-axes = plot_minimal(times, q_traj[:, 3], angle_traj[:, 0], angle_traj[:, 1],
+axes = plot_minimal(times, q_traj[:, 3], slip_traj[:, 0], slip_traj[:, 1],
                     calc_fkp(times), f_traj[:, 0], f_traj[:, 1])
 
 p_vals[c_af] = p_vals[c_af]*1.1
@@ -329,23 +335,12 @@ p_vals[c_mar] = p_vals[c_mar]*1.1
 p_vals[c_pf] = p_vals[c_pf]*1.1
 p_vals[c_pr] = p_vals[c_pr]*1.1
 p_arr = np.array([p_vals[pi] for pi in ps])
-
 initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
-res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p_arr)[0], (t0, tf),
-                initial_conditions, t_eval=times, method='LSODA')
-x_traj = res.y.T
-times = res.t
-q_traj = x_traj[:, :8]
-u_traj = x_traj[:, 8:16]
-f_traj = x_traj[:, 16:]
-fz_traj = np.zeros((len(times), 2))
-angle_traj = np.zeros((len(times), 4))
-for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
-    statei = np.hstack((qi, ui, fi))
-    _, fz_traj[i, :] = rhs(ti, statei, calc_inputs, p_arr)
-    angle_traj[i, :] = eval_angles(qi, ui, p_arr)
 
-plot_minimal(times, q_traj[:, 3], angle_traj[:, 0], angle_traj[:, 1],
+times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj = simulate(
+    duration, rhs, initial_conditions, p_arr, fps=fps)
+
+plot_minimal(times, q_traj[:, 3], slip_traj[:, 0], slip_traj[:, 1],
              calc_fkp(times), f_traj[:, 0], f_traj[:, 1], axes=axes,
              linestyle=':')
 

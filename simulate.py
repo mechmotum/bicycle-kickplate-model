@@ -231,17 +231,20 @@ def simulate(dur, rhs, x0, p, fps=60):
 
     fz_traj = np.zeros((len(times), 2))
     slip_traj = np.zeros((len(times), 4))
+    q9_traj = np.zeros_like(times)
+    q10_traj = np.zeros_like(times)
     for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
         statei = np.hstack((qi, ui, fi))
-        _, fz_traj[i, :] = rhs(ti, statei, calc_inputs, p_arr)
-        slip_traj[i, :] = eval_angles(qi, ui, p_arr)
+        _, fz_traj[i, :] = rhs(ti, statei, calc_inputs, p)
+        slip_traj[i, :] = eval_angles(qi, ui, p)
+        q9_traj[i], q10_traj[i] = eval_front_contact(qi, p)
 
-    return times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj
+    return times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj, q10_traj
 
 
 fps = 100  # frames per second
 duration = 6.0  # seconds
-times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj = simulate(
+times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj, q10_traj = simulate(
     duration, rhs, initial_conditions, p_arr, fps=fps)
 
 
@@ -296,10 +299,6 @@ plt.tight_layout()
 
 fig, ax = plt.subplots(1, 1)
 ax.plot(q_traj[:, 0], q_traj[:, 1])
-q9_traj = np.zeros_like(times)
-q10_traj = np.zeros_like(times)
-for i, qi in enumerate(q_traj):
-    q9_traj[i], q10_traj[i] = eval_front_contact(qi, p_arr)
 ax.plot(q9_traj, q10_traj)
 ax.set_aspect('equal')
 
@@ -337,7 +336,7 @@ p_vals[c_pr] = p_vals[c_pr]*1.1
 p_arr = np.array([p_vals[pi] for pi in ps])
 initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
 
-times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj = simulate(
+times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj, q10_traj = simulate(
     duration, rhs, initial_conditions, p_arr, fps=fps)
 
 plot_minimal(times, q_traj[:, 3], slip_traj[:, 0], slip_traj[:, 1],

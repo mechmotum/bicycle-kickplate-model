@@ -144,42 +144,52 @@ q_vals = np.array([
     1e-14,  # q7, setting to zero gives singular matrix
     0.0,  # q8
 ])
-initial_pitch_angle = float(fsolve(eval_holonomic, 0.0,
-                                   args=(q_vals[3],  # q4
-                                         q_vals[6],  # q7
-                                         p_vals[d1],
-                                         p_vals[d2],
-                                         p_vals[d3],
-                                         p_vals[rf],
-                                         p_vals[rr])))
-print('Initial pitch angle:', np.rad2deg(initial_pitch_angle))
-q_vals[4] = initial_pitch_angle
-print('Initial coordinates: ', q_vals)
-
 # initial speeds
-initial_speed = 6.0  # m/s
+initial_speed = 5.8  # m/s
 u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
-    1e-14,  # u4, rad/s
+    1e-10,  # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7
     -initial_speed/p_vals[rf],  # u8
 ])
 
-A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals, u_vals[[2, 3, 5, 6, 7]], p_arr)
-u_vals[[0, 1, 4]] = np.linalg.solve(A_nh_vals, B_nh_vals).squeeze()
-print('Initial dependent speeds (u1, u2, u5): ',
-      u_vals[0], u_vals[1], np.rad2deg(u_vals[4]))
-print('Initial speeds: ', u_vals)
-
 # initial tire forces
 # TODO : Need to figure out how we know the initial state of the tire forces.
 f_vals = np.array([0.0, 0.0, 0.0, 0.0])
 
-initial_conditions = np.hstack((q_vals, u_vals, f_vals))
+
+def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
+
+    initial_pitch_angle = float(fsolve(eval_holonomic, 0.0,
+                                    args=(q_vals[3],  # q4
+                                          q_vals[6],  # q7
+                                          p_vals[d1],
+                                          p_vals[d2],
+                                          p_vals[d3],
+                                          p_vals[rf],
+                                          p_vals[rr])))
+    print('Initial pitch angle:', np.rad2deg(initial_pitch_angle))
+    q_vals[4] = initial_pitch_angle
+    print('Initial coordinates: ', q_vals)
+
+    A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals, u_vals[[2, 3, 5, 6, 7]],
+                                           p_arr)
+    u_vals[[0, 1, 4]] = np.linalg.solve(A_nh_vals, B_nh_vals).squeeze()
+    print('Initial dependent speeds (u1, u2, u5): ',
+        u_vals[0], u_vals[1], np.rad2deg(u_vals[4]))
+    print('Initial speeds: ', u_vals)
+    # TODO: When the speed is higher than about 4.6, the initial lateral speed
+    # is non-zero. Need to investigate. For now, force to zero.
+    u_vals[1] = 0.0
+
+    return np.hstack((q_vals, u_vals, f_vals))
+
+
+initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
 
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, calc_inputs, p_arr))
@@ -281,5 +291,57 @@ for i, qi in enumerate(q_traj):
     q9_traj[i], q10_traj[i] = eval_front_contact(qi, p_arr)
 ax.plot(q9_traj, q10_traj)
 ax.set_aspect('equal')
+
+
+# simplified figure
+# compare normal tire numbers and 10% change in slip coefficient
+# plot slip angle, lateral force for front and rear steer angle and force input
+def plot_minimal(t, q4, ar, af, fkp, fyr, fyf, axes=None, **kwargs):
+    if axes is None:
+        fig, axes = plt.subplots(2, 1, sharex=True)
+    axes[0].plot(times, np.rad2deg(q4), label=r'$\delta$', **kwargs)
+    axes[0].plot(times, np.rad2deg(ar), label=r'$\alpha_r$', **kwargs)
+    axes[0].plot(times, np.rad2deg(af), label=r'$\alpha_f$', **kwargs)
+    axes[0].set_ylabel('Angle [deg]')
+    axes[0].legend()
+    axes[1].plot(times, fkp, label='$F_{kp}$', **kwargs)
+    axes[1].plot(times, fyr, label='$F_{yr}$', **kwargs)
+    axes[1].plot(times, fyf, label='$F_{yf}$', **kwargs)
+    axes[1].set_ylabel('Force [N]')
+    axes[1].set_xlabel('Time [s]')
+    axes[1].legend()
+    plt.tight_layout()
+    return axes
+
+
+axes = plot_minimal(times, q_traj[:, 3], angle_traj[:, 0], angle_traj[:, 1],
+                    calc_fkp(times), f_traj[:, 0], f_traj[:, 1])
+
+p_vals[c_af] = p_vals[c_af]*1.1
+p_vals[c_ar] = p_vals[c_ar]*1.1
+p_vals[c_maf] = p_vals[c_maf]*1.1
+p_vals[c_mar] = p_vals[c_mar]*1.1
+p_vals[c_pf] = p_vals[c_pf]*1.1
+p_vals[c_pr] = p_vals[c_pr]*1.1
+p_arr = np.array([p_vals[pi] for pi in ps])
+
+initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
+res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p_arr)[0], (t0, tf),
+                initial_conditions, t_eval=times, method='LSODA')
+x_traj = res.y.T
+times = res.t
+q_traj = x_traj[:, :8]
+u_traj = x_traj[:, 8:16]
+f_traj = x_traj[:, 16:]
+fz_traj = np.zeros((len(times), 2))
+angle_traj = np.zeros((len(times), 4))
+for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
+    statei = np.hstack((qi, ui, fi))
+    _, fz_traj[i, :] = rhs(ti, statei, calc_inputs, p_arr)
+    angle_traj[i, :] = eval_angles(qi, ui, p_arr)
+
+plot_minimal(times, q_traj[:, 3], angle_traj[:, 0], angle_traj[:, 1],
+             calc_fkp(times), f_traj[:, 0], f_traj[:, 1], axes=axes,
+             linestyle=':')
 
 plt.show()

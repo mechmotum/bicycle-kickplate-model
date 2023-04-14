@@ -163,15 +163,20 @@ f_vals = np.array([0.0, 0.0, 0.0, 0.0])
 
 
 def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
+    """Calculates dependent coordinates and speeds given the independent
+    coordinates and speeds."""
 
-    initial_pitch_angle = float(fsolve(eval_holonomic, 0.0,
-                                    args=(q_vals[3],  # q4
-                                          q_vals[6],  # q7
-                                          p_vals[d1],
-                                          p_vals[d2],
-                                          p_vals[d3],
-                                          p_vals[rf],
-                                          p_vals[rr])))
+    ehom_args = (
+        q_vals[3],  # q4
+        q_vals[6],  # q7
+        p_arr[8],  # d1
+        p_arr[9],  # d2
+        p_arr[10],  # d3
+        p_arr[32],  # rf
+        p_arr[33],  # rr
+    )
+    initial_pitch_angle = float(fsolve(eval_holonomic, np.pi/10,
+                                       args=ehom_args))
     print('Initial pitch angle:', np.rad2deg(initial_pitch_angle))
     q_vals[4] = initial_pitch_angle
     print('Initial coordinates: ', q_vals)

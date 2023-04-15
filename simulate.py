@@ -68,7 +68,7 @@ def rhs(t, x, r_func, p):
     x : array_like, shape(20,)
         State values where x = [q1, q2, q3, q4, q5, q6, q7, q8, u1, u2, u3, u4,
         u5, u6, u7, u8, Fry, Ffy, Mrz, Mfz].
-    p : array_like, shape(28,)
+    p : array_like, shape(38,)
         Constant values.
 
     Returns
@@ -104,7 +104,7 @@ def rhs(t, x, r_func, p):
 p_vals = {
     c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
     c_ar: 11.46,
-    c_maf: 0.33,  # 0.33 is rough calc from gabriele's data, but causes instability (check signs)
+    c_maf: 0.33,  # 0.33 is rough calc from gabriele's data
     c_mar: 0.33,
     c_mpf: 0.0,  # need real numbers for this
     c_mpr: 0.0,  # need real numbers for this
@@ -174,7 +174,20 @@ f_vals = np.array([0.0, 0.0, 0.0, 0.0])
 
 def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     """Calculates dependent coordinates and speeds given the independent
-    coordinates and speeds."""
+    coordinates and speeds. The dependent coordinates and speeds in q_vals and
+    u_vals will be overwritten.
+
+    Parameters
+    ==========
+    q_vals : array_like, shape(8,)
+        [q1, q2, q3, q4, q5, q6, q7, q8]
+    u_vals : array_like, shape(8,)
+        [u1, u2, u3, u4, u5, u6, u7, u8]
+    f_vals: array_like, shape(4,)
+        [Fry, Ffy, Mrz, Mfz]
+    p_arr: array_like, shape(38,)
+
+    """
 
     ehom_args = (
         q_vals[3],  # q4

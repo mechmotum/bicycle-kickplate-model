@@ -6,14 +6,6 @@ import sympy as sm
 
 from nonlin_sym import *
 
-print('Lambdifying equations of motion.')
-eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic,
-                             cse=True)
-eval_dep_speeds = sm.lambdify([qs, u_ind, ps], [A_nh, -B_nh], cse=True)
-eval_dynamic = sm.lambdify([qs, us, fs, rs, ps], [A_all, b_all], cse=True)
-eval_angles = sm.lambdify((qs, us, ps), [alphar, alphaf, phir, phif], cse=True)
-eval_front_contact = sm.lambdify((qs, ps), [q9, q10], cse=True)
-
 ##########################
 # Check evaluation of EoMs
 ##########################
@@ -40,6 +32,8 @@ def calc_inputs(t, x, p):
 
     # steer, rear wheel, roll torques set to zero
     T4, T6, T7 = 0.0, 0.0, 0.0
+
+    #T7 = 10.0*x[11]
 
     # kick plate force
     fkp = calc_fkp(t)
@@ -327,12 +321,13 @@ def plot_minimal(t, q4, ar, af, fkp, fyr, fyf, axes=None, **kwargs):
 axes = plot_minimal(times, q_traj[:, 3], slip_traj[:, 0], slip_traj[:, 1],
                     calc_fkp(times), f_traj[:, 0], f_traj[:, 1])
 
-p_vals[c_af] = p_vals[c_af]*1.1
-p_vals[c_ar] = p_vals[c_ar]*1.1
-p_vals[c_maf] = p_vals[c_maf]*1.1
-p_vals[c_mar] = p_vals[c_mar]*1.1
-p_vals[c_pf] = p_vals[c_pf]*1.1
-p_vals[c_pr] = p_vals[c_pr]*1.1
+factor = 1.1
+p_vals[c_af] = p_vals[c_af]*factor
+p_vals[c_ar] = p_vals[c_ar]*factor
+p_vals[c_maf] = p_vals[c_maf]*factor
+p_vals[c_mar] = p_vals[c_mar]*factor
+p_vals[c_pf] = p_vals[c_pf]*factor
+p_vals[c_pr] = p_vals[c_pr]*factor
 p_arr = np.array([p_vals[pi] for pi in ps])
 initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
 

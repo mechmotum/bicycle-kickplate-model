@@ -612,3 +612,11 @@ A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
 #     point in the ground plane
 q9 = fn.pos_from(o).dot(N['1'])
 q10 = fn.pos_from(o).dot(N['2'])
+
+print('Lambdifying equations of motion.')
+eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic,
+                             cse=True)
+eval_dep_speeds = sm.lambdify([qs, u_ind, ps], [A_nh, -B_nh], cse=True)
+eval_dynamic = sm.lambdify([qs, us, fs, rs, ps], [A_all, b_all], cse=True)
+eval_angles = sm.lambdify((qs, us, ps), [alphar, alphaf, phir, phif], cse=True)
+eval_front_contact = sm.lambdify((qs, ps), [q9, q10], cse=True)

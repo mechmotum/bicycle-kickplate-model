@@ -143,34 +143,6 @@ p_vals = {
 }
 p_arr = np.array([p_vals[pi] for pi in ps])
 
-# initial coordinates
-q_vals = np.array([
-    0.0,  # q1
-    0.0,  # q2
-    0.0,  # q3
-    0.0,  # q4
-    np.nan,  # q5
-    0.0,  # q6
-    1e-14,  # q7, setting to zero gives singular matrix
-    0.0,  # q8
-])
-# initial speeds
-initial_speed = 6.0  # m/s
-u_vals = np.array([
-    np.nan,  # u1
-    np.nan,  # u2
-    0.0,  # u3, rad/s
-    0.00001,  # u4, rad/s
-    np.nan,  # u5, rad/s
-    -initial_speed/p_vals[rr],  # u6
-    0.0,  # u7
-    -initial_speed/p_vals[rf],  # u8
-])
-
-# initial tire forces
-# TODO : Need to figure out how we know the initial state of the tire forces.
-f_vals = np.array([0.0, 0.0, 0.0, 0.0])
-
 
 def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     """Calculates dependent coordinates and speeds given the independent
@@ -217,16 +189,6 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     return np.hstack((q_vals, u_vals, f_vals))
 
 
-initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
-
-print('Test rhs with initial conditions and correct constants:')
-print(rhs(0.0, initial_conditions, calc_inputs, p_arr))
-
-##########
-# Simulate
-##########
-
-
 def simulate(dur, rhs, x0, p, fps=60):
 
     t0 = 0.0
@@ -234,7 +196,7 @@ def simulate(dur, rhs, x0, p, fps=60):
     times = np.linspace(t0, tf, num=int(dur*fps) + 1)
 
     res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p_arr)[0], (t0, tf),
-                    initial_conditions, t_eval=times, method='LSODA')
+                    x0, t_eval=times, method='LSODA')
     times = res.t
     x_traj = res.y.T
     q_traj = x_traj[:, :8]
@@ -265,13 +227,8 @@ def simulate(dur, rhs, x0, p, fps=60):
     return times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj, q10_traj
 
 
-fps = 100  # frames per second
-duration = 6.0  # seconds
-times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj, q10_traj = simulate(
-    duration, rhs, initial_conditions, p_arr, fps=fps)
-
-
-def plot_all():
+def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
+             q9_traj, q10_traj):
 
     deg = [False, False, True, True, True, True, True, True]
     fig, axes = plt.subplots(14, 2, sharex=True)
@@ -325,18 +282,12 @@ def plot_all():
     return axes
 
 
-plot_all()
-
-
-def plot_wheel_paths():
+def plot_wheel_paths(q_traj, q9_traj, q10_traj):
     fig, ax = plt.subplots(1, 1)
     ax.plot(q_traj[:, 0], q_traj[:, 1])
     ax.plot(q9_traj, q10_traj)
     ax.set_aspect('equal')
     return ax
-
-
-plot_wheel_paths()
 
 
 # simplified figure
@@ -345,17 +296,17 @@ plot_wheel_paths()
 def plot_minimal(t, q7, ar, af, fkp, fyr, fyf, axes=None, **kwargs):
     if axes is None:
         fig, axes = plt.subplots(2, 1, sharex=True)
-    axes[0].plot(times, np.rad2deg(q7), color='C0', label=r'$\delta$',
+    axes[0].plot(t, np.rad2deg(q7), color='C0', label=r'$\delta$',
                  **kwargs)
-    axes[0].plot(times, np.rad2deg(ar), color='C1', label=r'$\alpha_r$',
+    axes[0].plot(t, np.rad2deg(ar), color='C1', label=r'$\alpha_r$',
                  **kwargs)
-    axes[0].plot(times, np.rad2deg(af), color='C2', label=r'$\alpha_f$',
+    axes[0].plot(t, np.rad2deg(af), color='C2', label=r'$\alpha_f$',
                  **kwargs)
     axes[0].set_ylabel('Angle [deg]')
     axes[0].legend()
-    axes[1].plot(times, fkp, color='C0', label='$F_{kp}$', **kwargs)
-    axes[1].plot(times, fyr, color='C1', label='$F_{yr}$', **kwargs)
-    axes[1].plot(times, fyf, color='C2', label='$F_{yf}$', **kwargs)
+    axes[1].plot(t, fkp, color='C0', label='$F_{kp}$', **kwargs)
+    axes[1].plot(t, fyr, color='C1', label='$F_{yr}$', **kwargs)
+    axes[1].plot(t, fyf, color='C2', label='$F_{yf}$', **kwargs)
     axes[1].set_ylabel('Force [N]')
     axes[1].set_xlabel('Time [s]')
     axes[0].set_xlim((0.0, 2.0))
@@ -363,30 +314,3 @@ def plot_minimal(t, q7, ar, af, fkp, fyr, fyf, axes=None, **kwargs):
     axes[1].legend()
     plt.tight_layout()
     return axes
-
-initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
-
-times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj, q10_traj = simulate(
-    2.0, rhs, initial_conditions, p_arr, fps=1000)
-
-axes = plot_minimal(times, q_traj[:, 6], slip_traj[:, 0], slip_traj[:, 1],
-                    calc_fkp(times), f_traj[:, 0], f_traj[:, 1])
-
-factor = 1.3
-p_vals[c_af] = p_vals[c_af]*factor
-p_vals[c_ar] = p_vals[c_ar]*factor
-p_vals[c_maf] = p_vals[c_maf]*factor
-p_vals[c_mar] = p_vals[c_mar]*factor
-p_vals[c_pf] = p_vals[c_pf]*factor
-p_vals[c_pr] = p_vals[c_pr]*factor
-p_arr = np.array([p_vals[pi] for pi in ps])
-initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
-
-times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj, q10_traj = simulate(
-    2.0, rhs, initial_conditions, p_arr, fps=1000)
-
-plot_minimal(times, q_traj[:, 3], slip_traj[:, 0], slip_traj[:, 1],
-             calc_fkp(times), f_traj[:, 0], f_traj[:, 1], axes=axes,
-             linestyle=':')
-
-plt.show()

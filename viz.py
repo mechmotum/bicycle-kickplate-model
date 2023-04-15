@@ -33,11 +33,11 @@ eo_frame = VisualizationFrame(E, eo, eo_sphere)
 camera_loc = o.locatenew('p_camera', -10*N.z + q1*N.x)
 camera = PerspectiveCamera('camera', N, camera_loc)
 
-scene = Scene(N, o, cameras=[camera])
+scene = Scene(N, o) #, cameras=[camera])
 scene.visualization_frames = [front_wheel_vframe, rear_wheel_vframe, d1_frame,
                               d2_frame, d3_frame, co_frame, eo_frame]
 
 scene.times = times
 scene.constants = p_vals
 scene.states_symbols = qs + us
-scene.states_trajectories = x_traj[:, 0:16]
+scene.states_trajectories = np.hstack((q_traj, u_traj))

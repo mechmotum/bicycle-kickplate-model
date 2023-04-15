@@ -155,7 +155,7 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     tf = t0 + dur
     times = np.linspace(t0, tf, num=int(dur*fps) + 1)
 
-    res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p_arr)[0], (t0, tf),
+    res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p)[0], (t0, tf),
                     x0, t_eval=times, method='LSODA')
 
     times = res.t

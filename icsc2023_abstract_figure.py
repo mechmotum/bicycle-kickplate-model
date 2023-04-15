@@ -4,7 +4,7 @@ initial forward speed and apply a pulse kick."""
 import numpy as np
 import matplotlib.pyplot as plt
 
-from simulate import (rr, rf, p_vals, p_arr, rhs, setup_initial_conditions,
+from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions,
                       simulate, plot_minimal, c_af, c_ar, c_maf, c_mar, c_pf,
                       c_pr, ps)
 
@@ -84,8 +84,9 @@ f_vals = np.array([0.0, 0.0, 0.0, 0.0])
 
 initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
 
-times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj, q10_traj, r_traj = simulate(
-    2.0, calc_inputs, initial_conditions, p_arr, fps=1000)
+(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj,
+ q10_traj, r_traj) = simulate(2.0, calc_inputs, initial_conditions, p_arr,
+                              fps=1000)
 
 axes = plot_minimal(times, q_traj[:, 6], slip_traj[:, 0], slip_traj[:, 1],
                     r_traj[:, -1], f_traj[:, 0], f_traj[:, 1])
@@ -100,10 +101,11 @@ p_vals[c_pr] = p_vals[c_pr]*factor
 p_arr = np.array([p_vals[pi] for pi in ps])
 initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
 
-times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj, q10_traj, r_traj = simulate(
-    2.0, calc_inputs, initial_conditions, p_arr, fps=1000)
+(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj,
+ q10_traj, r_traj) = simulate(2.0, calc_inputs, initial_conditions, p_arr,
+                              fps=1000)
 
-plot_minimal(times, q_traj[:, 3], slip_traj[:, 0], slip_traj[:, 1],
+plot_minimal(times, q_traj[:, 6], slip_traj[:, 0], slip_traj[:, 1],
              r_traj[:, -1], f_traj[:, 0], f_traj[:, 1], axes=axes,
              linestyle=':')
 

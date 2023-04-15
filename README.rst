@@ -16,7 +16,7 @@ Install the software into a conda environment and activate::
 
 After that you can run the simulation, e.g.::
 
-   python simulate.py
+   python base_simulation.py
 
 The simulation can be run in Octave also. First generate the Octave functions::
 

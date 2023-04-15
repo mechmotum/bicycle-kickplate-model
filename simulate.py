@@ -17,48 +17,6 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
 ############################
 
 
-@np.vectorize
-def calc_fkp(t):
-    """Returns the lateral forced applied to the tire by the kick plate."""
-
-    if t > 0.5 and t < 1.0:
-        return 100.0
-    else:
-        return 0.0
-
-
-def calc_inputs(t, x, p):
-
-    # steer, rear wheel, roll torques set to zero
-    T4, T6, T7 = 0.0, 0.0, 0.0
-
-    q4 = x[3]
-    q7 = x[6]
-    u4 = x[11]
-    u7 = x[14]
-
-    # LQR gains for Whipple model at 6 m/s
-    kq4 = -2.2340917377023612
-    kq7 = 4.90641020775064
-    ku4 = -0.5939384880650549
-    ku7 = 0.4340987861323103
-
-    # LQR gains for Whipple model at 3 m/s
-    #kq4 = -23.183400610625647
-    #kq7 = 17.086409893261113
-    #ku4 = -7.999852938163112
-    #ku7 = 1.8634394089384874
-
-    T7 = -(kq4*q4 + kq7*q7 + ku4*u4 + ku7*u7)
-
-    # kick plate force
-    fkp = calc_fkp(t)
-
-    r = [T4, T6, T7, fkp]
-
-    return r
-
-
 def rhs(t, x, r_func, p):
     """
     Parameters
@@ -179,8 +137,8 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals, u_vals[[2, 3, 5, 6, 7]],
                                            p_arr)
     u_vals[[0, 1, 4]] = np.linalg.solve(A_nh_vals, B_nh_vals).squeeze()
-    print('Initial dependent speeds (u1, u2, u5): ',
-        u_vals[0], u_vals[1], np.rad2deg(u_vals[4]))
+    print('Initial dependent speeds (u1, u2, u5): ', u_vals[0], u_vals[1],
+          np.rad2deg(u_vals[4]))
     print('Initial speeds: ', u_vals)
     # TODO: When the speed is higher than about 4.6, the initial lateral speed
     # is non-zero. Need to investigate. For now, force to zero.
@@ -189,7 +147,9 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     return np.hstack((q_vals, u_vals, f_vals))
 
 
-def simulate(dur, rhs, x0, p, fps=60):
+def simulate(dur, calc_inputs, x0, p, fps=60):
+    """Simulate the model given the duration, constant parameters, initial
+    conditions, and inputs and calcaluate any output variables."""
 
     t0 = 0.0
     tf = t0 + dur
@@ -197,6 +157,7 @@ def simulate(dur, rhs, x0, p, fps=60):
 
     res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p_arr)[0], (t0, tf),
                     x0, t_eval=times, method='LSODA')
+
     times = res.t
     x_traj = res.y.T
     q_traj = x_traj[:, :8]
@@ -218,17 +179,20 @@ def simulate(dur, rhs, x0, p, fps=60):
     slip_traj = np.zeros((len(times), 4))
     q9_traj = np.zeros_like(times)
     q10_traj = np.zeros_like(times)
+    r_traj = np.zeros((len(times), 4))
     for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
         statei = np.hstack((qi, ui, fi))
         _, fz_traj[i, :] = rhs(ti, statei, calc_inputs, p)
         slip_traj[i, :] = eval_angles(qi, ui, p)
         q9_traj[i], q10_traj[i] = eval_front_contact(qi, p)
+        r_traj[i] = calc_inputs(ti, statei, p)
 
-    return times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj, q10_traj
+    return (times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
+            q9_traj, q10_traj, r_traj)
 
 
 def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
-             q9_traj, q10_traj):
+             q9_traj, q10_traj, r_traj):
 
     deg = [False, False, True, True, True, True, True, True]
     fig, axes = plt.subplots(14, 2, sharex=True)
@@ -271,7 +235,7 @@ def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
     axes[12, 1].plot(times, np.rad2deg(slip_traj[:, 3]))
     axes[12, 1].set_ylabel('phif\n[deg]')
 
-    axes[-1, 0].plot(times, calc_fkp(times))
+    axes[-1, 0].plot(times, r_traj[:, -1])
     axes[-1, 0].set_ylabel('$F_{kp}$\n[N]')
     axes[-1, 0].set_xlabel('Time [s]')
     axes[-1, 1].plot(times, con_traj)

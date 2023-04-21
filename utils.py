@@ -40,6 +40,29 @@ def cramer_solve(A, b, det_method=det_laplace):
     return x
 
 
+def linear_coefficients(exprs, vars):
+    """Finds the linear coefficients of the variables in the expressions and
+    returns them in a Jacobian form.
+
+    Warning: expr must be linear in vars!
+
+    Parameters
+    ==========
+    exprs : sequence of expressions, shape(n,)
+    vars: sequence of variables, shape(m,)
+
+    Returns
+    =======
+    coeffs : Matrix, shape(n, m)
+        Jacobian exprs wrt vars.
+    """
+    coeffs = sm.zeros(len(exprs), len(vars))
+    for i, expr in enumerate(exprs):
+        for j, var in enumerate(vars):
+            coeffs[i, j] = expr.coeff(var)
+    return coeffs
+
+
 def decompose_linear_parts(F, *x):
     """Returns the linear coefficient matrices associated with the provided
     vectors and the remainder vector. F must be able to be put into the
@@ -76,7 +99,7 @@ def decompose_linear_parts(F, *x):
     F = sm.Matrix(F)
     matrices = []
     for xi in x:
-        Ai = F.jacobian(xi)
+        Ai = linear_coefficients(F, xi)
         matrices.append(Ai)
         repl = {xij: 0 for xij in xi}
         F = F.xreplace(repl)  # remove Ai*xi from F

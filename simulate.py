@@ -257,24 +257,35 @@ def plot_wheel_paths(q_traj, q9_traj, q10_traj):
 # simplified figure
 # compare normal tire numbers and 10% change in slip coefficient
 # plot slip angle, lateral force for front and rear steer angle and force input
-def plot_minimal(t, q7, ar, af, fkp, fyr, fyf, axes=None, **kwargs):
+def plot_minimal(t, q7, ar, af, fkp, T7, fyr, fyf, axes=None, torqax=None,
+                 **kwargs):
+
     if axes is None:
         fig, axes = plt.subplots(2, 1, sharex=True)
+    if torqax is None:
+        torqax = axes[1].twinx()
+
     axes[0].plot(t, np.rad2deg(q7), color='C0', label=r'$\delta$',
                  **kwargs)
     axes[0].plot(t, np.rad2deg(ar), color='C1', label=r'$\alpha_r$',
                  **kwargs)
     axes[0].plot(t, np.rad2deg(af), color='C2', label=r'$\alpha_f$',
                  **kwargs)
-    axes[0].set_ylabel('Angle [deg]')
-    axes[0].legend()
     axes[1].plot(t, fkp, color='C0', label='$F_{kp}$', **kwargs)
     axes[1].plot(t, fyr, color='C1', label='$F_{yr}$', **kwargs)
     axes[1].plot(t, fyf, color='C2', label='$F_{yf}$', **kwargs)
+    torqax.plot(t, T7, color='C3', label=r'$T_\delta$', **kwargs)
+
+    axes[0].set_ylabel('Angle [deg]')
     axes[1].set_ylabel('Force [N]')
+    torqax.set_ylabel('Torque [N-m]')
     axes[1].set_xlabel('Time [s]')
     axes[0].set_xlim((0.0, 2.0))
     axes[1].set_xlim((0.0, 2.0))
+
+    axes[0].legend()
     axes[1].legend()
+    torqax.legend()
+
     plt.tight_layout()
-    return axes
+    return axes, torqax

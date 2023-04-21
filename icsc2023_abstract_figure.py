@@ -13,7 +13,7 @@ def calc_fkp(t):
     """Returns the lateral forced applied to the tire by the kick plate."""
 
     if t > 0.5 and t < 1.0:
-        return 100.0
+        return 500.0
     else:
         return 0.0
 
@@ -88,8 +88,9 @@ initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
  q10_traj, r_traj) = simulate(2.0, calc_inputs, initial_conditions, p_arr,
                               fps=1000)
 
-axes = plot_minimal(times, q_traj[:, 6], slip_traj[:, 0], slip_traj[:, 1],
-                    r_traj[:, -1], f_traj[:, 0], f_traj[:, 1])
+axes, torqax = plot_minimal(times, q_traj[:, 6], slip_traj[:, 0],
+                            slip_traj[:, 1], r_traj[:, -1], r_traj[:, 2],
+                            f_traj[:, 0], f_traj[:, 1])
 
 factor = 1.3
 p_vals[c_af] = p_vals[c_af]*factor
@@ -106,7 +107,7 @@ initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
                               fps=1000)
 
 plot_minimal(times, q_traj[:, 6], slip_traj[:, 0], slip_traj[:, 1],
-             r_traj[:, -1], f_traj[:, 0], f_traj[:, 1], axes=axes,
-             linestyle=':')
+             r_traj[:, -1], r_traj[:, 2], f_traj[:, 0], f_traj[:, 1],
+             axes=axes, torqax=torqax, linestyle=':')
 
 plt.show()

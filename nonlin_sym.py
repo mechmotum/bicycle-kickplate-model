@@ -620,3 +620,7 @@ eval_dep_speeds = sm.lambdify([qs, u_ind, ps], [A_nh, -B_nh], cse=True)
 eval_dynamic = sm.lambdify([qs, us, fs, rs, ps], [A_all, b_all], cse=True)
 eval_angles = sm.lambdify((qs, us, ps), [alphar, alphaf, phir, phif], cse=True)
 eval_front_contact = sm.lambdify((qs, ps), [q9, q10], cse=True)
+
+import inspect
+with open('eval_dynamic.py', 'w') as file:
+    file.write(inspect.getsource(eval_dynamic))

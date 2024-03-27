@@ -12,6 +12,12 @@ from nonlin_sym import *
 print('Test eval_dynamics with all ones: ')
 print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
 
+try:
+    print('Test eval_dynamics_rhs with all ones: ')
+    print(eval_dynamic_rhs(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
+except:
+    pass
+
 ############################
 # Create ODE right hand side
 ############################

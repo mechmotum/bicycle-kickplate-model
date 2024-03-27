@@ -21,6 +21,7 @@ References
    http://moorepants.github.io/dissertation.
 
 """
+import inspect
 
 import sympy as sm
 import sympy.physics.mechanics as mec
@@ -613,6 +614,15 @@ A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
 q9 = fn.pos_from(o).dot(N['1'])
 q10 = fn.pos_from(o).dot(N['2'])
 
+try:
+    rhs_all = A_all.cramer_solve(-B_nh)
+except AttributeError:
+    print('SymPy > 1.12 needed for cramer_solve()')
+else:
+    eval_dynamic_rhs = sm.lambdify([qs, us, fs, rs, ps], rhs_all, cse=True)
+    with open('eval_dynamic_rhs.py', 'w') as file:
+        file.write(inspect.getsource(eval_dynamic_rhs))
+
 print('Lambdifying equations of motion.')
 eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic,
                              cse=True)
@@ -621,6 +631,5 @@ eval_dynamic = sm.lambdify([qs, us, fs, rs, ps], [A_all, b_all], cse=True)
 eval_angles = sm.lambdify((qs, us, ps), [alphar, alphaf, phir, phif], cse=True)
 eval_front_contact = sm.lambdify((qs, ps), [q9, q10], cse=True)
 
-import inspect
 with open('eval_dynamic.py', 'w') as file:
     file.write(inspect.getsource(eval_dynamic))

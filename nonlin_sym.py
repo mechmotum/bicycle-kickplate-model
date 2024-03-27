@@ -615,7 +615,7 @@ q9 = fn.pos_from(o).dot(N['1'])
 q10 = fn.pos_from(o).dot(N['2'])
 
 try:
-    rhs_all = A_all.cramer_solve(-B_nh)
+    rhs_all = A_all.cramer_solve(b_all)
 except AttributeError:
     print('SymPy > 1.12 needed for cramer_solve()')
 else:

@@ -615,10 +615,13 @@ q9 = fn.pos_from(o).dot(N['1'])
 q10 = fn.pos_from(o).dot(N['2'])
 
 try:
-    rhs_all = A_all.cramer_solve(b_all)
+    print('Solving full set of equations symbolically')
+    #rhs_all = A_all.cramer_solve(b_all)
+    rhs_all = A_all.LUsolve(b_all)
 except AttributeError:
     print('SymPy > 1.12 needed for cramer_solve()')
 else:
+    print('Lambdifying rhs of full equations')
     eval_dynamic_rhs = sm.lambdify([qs, us, fs, rs, ps], rhs_all, cse=True)
     with open('eval_dynamic_rhs.py', 'w') as file:
         file.write(inspect.getsource(eval_dynamic_rhs))

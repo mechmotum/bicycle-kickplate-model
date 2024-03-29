@@ -318,7 +318,7 @@ print('Defining linear velocities.')
 o.set_vel(N, 0)
 nd.set_vel(N, u1*N['1'] + u2*N['2'])
 
-dt.set_vel(N, -u11*N['3'])
+dt.set_vel(N, nd.vel(N) - u11*N['3'])
 
 # mass centers
 do.v2pt_theory(dt, N, B)

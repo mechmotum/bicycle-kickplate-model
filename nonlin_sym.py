@@ -21,6 +21,7 @@ References
    http://moorepants.github.io/dissertation.
 
 """
+import inspect
 
 import sympy as sm
 import sympy.physics.mechanics as mec
@@ -203,7 +204,7 @@ ie11, ie22, ie33, ie31 = sm.symbols('ie11, ie22, ie33, ie31')
 if11, if22 = sm.symbols('if11, if22')
 
 # vertical tire stiffness, tire cross section nominal rolling radius
-kf, kr, rtf, rtr = sm.symbols('k_f, k_r, r_tf, r_tr')
+k_f, k_r, r_tf, r_tr = sm.symbols('k_f, k_r, r_tf, r_tr')
 # vertical load normalized cornering coefficients for lateral force
 c_ar, c_af, c_pr, c_pf = sm.symbols('c_ar, c_af, c_pr, c_pf')
 # vertical load normalized coefficients for self aligning moment
@@ -227,7 +228,7 @@ nd.set_pos(o, q1*N['1'] + q2*N['2'])
 
 # rear rim point
 dt = mec.Point('dt')
-dt.set_pos(nd, -(rtr + q11)*N['3'])
+dt.set_pos(nd, -(r_tr + q11)*N['3'])
 
 # rim point to rear wheel center
 do = mec.Point('do')
@@ -260,7 +261,7 @@ ft.set_pos(fo, rf*E['2'].cross(A['3']).cross(E['2']).normalize())
 
 # front wheel contact point
 fn = mec.Point('fn')
-fn.set_pos(ft, (rtf + q12)*N['3'])
+fn.set_pos(ft, (r_tf + q12)*N['3'])
 
 ######################
 # Holonomic Constraint
@@ -430,10 +431,10 @@ Fykp = (nd, Fkp*N['2'])
 
 # tire-ground normal forces, need equal and opposite forces, compression is
 # positive
-Fzdn = (nd, -kr*q11*A['3'])
-Fzdt = (dt, kr*q11*A['3'])
-Fzfn = (fn, kf*q12*A['3'])
-Fzft = (ft, -kf*q12*A['3'])
+Fzdn = (nd, -k_r*q11*A['3'])
+Fzdt = (dt, k_r*q11*A['3'])
+Fzfn = (fn, k_f*q12*A['3'])
+Fzft = (ft, -k_f*q12*A['3'])
 
 # input torques
 Tc = (C, T4*A['1'] - T6*B['2'] - T7*C['3'])
@@ -492,8 +493,8 @@ ps = (
     ie33,
     if11,
     if22,
-    kf,
-    kr,
+    k_f,
+    k_r,
     l1,
     l2,
     l3,
@@ -504,8 +505,8 @@ ps = (
     mf,
     rf,
     rr,
-    rtf,
-    rtr,
+    r_tf,
+    r_tr,
     s_yf,
     s_yr,
     s_zf,
@@ -538,13 +539,10 @@ kane.kanes_equations(bodies, loads=loads)
 # Assemble Full EoM
 ###################
 
-aux_eqs = kane.auxiliary_eqs
-print_syms(aux_eqs, 'The auxiliary equations are a function of: ')
-
 # Tire forces
 # Relaxation length differential equation looks like so:
-# (s_yr/N_v_nd1)*Fyr' + Fyr = (-c_ar*alphar + c_pr*phir)*Frz
-# (s_yf/N_v_fn1)*Fyf' + Fyf = (-c_af*alphaf + c_pf*phif)*Ffz
+# (s_yr/N_v_nd1)*Fyr' + Fyr = (-c_ar*alphar + c_pr*phir)*k_r*q11
+# (s_yf/N_v_fn1)*Fyf' + Fyf = (-c_af*alphaf + c_pf*phif)*k_f*q12
 # slip angle
 alphar = sm.atan(N_v_nd2/N_v_nd1)
 alphaf = sm.atan(N_v_fn2/N_v_fn1)
@@ -558,8 +556,8 @@ Cf = sm.Matrix([
     [0, (s_yf/sm.Abs(N_v_fn1))],
 ])
 Cz = sm.Matrix([
-    [-(-c_ar*alphar + c_pr*phir), 0],
-    [0, -(-c_af*alphaf + c_pf*phif)],
+    [-(-c_ar*alphar + c_pr*phir)*k_r*q11],
+    [-(-c_af*alphaf + c_pf*phif)*k_f*q12],
 ])
 Df = sm.Matrix([
     [(s_zr/sm.Abs(N_v_nd1)), 0],
@@ -567,47 +565,42 @@ Df = sm.Matrix([
 ])
 # TODO : Make the sign of the camber effect on self-aligning moment is correct.
 Dz = sm.Matrix([
-    [-(-c_mar*alphar + c_mpr*phir), 0],
-    [0, -(-c_maf*alphaf + c_mpf*phif)],
+    [-(-c_mar*alphar + c_mpr*phir)*k_r*q11],
+    [-(-c_maf*alphaf + c_mpf*phif)*k_r*q12],
 ])
-nFy = -sm.Matrix([Fry, Ffy])
-nMz = -sm.Matrix([Mrz, Mfz])
+nFy = -sm.Matrix([Fry, Ffy]) - Cz
+nMz = -sm.Matrix([Mrz, Mfz]) - Dz
 
-# We need to solve the dynamic equations and the auxiliary equations
-# simultaneously to avoid having to solve the dynamic equations first and then
-# substitute in the derivatives of the speeds. So reconstruct the equations of
-# motion to this form:
-# [Mp  0,  0, -Mf]*[up ] = [F     ]
-# [0, Cf,  0,  Cz] [fyp]   [-Fy   ]
-# [0,  0, Df,  Dz] [mzp]   [-Mz   ]
-# [Ap, 0,  0,  Af] [fz ]   [-B_aux]
+# With the additional differential equations for relaxation length, the full
+# dynamical differential equations take this form:
+# [M,  0,  0]*[up ] = [F(Fy, Mz)     ]
+# [0, Cf,  0] [fyp]   [-Fy + f(Fz(q))]
+# [0,  0, Df] [mzp]   [-Mz + f(Fz(q))]
 print('Assembling full equations of motion.')
-Af, Ap, B_aux = decompose_linear_parts(aux_eqs, [Frz, Ffz],
-                                       sm.Matrix(us).diff(t))
 # KanesMethod stores the qs and us unordered, so fix.
-new_order = [2, 3, 5, 6, 7, 0, 1, 4]
+# kane.u[:] = [u3, u4, u6, u7, u8, u11, u12, u1, u2, u5]
+new_order = [2, 3, 5, 6, 7, 8, 9, 0, 1, 4]
 mass_matrix = sm.zeros(*kane.mass_matrix.shape)
 forcing = sm.zeros(*kane.forcing.shape)
-forcing_orig = kane.forcing.xreplace(aux_zerod)
+forcing_orig = kane.forcing
 for i in range(mass_matrix.shape[0]):
     forcing[new_order[i], 0] = forcing_orig[i, 0]
     for j in range(mass_matrix.shape[1]):
         mass_matrix[new_order[i], new_order[j]] = kane.mass_matrix[i, j]
-Mf, forcing = decompose_linear_parts(forcing, [Frz, Ffz])
 
-row1 = mass_matrix.row_join(sm.zeros(8, 4)).row_join(-Mf)
-row2 = sm.zeros(2, 8).row_join(Cf).row_join(sm.zeros(2, 2)).row_join(Cz)
-row3 = sm.zeros(2, 8).row_join(sm.zeros(2, 2)).row_join(Df).row_join(Dz)
-row4 = Ap.row_join(sm.zeros(2, 4)).row_join(Af)
+num_udots = mass_matrix.shape[0]
+row1 = mass_matrix.row_join(sm.zeros(num_udots, 4))
+row2 = sm.zeros(2, num_udots).row_join(Cf).row_join(sm.zeros(2, 2))
+row3 = sm.zeros(2, num_udots).row_join(sm.zeros(2, 2)).row_join(Df)
 
-A_all = row1.col_join(row2).col_join(row3).col_join(row4)
-b_all = forcing.col_join(nFy).col_join(nMz).col_join(-B_aux)
+A_all = row1.col_join(row2).col_join(row3)
+b_all = forcing.col_join(nFy).col_join(nMz)
 
 print_syms(A_all, 'A_all is a function of these dynamic variables: ')
 print_syms(b_all, 'b_all is a function of these dynamic variables: ')
 
 # Create matrices for solving for the dependent speeds.
-nonholonomic = sm.Matrix(nonholonomic).xreplace(aux_zerod)
+nonholonomic = sm.Matrix(nonholonomic)
 print_syms(nonholonomic,
            'The nonholonomic constraints are a function of these variables:')
 A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
@@ -621,13 +614,12 @@ q9 = fn.pos_from(o).dot(N['1'])
 q10 = fn.pos_from(o).dot(N['2'])
 
 print('Lambdifying equations of motion.')
-eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic,
-                             cse=True)
+eval_holonomic = sm.lambdify((q5, q4, q7, q11, q12, d1, d2, d3, r_tf, r_tr, rf,
+                              rr), holonomic, cse=True)
 eval_dep_speeds = sm.lambdify([qs, u_ind, ps], [A_nh, -B_nh], cse=True)
 eval_dynamic = sm.lambdify([qs, us, fs, rs, ps], [A_all, b_all], cse=True)
 eval_angles = sm.lambdify((qs, us, ps), [alphar, alphaf, phir, phif], cse=True)
 eval_front_contact = sm.lambdify((qs, ps), [q9, q10], cse=True)
 
-import inspect
 with open('eval_dynamic.py', 'w') as file:
     file.write(inspect.getsource(eval_dynamic))

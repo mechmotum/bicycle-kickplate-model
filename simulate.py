@@ -23,9 +23,10 @@ def rhs(t, x, r_func, p):
     ==========
     t : float
         Time value in seconds.
-    x : array_like, shape(20,)
-        State values where x = [q1, q2, q3, q4, q5, q6, q7, q8, u1, u2, u3, u4,
-        u5, u6, u7, u8, Fry, Ffy, Mrz, Mfz].
+    x : array_like, shape(24,)
+        State values where x = [q1, q2, q3, q4, q5, q6, q7, q8, q11, q12,
+                                u1, u2, u3, u4, u5, u6, u7, u8, u11, u12,
+                                Fry, Ffy, Mrz, Mfz].
     p : array_like, shape(38,)
         Constant values.
 
@@ -39,18 +40,18 @@ def rhs(t, x, r_func, p):
 
     """
 
-    q = x[:8]
-    u = x[8:16]
-    f = x[16:20]
+    q = x[:10]
+    u = x[10:20]
+    f = x[20:]
     r = r_func(t, x, p)
 
     # This solves for the state derivatives and the normal forces at the tire
     # contact.
     A, b = eval_dynamic(q, u, f, r, p)
     # xplus = [us', Frz, Ffz]
-    xplus = np.linalg.solve(A, b).squeeze()
+    xdot = np.linalg.solve(A, b).squeeze()
 
-    return np.hstack((u, xplus[:12])), xplus[-2:]
+    return np.hstack((u, xdot))
 
 
 ########################
@@ -94,6 +95,10 @@ p_vals = {
     mf: 2.02,
     rf: 0.34352982332,
     rr: 0.340958858855,
+    r_tf: 0.1,
+    r_tr: 0.1,
+    k_r: 10000.0,
+    k_f: 10000.0,
     s_yf: 0.175,  # Andrew's estimates from his dissertation data
     s_yr: 0.175,
     s_zf: 0.175,
@@ -109,24 +114,28 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
 
     Parameters
     ==========
-    q_vals : array_like, shape(8,)
-        [q1, q2, q3, q4, q5, q6, q7, q8]
-    u_vals : array_like, shape(8,)
-        [u1, u2, u3, u4, u5, u6, u7, u8]
+    q_vals : array_like, shape(10,)
+        [q1, q2, q3, q4, q5, q6, q7, q8, q11, q12]
+    u_vals : array_like, shape(10,)
+        [u1, u2, u3, u4, u5, u6, u7, u8, u11, u12]
     f_vals: array_like, shape(4,)
         [Fry, Ffy, Mrz, Mfz]
-    p_arr: array_like, shape(38,)
+    p_arr: array_like, shape(42,)
 
     """
 
     ehom_args = (
         q_vals[3],  # q4
         q_vals[6],  # q7
+        q_vals[8],  # q11
+        q_vals[9],  # q12
         p_arr[8],  # d1
         p_arr[9],  # d2
         p_arr[10],  # d3
-        p_arr[32],  # rf
-        p_arr[33],  # rr
+        p_arr[36],  # r_tf
+        p_arr[37],  # r_tr
+        p_arr[34],  # rf
+        p_arr[35],  # rr
     )
     initial_pitch_angle = float(fsolve(eval_holonomic, np.pi/10,
                                        args=ehom_args))
@@ -134,7 +143,8 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     q_vals[4] = initial_pitch_angle
     print('Initial coordinates: ', q_vals)
 
-    A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals, u_vals[[2, 3, 5, 6, 7]],
+    A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals,
+                                           u_vals[[2, 3, 5, 6, 7, 8, 9]],
                                            p_arr)
     u_vals[[0, 1, 4]] = np.linalg.solve(A_nh_vals, B_nh_vals).squeeze()
     print('Initial dependent speeds (u1, u2, u5): ', u_vals[0], u_vals[1],
@@ -155,24 +165,28 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     tf = t0 + dur
     times = np.linspace(t0, tf, num=int(dur*fps) + 1)
 
-    res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p)[0], (t0, tf),
-                    x0, t_eval=times, method='LSODA')
+    res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p), (t0, tf),
+                    x0, t_eval=times) #, method='LSODA')
 
     times = res.t
     x_traj = res.y.T
-    q_traj = x_traj[:, :8]
-    u_traj = x_traj[:, 8:16]
-    f_traj = x_traj[:, 16:]
+    q_traj = x_traj[:, :10]
+    u_traj = x_traj[:, 10:20]
+    f_traj = x_traj[:, 20:]
 
     con_traj = eval_holonomic(
         q_traj[:, 4],  # q5
         q_traj[:, 3],  # q4
         q_traj[:, 6],  # q7
+        q_traj[:, 8],  # q11
+        q_traj[:, 9],  # q12
         p[8],  # d1
         p[9],  # d2
         p[10],  # d3
-        p[32],  # rf
-        p[33],  # rr
+        p[36],  # r_tf
+        p[37],  # r_tr
+        p[34],  # rf
+        p[35],  # rr
     )
 
     fz_traj = np.zeros((len(times), 2))
@@ -182,7 +196,7 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     r_traj = np.zeros((len(times), 4))
     for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
         statei = np.hstack((qi, ui, fi))
-        _, fz_traj[i, :] = rhs(ti, statei, calc_inputs, p)
+        #_, fz_traj[i, :] = rhs(ti, statei, calc_inputs, p)
         slip_traj[i, :] = eval_angles(qi, ui, p)
         q9_traj[i], q10_traj[i] = eval_front_contact(qi, p)
         r_traj[i] = calc_inputs(ti, statei, p)
@@ -222,9 +236,9 @@ def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
     axes[9, 1].set_ylabel(str(fs[3]) + '\n[N-m]')
 
     axes[10, 0].plot(times, fz_traj[:, 0])
-    axes[10, 0].set_ylabel(str(Frz) + '\n[N]')
+    axes[10, 0].set_ylabel(str('Frz') + '\n[N]')
     axes[10, 1].plot(times, fz_traj[:, 1])
-    axes[10, 1].set_ylabel(str(Ffz) + '\n[N]')
+    axes[10, 1].set_ylabel(str('Ffz') + '\n[N]')
 
     axes[11, 0].plot(times, np.rad2deg(slip_traj[:, 0]))
     axes[11, 0].set_ylabel('alphar\n[deg]')

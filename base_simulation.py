@@ -61,6 +61,9 @@ q_vals = np.array([
     0.0,  # q6
     1e-14,  # q7, setting to zero gives singular matrix
     0.0,  # q8
+    # TODO : calc equilibrium for initial state
+    -0.02,  # q11
+    0.02,  # q12
 ])
 
 # initial speeds
@@ -74,6 +77,8 @@ u_vals = np.array([
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7
     -initial_speed/p_vals[rf],  # u8
+    1e-10,  # u11
+    1e-10,  # u12
 ])
 
 # initial tire forces

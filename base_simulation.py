@@ -81,8 +81,8 @@ u_vals = np.array([
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7
     -initial_speed/p_vals[rf],  # u8
-    1e-10,  # u11
-    1e-10,  # u12
+    0.0,  # u11
+    0.0,  # u12
 ])
 
 # initial tire forces

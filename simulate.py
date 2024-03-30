@@ -32,11 +32,8 @@ def rhs(t, x, r_func, p):
 
     Returns
     =======
-    xdot : ndarray, shape(20,)
+    xdot : ndarray, shape(24,)
         Time derivative of the state.
-    force : ndarray, shape(2,)
-        Ground normal force magnitudes at the rear and front wheel contacts.
-        force = [Frz, Ffz]
 
     """
 
@@ -45,10 +42,7 @@ def rhs(t, x, r_func, p):
     f = x[20:]
     r = r_func(t, x, p)
 
-    # This solves for the state derivatives and the normal forces at the tire
-    # contact.
     A, b = eval_dynamic(q, u, f, r, p)
-    # xplus = [us', Frz, Ffz]
     xdot = np.linalg.solve(A, b).squeeze()
 
     return np.hstack((u, xdot))
@@ -85,6 +79,8 @@ p_vals = {
     ie33: 0.06782113764394461,
     if11: 0.0904106601579,
     if22: 0.149389340425,
+    k_f: 100000.0,
+    k_r: 100000.0,
     l1: 0.5384415640161426,
     l2: -0.531720230353059,
     l3: -0.07654646159268344,
@@ -95,10 +91,8 @@ p_vals = {
     mf: 2.02,
     rf: 0.34352982332,
     rr: 0.340958858855,
-    r_tf: 0.1,
-    r_tr: 0.1,
-    k_r: 100000.0,
-    k_f: 100000.0,
+    r_tf: 0.01,
+    r_tr: 0.01,
     s_yf: 0.175,  # Andrew's estimates from his dissertation data
     s_yr: 0.175,
     s_zf: 0.175,
@@ -152,7 +146,7 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     print('Initial speeds: ', u_vals)
     # TODO: When the speed is higher than about 4.6, the initial lateral speed
     # is non-zero. Need to investigate. For now, force to zero.
-    u_vals[1] = 0.0
+    #u_vals[1] = 0.0
 
     return np.hstack((q_vals, u_vals, f_vals))
 
@@ -196,7 +190,7 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     r_traj = np.zeros((len(times), 4))
     for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
         statei = np.hstack((qi, ui, fi))
-        #_, fz_traj[i, :] = rhs(ti, statei, calc_inputs, p)
+        fz_traj[i, :] = np.array([-p[25]*qi[8], -p[24]*qi[9]])
         slip_traj[i, :] = eval_angles(qi, ui, p)
         q9_traj[i], q10_traj[i] = eval_front_contact(qi, p)
         r_traj[i] = calc_inputs(ti, statei, p)

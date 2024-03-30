@@ -435,8 +435,10 @@ Fykp = (nd, Fkp*N['2'])
 
 # tire-ground normal forces, need equal and opposite forces, compression is
 # positive
-Fzr = -k_r*q11-500.0*u11  # positive when in compression
-Fzf = -k_r*q12-500.0*u12  # positive when in compression
+Fzr = -k_r*q11-1000.0*u11  # positive when in compression
+#Fzr = sm.Piecewise((0, q11 > 0), (Fzr, True))
+Fzf = -k_f*q12-1000.0*u12  # positive when in compression
+#Fzf = sm.Piecewise((0, q12 > 0), (Fzf, True))
 Fzdn = (nd, Fzr*A['3'])
 Fzdt = (dt, -Fzr*A['3'])
 Fzfn = (fn, Fzf*A['3'])

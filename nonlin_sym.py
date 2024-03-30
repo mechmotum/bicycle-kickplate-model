@@ -319,7 +319,7 @@ print('Defining linear velocities.')
 o.set_vel(N, 0)
 nd.set_vel(N, u1*N['1'] + u2*N['2'])
 
-dt.set_vel(N, nd.vel(N) - u11*N['3'])
+dt.set_vel(N, nd.vel(N) - u11*A['3'])
 
 # mass centers
 do.v2pt_theory(dt, N, B)
@@ -330,9 +330,12 @@ eo.v2pt_theory(fo, N, E)
 
 # rear and front wheel points fixed on wheels
 dn.v2pt_theory(do, N, D)
-ft.v2pt_theory(fo, N, F)
+N_v_ft = ft.v2pt_theory(fo, N, F)
 
-fn.set_vel(N, ft.vel(N) + u12*N['3'])
+fn.set_vel(F, u12*A['3'])
+fn.set_vel(N, fn.v1pt_theory(fo, N, F).xreplace(qdot_repl))
+
+#fn.set_vel(N, N_v_ft + u12*A['3'])
 
 # Slip angle components
 # project the velocity vectors at the contact point onto each wheel's yaw
@@ -362,7 +365,8 @@ nonholonomic = [
     # no rear longitudinal slip
     sm.trigsimp(dn.vel(N).dot(A['1'])),
     # no front longitudinal slip
-    fn.vel(N).dot(g1_hat),
+    # TODO : had to change this to ft from fn, not sure why
+    ft.vel(N).dot(g1_hat),
     # front contact cannot move vertically wrt ground
     holonomic.diff(t).xreplace(qdot_repl),
 ]
@@ -431,8 +435,8 @@ Fykp = (nd, Fkp*N['2'])
 
 # tire-ground normal forces, need equal and opposite forces, compression is
 # positive
-Fzr = -k_r*q11  # positive when in compression
-Fzf = -k_r*q12  # positive when in compression
+Fzr = -k_r*q11-500.0*u11  # positive when in compression
+Fzf = -k_r*q12-500.0*u12  # positive when in compression
 Fzdn = (nd, Fzr*A['3'])
 Fzdt = (dt, -Fzr*A['3'])
 Fzfn = (fn, Fzf*A['3'])
@@ -531,6 +535,7 @@ kane = mec.KanesMethod(
     configuration_constraints=holon,
     u_dependent=u_dep,
     velocity_constraints=nonho,
+    constraint_solver='CRAMER',
 )
 
 kane.kanes_equations(bodies, loads=loads)

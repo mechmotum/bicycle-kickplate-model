@@ -19,10 +19,13 @@ def calc_fkp(t):
 
 def calc_steer_torque(t, x):
 
-    q4 = x[3]
-    q7 = x[6]
-    u4 = x[11]
-    u7 = x[14]
+    q = x[:10]
+    u = x[10:]
+
+    q4 = q[3]
+    q7 = q[6]
+    u4 = u[3]
+    u7 = u[6]
 
     # LQR gains for Whipple model at 6 m/s
     kq4 = -2.2340917377023612
@@ -51,6 +54,7 @@ def calc_inputs(t, x, p):
 
     return r
 
+
 # initial coordinates
 q_vals = np.array([
     0.0,  # q1
@@ -61,9 +65,9 @@ q_vals = np.array([
     0.0,  # q6
     1e-14,  # q7, setting to zero gives singular matrix
     0.0,  # q8
-    # TODO : calc equilibrium for initial state
-    -0.02,  # q11
-    0.02,  # q12
+    # TODO : calc equilibrium for initial state, these are guesses
+    -0.006,  # q11
+    -0.001,  # q12
 ])
 
 # initial speeds

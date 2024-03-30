@@ -209,7 +209,7 @@ def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
              q9_traj, q10_traj, r_traj):
 
     deg = [False, False, True, True, True, True, True, True, False, False]
-    fig, axes = plt.subplots(15, 2, sharex=True)
+    fig, axes = plt.subplots(16, 2, sharex=True)
     fig.set_size_inches(8, 10)
     # fills right 10 rows
     for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 0], q_traj.T, qs, deg)):

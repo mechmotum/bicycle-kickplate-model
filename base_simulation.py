@@ -92,6 +92,7 @@ print(rhs(0.0, initial_conditions, calc_inputs, p_arr))
 
 fps = 100  # frames per second
 duration = 6.0  # seconds
+duration = 0.5  # seconds
 res = simulate(duration, calc_inputs, initial_conditions, p_arr, fps=fps)
 
 plot_all(*res)

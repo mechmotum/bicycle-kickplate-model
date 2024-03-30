@@ -97,8 +97,8 @@ p_vals = {
     rr: 0.340958858855,
     r_tf: 0.1,
     r_tr: 0.1,
-    k_r: 10000.0,
-    k_f: 10000.0,
+    k_r: 100000.0,
+    k_f: 100000.0,
     s_yf: 0.175,  # Andrew's estimates from his dissertation data
     s_yr: 0.175,
     s_zf: 0.175,
@@ -166,7 +166,7 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     times = np.linspace(t0, tf, num=int(dur*fps) + 1)
 
     res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p), (t0, tf),
-                    x0, t_eval=times) #, method='LSODA')
+                    x0, t_eval=times, method='LSODA')
 
     times = res.t
     x_traj = res.y.T
@@ -208,9 +208,10 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
 def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
              q9_traj, q10_traj, r_traj):
 
-    deg = [False, False, True, True, True, True, True, True]
-    fig, axes = plt.subplots(14, 2, sharex=True)
+    deg = [False, False, True, True, True, True, True, True, False, False]
+    fig, axes = plt.subplots(15, 2, sharex=True)
     fig.set_size_inches(8, 10)
+    # fills right 10 rows
     for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 0], q_traj.T, qs, deg)):
         unit = '[m]'
         if degi:
@@ -218,6 +219,7 @@ def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
             unit = '[deg]'
         ax.plot(times, traj)
         ax.set_ylabel(str(s) + '\n' + unit)
+    # fills left 10 rows
     for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 1], u_traj.T, us, deg)):
         unit = '[m/s]'
         if degi:
@@ -226,28 +228,28 @@ def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
         ax.plot(times, traj)
         ax.set_ylabel(str(s) + '\n' + unit)
 
-    axes[8, 0].plot(times, f_traj[:, 0])
-    axes[8, 0].set_ylabel(str(fs[0]) + '\n[N]')
-    axes[8, 1].plot(times, f_traj[:, 1])
-    axes[8, 1].set_ylabel(str(fs[1]) + '\n[N]')
-    axes[9, 0].plot(times, f_traj[:, 2])
-    axes[9, 0].set_ylabel(str(fs[2]) + '\n[N-m]')
-    axes[9, 1].plot(times, f_traj[:, 3])
-    axes[9, 1].set_ylabel(str(fs[3]) + '\n[N-m]')
+    axes[10, 0].plot(times, f_traj[:, 0])
+    axes[10, 0].set_ylabel(str(fs[0]) + '\n[N]')
+    axes[10, 1].plot(times, f_traj[:, 1])
+    axes[10, 1].set_ylabel(str(fs[1]) + '\n[N]')
+    axes[11, 0].plot(times, f_traj[:, 2])
+    axes[11, 0].set_ylabel(str(fs[2]) + '\n[N-m]')
+    axes[11, 1].plot(times, f_traj[:, 3])
+    axes[11, 1].set_ylabel(str(fs[3]) + '\n[N-m]')
 
-    axes[10, 0].plot(times, fz_traj[:, 0])
-    axes[10, 0].set_ylabel(str('Frz') + '\n[N]')
-    axes[10, 1].plot(times, fz_traj[:, 1])
-    axes[10, 1].set_ylabel(str('Ffz') + '\n[N]')
+    axes[12, 0].plot(times, fz_traj[:, 0])
+    axes[12, 0].set_ylabel(str('Frz') + '\n[N]')
+    axes[12, 1].plot(times, fz_traj[:, 1])
+    axes[12, 1].set_ylabel(str('Ffz') + '\n[N]')
 
-    axes[11, 0].plot(times, np.rad2deg(slip_traj[:, 0]))
-    axes[11, 0].set_ylabel('alphar\n[deg]')
-    axes[11, 1].plot(times, np.rad2deg(slip_traj[:, 1]))
-    axes[11, 1].set_ylabel('alphaf\n[deg]')
-    axes[12, 0].plot(times, np.rad2deg(slip_traj[:, 2]))
-    axes[12, 0].set_ylabel('phir\n[deg]')
-    axes[12, 1].plot(times, np.rad2deg(slip_traj[:, 3]))
-    axes[12, 1].set_ylabel('phif\n[deg]')
+    axes[13, 0].plot(times, np.rad2deg(slip_traj[:, 0]))
+    axes[13, 0].set_ylabel('alphar\n[deg]')
+    axes[13, 1].plot(times, np.rad2deg(slip_traj[:, 1]))
+    axes[13, 1].set_ylabel('alphaf\n[deg]')
+    axes[14, 0].plot(times, np.rad2deg(slip_traj[:, 2]))
+    axes[14, 0].set_ylabel('phir\n[deg]')
+    axes[14, 1].plot(times, np.rad2deg(slip_traj[:, 3]))
+    axes[14, 1].set_ylabel('phif\n[deg]')
 
     axes[-1, 0].plot(times, r_traj[:, -1])
     axes[-1, 0].set_ylabel('$F_{kp}$\n[N]')

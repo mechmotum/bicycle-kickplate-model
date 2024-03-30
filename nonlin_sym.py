@@ -101,7 +101,7 @@ u9, u10, u11, u12 = mec.dynamicsymbols('u9, u10, u11, u12')
 us = [u1, u2, u3, u4, u5, u6, u7, u8, u11, u12]
 
 # variables for the derivatives of the u's
-ups = tuple(sm.ordered([mec.dynamicsymbols(ui.name + 'p') for ui in us]))
+ups = tuple([mec.dynamicsymbols(ui.name + 'p') for ui in us])
 
 ###########
 # Specified
@@ -431,10 +431,12 @@ Fykp = (nd, Fkp*N['2'])
 
 # tire-ground normal forces, need equal and opposite forces, compression is
 # positive
-Fzdn = (nd, -k_r*q11*A['3'])
-Fzdt = (dt, k_r*q11*A['3'])
-Fzfn = (fn, k_f*q12*A['3'])
-Fzft = (ft, -k_f*q12*A['3'])
+Fzr = -k_r*q11  # positive when in compression
+Fzf = -k_r*q12  # positive when in compression
+Fzdn = (nd, Fzr*A['3'])
+Fzdt = (dt, -Fzr*A['3'])
+Fzfn = (fn, Fzf*A['3'])
+Fzft = (ft, -Fzf*A['3'])
 
 # input torques
 Tc = (C, T4*A['1'] - T6*B['2'] - T7*C['3'])
@@ -459,13 +461,11 @@ newto = N
 # wheel angle
 q_ind = (q1, q2, q3, q4, q6, q7, q8, q11, q12)
 q_dep = (q5,)  # pitch
-qs = tuple(sm.ordered(q_ind + q_dep))
 
 # yaw rate, roll rate, rear wheel rate, steer rate, front wheel rate
 u_ind = (u3, u4, u6, u7, u8, u11, u12)
 # longitudinal rear speed, lateral rear speed, pitch rate
 u_dep = (u1, u2, u5)
-us = tuple(sm.ordered(u_ind + u_dep))
 fs = (Fry, Ffy, Mrz, Mfz)
 # the constants rely on being sorted
 ps = (
@@ -541,8 +541,8 @@ kane.kanes_equations(bodies, loads=loads)
 
 # Tire forces
 # Relaxation length differential equation looks like so:
-# (s_yr/N_v_nd1)*Fyr' + Fyr = (-c_ar*alphar + c_pr*phir)*k_r*q11
-# (s_yf/N_v_fn1)*Fyf' + Fyf = (-c_af*alphaf + c_pf*phif)*k_f*q12
+# (s_yr/N_v_nd1)*Fyr' + Fyr = (-c_ar*alphar + c_pr*phir)*Fzr
+# (s_yf/N_v_fn1)*Fyf' + Fyf = (-c_af*alphaf + c_pf*phif)*Fzf
 # slip angle
 alphar = sm.atan(N_v_nd2/N_v_nd1)
 alphaf = sm.atan(N_v_fn2/N_v_fn1)
@@ -550,26 +550,23 @@ alphaf = sm.atan(N_v_fn2/N_v_fn1)
 phir = q4
 phif = -sm.atan((mec.dot(fo.pos_from(fn), g2_hat) /
                  mec.dot(fo.pos_from(fn), A['3'])))
-
 Cf = sm.Matrix([
     [(s_yr/sm.Abs(N_v_nd1)), 0],
     [0, (s_yf/sm.Abs(N_v_fn1))],
-])
-Cz = sm.Matrix([
-    [-(-c_ar*alphar + c_pr*phir)*k_r*q11],
-    [-(-c_af*alphaf + c_pf*phif)*k_f*q12],
 ])
 Df = sm.Matrix([
     [(s_zr/sm.Abs(N_v_nd1)), 0],
     [0, (s_zf/sm.Abs(N_v_fn1))],
 ])
-# TODO : Make the sign of the camber effect on self-aligning moment is correct.
-Dz = sm.Matrix([
-    [-(-c_mar*alphar + c_mpr*phir)*k_r*q11],
-    [-(-c_maf*alphaf + c_mpf*phif)*k_r*q12],
+nFy = sm.Matrix([
+    [-Fry + (-c_ar*alphar + c_pr*phir)*Fzr],
+    [-Ffy + (-c_af*alphaf + c_pf*phif)*Fzf],
 ])
-nFy = -sm.Matrix([Fry, Ffy]) - Cz
-nMz = -sm.Matrix([Mrz, Mfz]) - Dz
+# TODO : Make the sign of the camber effect on self-aligning moment is correct.
+nMz = sm.Matrix([
+    [-Mrz + (-c_mar*alphar + c_mpr*phir)*Fzr],
+    [-Mfz + (-c_maf*alphaf + c_mpf*phif)*Fzf],
+])
 
 # With the additional differential equations for relaxation length, the full
 # dynamical differential equations take this form:

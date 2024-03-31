@@ -27,6 +27,8 @@ def rhs(t, x, r_func, p):
         State values where x = [q1, q2, q3, q4, q5, q6, q7, q8, q11, q12,
                                 u1, u2, u3, u4, u5, u6, u7, u8, u11, u12,
                                 Fry, Ffy, Mrz, Mfz].
+    r_func : function
+        Function of the form ``r = f(t, x, p)``.
     p : array_like, shape(44,)
         Constant values.
         [c_af, c_ar, c_f, c_maf, c_mar, c_mpf, c_mpr, c_pf, c_pr, c_r, d1, d2,
@@ -238,10 +240,11 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     r_traj = np.zeros((len(times), 4))
     for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
         statei = np.hstack((qi, ui, fi))
-        fz_traj[i, :] = np.array([-p[27]*qi[8], -p[26]*qi[9]])
+        fz_traj[i, :] = np.array([-p[27]*qi[8]-p[9]*ui[8],
+                                  -p[26]*qi[9]-p[2]*ui[9]])
         slip_traj[i, :] = eval_angles(qi, ui, p)
         q9_traj[i], q10_traj[i] = eval_front_contact(qi, p)
-        r_traj[i] = calc_inputs(ti, statei, p)
+        r_traj[i] = calc_inputs(ti, statei, p)[:4]
 
     return (times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
             q9_traj, q10_traj, r_traj)

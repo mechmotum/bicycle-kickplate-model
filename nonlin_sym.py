@@ -566,14 +566,20 @@ Df = sm.Matrix([
     [(s_zr/sm.Abs(N_v_nd1)), 0],
     [0, (s_zf/sm.Abs(N_v_ft1))],
 ])
+Fry_, Ffy_, Mrz_, Mfz_ = mec.dynamicsymbols('Fry_, Ffy_, Mrz_, Mfz_')
+rs = rs + (Fry_, Ffy_, Mrz_, Mfz_)
+#Fry_ = (-c_ar*alphar + c_pr*phir)*Frz
+#Ffy_ = (-c_af*alphaf + c_pf*phif)*Ffz
+#Mrz_ = (-c_mar*alphar + c_mpr*phir)*Frz
+#Mfz_ = (-c_maf*alphaf + c_mpf*phif)*Ffz
 nFy = sm.Matrix([
-    [-Fry + (-c_ar*alphar + c_pr*phir)*Frz],
-    [-Ffy + (-c_af*alphaf + c_pf*phif)*Ffz],
+    [-Fry + Fry_],
+    [-Ffy + Ffy_],
 ])
 # TODO : Make the sign of the camber effect on self-aligning moment is correct.
 nMz = sm.Matrix([
-    [-Mrz + (-c_mar*alphar + c_mpr*phir)*Frz],
-    [-Mfz + (-c_maf*alphaf + c_mpf*phif)*Ffz],
+    [-Mrz + Mrz_],
+    [-Mfz + Mfz_],
 ])
 
 # With the additional differential equations for relaxation length, the full

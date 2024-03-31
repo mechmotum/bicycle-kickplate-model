@@ -546,7 +546,9 @@ kane.kanes_equations(bodies, loads=loads)
 # (s_yf/N_v_fn1)*Fyf' + Fyf = (-c_af*alphaf + c_pf*phif)*Ffz
 # slip angle
 alphar = sm.atan(N_v_nd2/N_v_nd1)
+print_syms(alphar, 'Rear slip angle is a function of: ')
 alphaf = sm.atan(N_v_ft2/N_v_ft1)
+print_syms(alphaf, 'Front slip angle is a function of: ')
 # camber angle
 phir = q4
 phif = -sm.atan((mec.dot(fo.pos_from(ft), g2_hat) /

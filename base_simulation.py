@@ -11,7 +11,7 @@ from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions, rhs,
 def calc_fkp(t):
     """Returns the lateral forced applied to the tire by the kick plate."""
 
-    if t > 0.5 and t < 1.0:
+    if t > 1.0 and t < 1.5:
         return 100.0
     else:
         return 0.0

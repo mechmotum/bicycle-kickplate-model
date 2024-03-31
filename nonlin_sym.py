@@ -435,8 +435,8 @@ Fykp = (nd, Fkp*N['2'])
 
 # tire-ground normal forces, need equal and opposite forces, compression is
 # positive
-Frz = -k_r*q11-1000.0*u11  # positive when in compression
-Ffz = -k_f*q12-1000.0*u12  # positive when in compression
+Frz = -k_r*q11-c_r*u11  # positive when in compression
+Ffz = -k_f*q12-c_f*u12  # positive when in compression
 Fzdn = (nd, Frz*A['3'])
 Fzdt = (dt, -Frz*A['3'])
 Ffzn = (fn, Ffz*A['3'])
@@ -475,12 +475,14 @@ fs = (Fry, Ffy, Mrz, Mfz)
 ps = (
     c_af,
     c_ar,
+    c_f,
     c_maf,
     c_mar,
     c_mpf,
     c_mpr,
     c_pf,
     c_pr,
+    c_r,
     d1,
     d2,
     d3,
@@ -507,10 +509,10 @@ ps = (
     md,
     me,
     mf,
-    rf,
-    rr,
     r_tf,
     r_tr,
+    rf,
+    rr,
     s_yf,
     s_yr,
     s_zf,

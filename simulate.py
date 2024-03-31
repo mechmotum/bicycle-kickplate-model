@@ -39,8 +39,12 @@ def rhs(t, x, r_func, p):
         State values where x = [q1, q2, q3, q4, q5, q6, q7, q8, q11, q12,
                                 u1, u2, u3, u4, u5, u6, u7, u8, u11, u12,
                                 Fry, Ffy, Mrz, Mfz].
-    p : array_like, shape(38,)
+    p : array_like, shape(44,)
         Constant values.
+        [c_af, c_ar, c_f, c_maf, c_mar, c_mpf, c_mpr, c_pf, c_pr, c_r, d1, d2,
+        d3, g, ic11, ic22, ic31, ic33, id11, id22, ie11, ie22, ie31, ie33,
+        if11, if22, k_f, k_r, l1, l2, l3, l4, mc, md, me, mf, r_tf, r_tr, rf,
+        rr, s_yf, s_yr, s_zf, s_zr]
 
     Returns
     =======
@@ -69,12 +73,14 @@ def rhs(t, x, r_func, p):
 p_vals = {
     c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
     c_ar: 11.46,
+    c_f: 1000.0,  # guess
     c_maf: 0.33,  # 0.33 is rough calc from gabriele's data
     c_mar: 0.33,
     c_mpf: 0.0,  # need real numbers for this
     c_mpr: 0.0,  # need real numbers for this
     c_pf: 0.573,
     c_pr: 0.573,
+    c_r: 1000.0,  # guess
     d1: 0.9631492634872098,
     d2: 0.4338396131640938,
     d3: 0.0705000000001252,
@@ -101,10 +107,10 @@ p_vals = {
     md: 3.11,
     me: 3.22,
     mf: 2.02,
-    rf: 0.34352982332,
-    rr: 0.340958858855,
     r_tf: 0.01,
     r_tr: 0.01,
+    rf: 0.34352982332,
+    rr: 0.340958858855,
     s_yf: 0.175,  # Andrew's estimates from his dissertation data
     s_yr: 0.175,
     s_zf: 0.175,
@@ -135,13 +141,13 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
         q_vals[6],  # q7
         q_vals[8],  # q11
         q_vals[9],  # q12
-        p_arr[8],  # d1
-        p_arr[9],  # d2
-        p_arr[10],  # d3
+        p_arr[10],  # d1
+        p_arr[11],  # d2
+        p_arr[12],  # d3
         p_arr[36],  # r_tf
         p_arr[37],  # r_tr
-        p_arr[34],  # rf
-        p_arr[35],  # rr
+        p_arr[38],  # rf
+        p_arr[39],  # rr
     )
     initial_pitch_angle = float(fsolve(eval_holonomic, np.pi/10,
                                        args=ehom_args))
@@ -186,13 +192,13 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
         q_traj[:, 6],  # q7
         q_traj[:, 8],  # q11
         q_traj[:, 9],  # q12
-        p[8],  # d1
-        p[9],  # d2
-        p[10],  # d3
+        p[10],  # d1
+        p[11],  # d2
+        p[12],  # d3
         p[36],  # r_tf
         p[37],  # r_tr
-        p[34],  # rf
-        p[35],  # rr
+        p[38],  # rf
+        p[39],  # rr
     )
 
     fz_traj = np.zeros((len(times), 2))
@@ -202,7 +208,7 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     r_traj = np.zeros((len(times), 4))
     for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
         statei = np.hstack((qi, ui, fi))
-        fz_traj[i, :] = np.array([-p[25]*qi[8], -p[24]*qi[9]])
+        fz_traj[i, :] = np.array([-p[27]*qi[8], -p[26]*qi[9]])
         slip_traj[i, :] = eval_angles(qi, ui, p)
         q9_traj[i], q10_traj[i] = eval_front_contact(qi, p)
         r_traj[i] = calc_inputs(ti, statei, p)

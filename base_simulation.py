@@ -104,4 +104,5 @@ res = simulate(duration, calc_inputs, initial_conditions, p_arr, fps=fps)
 plot_all(*res)
 plot_wheel_paths(res[1], res[-3], res[-2])
 
-plt.show()
+if __name__ == "__main__":
+    plt.show()

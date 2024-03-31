@@ -17,6 +17,18 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
 ############################
 
 
+def equilibrium_eq(q, p):
+    u = np.ones(10)*1e-14
+    f = np.zeros(4)
+    r = np.zeros(4)
+
+    def zeros(x, p):
+        _, b = eval_dynamic(x, u, f, r, p)
+        return np.squeeze(b[0:10])
+
+    return fsolve(zeros, q, args=p)
+
+
 def rhs(t, x, r_func, p):
     """
     Parameters
@@ -43,9 +55,9 @@ def rhs(t, x, r_func, p):
     r = r_func(t, x, p)
 
     A, b = eval_dynamic(q, u, f, r, p)
-    xdot = np.linalg.solve(A, b).squeeze()
+    udot = np.linalg.solve(A, b).squeeze()
 
-    return np.hstack((u, xdot))
+    return np.hstack((u, udot))
 
 
 ########################
@@ -141,8 +153,8 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
                                            u_vals[[2, 3, 5, 6, 7, 8, 9]],
                                            p_arr)
     u_vals[[0, 1, 4]] = np.linalg.solve(A_nh_vals, B_nh_vals).squeeze()
-    print('Initial dependent speeds (u1, u2, u5): ', u_vals[0], u_vals[1],
-          np.rad2deg(u_vals[4]))
+    print('Initial dependent speeds (u1 [m/s], u2 [m/s], u5 [deg/s]): ',
+          u_vals[0], u_vals[1], np.rad2deg(u_vals[4]))
     print('Initial speeds: ', u_vals)
     # TODO: When the speed is higher than about 4.6, the initial lateral speed
     # is non-zero. Need to investigate. For now, force to zero.
@@ -160,7 +172,7 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     times = np.linspace(t0, tf, num=int(dur*fps) + 1)
 
     res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p), (t0, tf),
-                    x0, t_eval=times, method='LSODA')
+                    x0, t_eval=times, method='LSODA', rtol=1e-10)
 
     times = res.t
     x_traj = res.y.T

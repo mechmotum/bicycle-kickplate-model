@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions, rhs,
-                      simulate, plot_all, plot_wheel_paths)
+                      simulate, plot_all, plot_wheel_paths, equilibrium_eq)
 
 
 def calc_fkp(t):
@@ -20,7 +20,7 @@ def calc_fkp(t):
 def calc_steer_torque(t, x):
 
     q = x[:10]
-    u = x[10:]
+    u = x[10:20]
 
     q4 = q[3]
     q7 = q[6]
@@ -65,9 +65,9 @@ q_vals = np.array([
     0.0,  # q6
     1e-14,  # q7, setting to zero gives singular matrix
     0.0,  # q8
-    # TODO : calc equilibrium for initial state, these are guesses
-    -0.006,  # q11
-    -0.001,  # q12
+    # TODO : these can be generated from equilibrium_eq (copied for now)
+    -0.00664797028,  # q11
+    -0.00220163072,  # q12
 ])
 
 # initial speeds
@@ -90,6 +90,9 @@ u_vals = np.array([
 f_vals = np.array([0.0, 0.0, 0.0, 0.0])
 
 initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
+
+print('equilibrium')
+print(equilibrium_eq(initial_conditions[0:10], p_arr))
 
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, calc_inputs, p_arr))

@@ -113,9 +113,6 @@ ups = tuple([mec.dynamicsymbols(ui.name + 'p') for ui in us])
 # T7 : steer torque
 T4, T6, T7 = mec.dynamicsymbols('T4, T6, T7')
 
-# Frz : rear wheel-ground contact normal force
-# Ffz : front wheel-ground contact normal force
-
 # Fry : rear wheel-ground contact lateral force
 # Ffy : front wheel-ground contact lateral force
 Fry, Ffy = mec.dynamicsymbols('Fry, Ffy')
@@ -433,16 +430,19 @@ Fyfn = (fn, Ffy*g2_hat)
 # kickplate force (acts on tire)
 Fykp = (nd, Fkp*N['2'])
 
+# Frz : rear wheel-ground contact normal force
+# Ffz : front wheel-ground contact normal force
+
 # tire-ground normal forces, need equal and opposite forces, compression is
 # positive
-Fzr = -k_r*q11-1000.0*u11  # positive when in compression
-#Fzr = sm.Piecewise((0, q11 > 0), (Fzr, True))
-Fzf = -k_f*q12-1000.0*u12  # positive when in compression
-#Fzf = sm.Piecewise((0, q12 > 0), (Fzf, True))
-Fzdn = (nd, Fzr*A['3'])
-Fzdt = (dt, -Fzr*A['3'])
-Fzfn = (fn, Fzf*A['3'])
-Fzft = (ft, -Fzf*A['3'])
+Frz = -k_r*q11-1000.0*u11  # positive when in compression
+#Frz = sm.Piecewise((0, q11 > 0), (Frz, True))
+Ffz = -k_f*q12-1000.0*u12  # positive when in compression
+#Ffz = sm.Piecewise((0, q12 > 0), (Ffz, True))
+Fzdn = (nd, Frz*A['3'])
+Fzdt = (dt, -Frz*A['3'])
+Ffzn = (fn, Ffz*A['3'])
+Ffzt = (ft, -Ffz*A['3'])
 
 # input torques
 Tc = (C, T4*A['1'] - T6*B['2'] - T7*C['3'])
@@ -452,8 +452,8 @@ Tf = (F, Mfz*A['3'])
 
 loads = [
     Fco, Fdo, Feo, Ffo,
-    Fydn, Fyfn, Fzdn, Fzfn,
-    Fzdt, Fzft,
+    Fydn, Fyfn, Fzdn, Ffzn,
+    Fzdt, Ffzt,
     Fykp,
     Tc, Td, Te, Tf
 ]
@@ -548,8 +548,8 @@ kane.kanes_equations(bodies, loads=loads)
 
 # Tire forces
 # Relaxation length differential equation looks like so:
-# (s_yr/N_v_nd1)*Fyr' + Fyr = (-c_ar*alphar + c_pr*phir)*Fzr
-# (s_yf/N_v_fn1)*Fyf' + Fyf = (-c_af*alphaf + c_pf*phif)*Fzf
+# (s_yr/N_v_nd1)*Fyr' + Fyr = (-c_ar*alphar + c_pr*phir)*Frz
+# (s_yf/N_v_fn1)*Fyf' + Fyf = (-c_af*alphaf + c_pf*phif)*Ffz
 # slip angle
 alphar = sm.atan(N_v_nd2/N_v_nd1)
 alphaf = sm.atan(N_v_fn2/N_v_fn1)
@@ -566,13 +566,13 @@ Df = sm.Matrix([
     [0, (s_zf/sm.Abs(N_v_fn1))],
 ])
 nFy = sm.Matrix([
-    [-Fry + (-c_ar*alphar + c_pr*phir)*Fzr],
-    [-Ffy + (-c_af*alphaf + c_pf*phif)*Fzf],
+    [-Fry + (-c_ar*alphar + c_pr*phir)*Frz],
+    [-Ffy + (-c_af*alphaf + c_pf*phif)*Ffz],
 ])
 # TODO : Make the sign of the camber effect on self-aligning moment is correct.
 nMz = sm.Matrix([
-    [-Mrz + (-c_mar*alphar + c_mpr*phir)*Fzr],
-    [-Mfz + (-c_maf*alphaf + c_mpf*phif)*Fzf],
+    [-Mrz + (-c_mar*alphar + c_mpr*phir)*Frz],
+    [-Mfz + (-c_maf*alphaf + c_mpf*phif)*Ffz],
 ])
 
 # With the additional differential equations for relaxation length, the full

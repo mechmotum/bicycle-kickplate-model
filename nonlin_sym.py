@@ -326,26 +326,24 @@ fo.v2pt_theory(ce, N, E)
 eo.v2pt_theory(fo, N, E)
 
 # rear and front wheel points fixed on wheels
-dn.v2pt_theory(do, N, D)
-N_v_ft = ft.v2pt_theory(fo, N, F)
+dn.v2pt_theory(do, N, D)  # TODO : is dt, not dn
+ft.v2pt_theory(fo, N, F)
 
 fn.set_vel(F, u12*A['3'])
 fn.set_vel(N, fn.v1pt_theory(fo, N, F).xreplace(qdot_repl))
-
-#fn.set_vel(N, N_v_ft + u12*A['3'])
 
 # Slip angle components
 # project the velocity vectors at the contact point onto each wheel's yaw
 # direction
 N_v_nd1 = nd.vel(N).dot(A['1'])
 N_v_nd2 = nd.vel(N).dot(A['2'])
-N_v_fn1 = fn.vel(N).dot(g1_hat).xreplace(qdot_repl)
-N_v_fn2 = fn.vel(N).dot(g2_hat).xreplace(qdot_repl)
+N_v_ft1 = ft.vel(N).dot(g1_hat).xreplace(qdot_repl)
+N_v_ft2 = ft.vel(N).dot(g2_hat).xreplace(qdot_repl)
 
-print_syms(N_v_nd1, "N_v_dn1 is a function of: ")
-print_syms(N_v_nd2, "N_v_dn2 is a function of: ")
-print_syms(N_v_fn1, "N_v_fn1 is a function of: ")
-print_syms(N_v_fn2, "N_v_fn2 is a function of: ")
+print_syms(N_v_nd1, "N_v_nd1 is a function of: ")
+print_syms(N_v_nd2, "N_v_nd2 is a function of: ")
+print_syms(N_v_ft1, "N_v_ft1 is a function of: ")
+print_syms(N_v_ft2, "N_v_ft2 is a function of: ")
 
 ####################
 # Motion Constraints
@@ -362,13 +360,10 @@ nonholonomic = [
     # no rear longitudinal slip
     sm.trigsimp(dn.vel(N).dot(A['1'])),
     # no front longitudinal slip
-    # TODO : had to change this to ft from fn, not sure why
     ft.vel(N).dot(g1_hat),
     # front contact cannot move vertically wrt ground
     holonomic.diff(t).xreplace(qdot_repl),
 ]
-
-tire_contact_vert_vel_expr = nonholonomic[2]
 
 print_syms(nonholonomic[0], "rear slip constraint is a function of: ")
 print_syms(nonholonomic[1], "front slip constraint is a function of: ")
@@ -418,6 +413,7 @@ Ffo = (fo, mf*g*A['3'])
 
 # The forces acting on the tire from the ground are defined in this convention:
 # TODO : Change sign of Fz, so it is consistent with the other measure numbers.
+# TODO : Not sure I'm following this with the new tire compliance model.
 # Fr = Fx*A['1'] + Fy*A['2'] - Fz*A['3']
 # Mr = Mrz*A['3']
 # Ff = Fx*G['1'] + Fy*G['2'] - Fz*G['3']
@@ -435,10 +431,8 @@ Fykp = (nd, Fkp*N['2'])
 
 # tire-ground normal forces, need equal and opposite forces, compression is
 # positive
-Frz = -k_r*q11-1000.0*u11  # positive when in compression
-#Frz = sm.Piecewise((0, q11 > 0), (Frz, True))
-Ffz = -k_f*q12-1000.0*u12  # positive when in compression
-#Ffz = sm.Piecewise((0, q12 > 0), (Ffz, True))
+Frz = -k_r*q11-500.0*u11  # positive when in compression
+Ffz = -k_f*q12-500.0*u12  # positive when in compression
 Fzdn = (nd, Frz*A['3'])
 Fzdt = (dt, -Frz*A['3'])
 Ffzn = (fn, Ffz*A['3'])
@@ -552,18 +546,18 @@ kane.kanes_equations(bodies, loads=loads)
 # (s_yf/N_v_fn1)*Fyf' + Fyf = (-c_af*alphaf + c_pf*phif)*Ffz
 # slip angle
 alphar = sm.atan(N_v_nd2/N_v_nd1)
-alphaf = sm.atan(N_v_fn2/N_v_fn1)
+alphaf = sm.atan(N_v_ft2/N_v_ft1)
 # camber angle
 phir = q4
-phif = -sm.atan((mec.dot(fo.pos_from(fn), g2_hat) /
-                 mec.dot(fo.pos_from(fn), A['3'])))
+phif = -sm.atan((mec.dot(fo.pos_from(ft), g2_hat) /
+                 mec.dot(fo.pos_from(ft), A['3'])))
 Cf = sm.Matrix([
     [(s_yr/sm.Abs(N_v_nd1)), 0],
-    [0, (s_yf/sm.Abs(N_v_fn1))],
+    [0, (s_yf/sm.Abs(N_v_ft1))],
 ])
 Df = sm.Matrix([
     [(s_zr/sm.Abs(N_v_nd1)), 0],
-    [0, (s_zf/sm.Abs(N_v_fn1))],
+    [0, (s_zf/sm.Abs(N_v_ft1))],
 ])
 nFy = sm.Matrix([
     [-Fry + (-c_ar*alphar + c_pr*phir)*Frz],

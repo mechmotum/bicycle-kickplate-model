@@ -337,10 +337,12 @@ fn.set_vel(N, fn.v1pt_theory(fo, N, F).xreplace(qdot_repl))
 # direction
 N_v_nd1 = nd.vel(N).dot(A['1'])
 N_v_nd2 = nd.vel(N).dot(A['2'])
-# TODO : these should not have u8 in them! figure out why it is showing up,
-# doing wrong velocity calc above (or forgetting the right point)
-N_v_ft1 = ft.vel(N).dot(g1_hat).xreplace(qdot_repl).xreplace({u8: 0})
-N_v_ft2 = ft.vel(N).dot(g2_hat).xreplace(qdot_repl).xreplace({u8: 0})
+# NOTE : Be careful on calculating these velocities for the slip angles. ft is
+# both the point fixed in the wheel (as shown in ft.v2pt_theory(fo, N, F) and
+# the point moving in the ground plane (as below). Probably should distinguish
+# them better.
+N_v_ft1 = ft.pos_from(o).dt(N).dot(g1_hat).xreplace(qdot_repl)
+N_v_ft2 = ft.pos_from(o).dt(N).dot(g2_hat).xreplace(qdot_repl)
 
 print_syms(N_v_nd1, "N_v_nd1 is a function of: ")
 print_syms(N_v_nd2, "N_v_nd2 is a function of: ")
@@ -433,8 +435,8 @@ Fykp = (nd, Fkp*N['2'])
 
 # tire-ground normal forces, need equal and opposite forces, compression is
 # positive
-Frz = -k_r*q11-500.0*u11  # positive when in compression
-Ffz = -k_f*q12-500.0*u12  # positive when in compression
+Frz = -k_r*q11-1000.0*u11  # positive when in compression
+Ffz = -k_f*q12-1000.0*u12  # positive when in compression
 Fzdn = (nd, Frz*A['3'])
 Fzdt = (dt, -Frz*A['3'])
 Ffzn = (fn, Ffz*A['3'])

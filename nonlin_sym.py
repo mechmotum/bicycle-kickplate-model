@@ -337,8 +337,10 @@ fn.set_vel(N, fn.v1pt_theory(fo, N, F).xreplace(qdot_repl))
 # direction
 N_v_nd1 = nd.vel(N).dot(A['1'])
 N_v_nd2 = nd.vel(N).dot(A['2'])
-N_v_ft1 = ft.vel(N).dot(g1_hat).xreplace(qdot_repl)
-N_v_ft2 = ft.vel(N).dot(g2_hat).xreplace(qdot_repl)
+# TODO : these should not have u8 in them! figure out why it is showing up,
+# doing wrong velocity calc above (or forgetting the right point)
+N_v_ft1 = ft.vel(N).dot(g1_hat).xreplace(qdot_repl).xreplace({u8: 0})
+N_v_ft2 = ft.vel(N).dot(g2_hat).xreplace(qdot_repl).xreplace({u8: 0})
 
 print_syms(N_v_nd1, "N_v_nd1 is a function of: ")
 print_syms(N_v_nd2, "N_v_nd2 is a function of: ")

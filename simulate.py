@@ -17,18 +17,6 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
 ############################
 
 
-def equilibrium_eq(q, p):
-    u = np.ones(10)*1e-14
-    f = np.zeros(4)
-    r = np.zeros(4)
-
-    def zeros(x, p):
-        _, b = eval_dynamic(x, u, f, r, p)
-        return np.squeeze(b[0:10])
-
-    return fsolve(zeros, q, args=p)
-
-
 def rhs(t, x, r_func, p):
     """
     Parameters
@@ -62,6 +50,48 @@ def rhs(t, x, r_func, p):
     udot = np.linalg.solve(A, b).squeeze()
 
     return np.hstack((u, udot))
+
+
+def equilibrium_eq(q, p):
+    u = np.ones(10)*1e-14
+    f = np.zeros(4)
+    r = np.zeros(4)
+
+    def zeros(x, p):
+        _, b = eval_dynamic(x, u, f, r, p)
+        return np.squeeze(b[0:10])
+
+    return fsolve(zeros, q, args=p)
+
+
+def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
+    """Returns the lateral force and self-aligning moment at the contact patch
+    acting on the tire.
+
+    Parameters
+    ==========
+    alpha : float
+        Lateral slip angle, positive is yaw to the right.
+    phi : float
+        Camber angle, positive is roll to the right.
+    Fz : float
+        Normal force, positive in compression.
+    c_a, c_p, c_ma, c_mp : floats
+        Laterial slip and camber coefficients for force and moment.
+
+    Returns
+    =======
+    Fy : float
+        Lateral force, positive to the right.
+    Mz : float
+        Self-aligning moment, positive to the right.
+
+    """
+    Fy = (-c_a*alpha + c_p*phi)*Fz
+    # TODO : Make the sign of the camber effect on self-aligning moment is
+    # correct.
+    Mz = (-c_ma*alpha + c_mp*phi)*Fz
+    return Fy, Mz
 
 
 ########################

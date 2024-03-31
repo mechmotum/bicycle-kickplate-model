@@ -432,7 +432,6 @@ Fykp = (nd, Fkp*N['2'])
 
 # Frz : rear wheel-ground contact normal force
 # Ffz : front wheel-ground contact normal force
-
 # tire-ground normal forces, need equal and opposite forces, compression is
 # positive
 Frz = -k_r*q11-c_r*u11  # positive when in compression

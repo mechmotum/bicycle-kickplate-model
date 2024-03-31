@@ -200,8 +200,8 @@ id11, id22 = sm.symbols('id11, id22')
 ie11, ie22, ie33, ie31 = sm.symbols('ie11, ie22, ie33, ie31')
 if11, if22 = sm.symbols('if11, if22')
 
-# vertical tire stiffness, tire cross section nominal rolling radius
-k_f, k_r, r_tf, r_tr = sm.symbols('k_f, k_r, r_tf, r_tr')
+# vertical tire stiffness and damping, tire cross section rolling radius
+k_f, k_r, c_r, c_f, r_tf, r_tr = sm.symbols('k_f, k_r, c_r, c_f, r_tf, r_tr')
 # vertical load normalized cornering coefficients for lateral force
 c_ar, c_af, c_pr, c_pf = sm.symbols('c_ar, c_af, c_pr, c_pf')
 # vertical load normalized coefficients for self aligning moment
@@ -225,7 +225,7 @@ nd.set_pos(o, q1*N['1'] + q2*N['2'])
 
 # rear rim point
 dt = mec.Point('dt')
-dt.set_pos(nd, -(r_tr + q11)*N['3'])
+dt.set_pos(nd, -(r_tr + q11)*A['3'])
 
 # rim point to rear wheel center
 do = mec.Point('do')
@@ -258,7 +258,7 @@ ft.set_pos(fo, rf*E['2'].cross(A['3']).cross(E['2']).normalize())
 
 # front wheel contact point
 fn = mec.Point('fn')
-fn.set_pos(ft, (r_tf + q12)*N['3'])
+fn.set_pos(ft, (r_tf + q12)*A['3'])
 
 ######################
 # Holonomic Constraint

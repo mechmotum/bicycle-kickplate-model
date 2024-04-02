@@ -5,24 +5,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions, rhs,
-                      simulate, plot_all, plot_wheel_paths)
+                      simulate, plot_all, plot_wheel_paths, equilibrium_eq,
+                      calc_linear_tire_force, eval_angles)
 
 
 def calc_fkp(t):
     """Returns the lateral forced applied to the tire by the kick plate."""
 
-    if t > 0.5 and t < 1.0:
-        return 100.0
+    if t > 1.0 and t < 1.5:
+        return 500.0
     else:
         return 0.0
 
 
 def calc_steer_torque(t, x):
 
-    q4 = x[3]
-    q7 = x[6]
-    u4 = x[11]
-    u7 = x[14]
+    q = x[:10]
+    u = x[10:20]
+
+    q4 = q[3]
+    q7 = q[6]
+    u4 = u[3]
+    u7 = u[6]
 
     # LQR gains for Whipple model at 6 m/s
     kq4 = -2.2340917377023612
@@ -41,15 +45,32 @@ def calc_steer_torque(t, x):
 
 def calc_inputs(t, x, p):
 
+    q = x[:10]
+    u = x[10:20]
+
+    q11, q12, u11, u12 = q[8], q[9], u[8], u[9]
+    c_f, c_r, k_f, k_r = p[2], p[9], p[26], p[27]
+    Frz = -k_r*q11-c_r*u11  # positive when in compression
+    Ffz = -k_f*q12-c_f*u12  # positive when in compression
+
+    c_af, c_ar = p[0], p[1]
+    c_maf, c_mar, c_mpf, c_mpr, c_pf, c_pr = p[3:9]
+    alphar, alphaf, phir, phif = eval_angles(q, u, p)
+    Fry, Mrz = calc_linear_tire_force(alphar, phir, Frz, c_ar, c_pr, c_mar,
+                                      c_mpr)
+    Ffy, Mfz = calc_linear_tire_force(alphaf, phif, Ffz, c_af, c_pf, c_maf,
+                                      c_mpf)
+
     # steer, rear wheel, roll torques set to zero
     T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x)
 
     # kick plate force
     fkp = calc_fkp(t)
 
-    r = [T4, T6, T7, fkp]
+    r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz]
 
     return r
+
 
 # initial coordinates
 q_vals = np.array([
@@ -61,6 +82,9 @@ q_vals = np.array([
     0.0,  # q6
     1e-14,  # q7, setting to zero gives singular matrix
     0.0,  # q8
+    # TODO : these can be generated from equilibrium_eq (copied for now)
+    -0.00664797028,  # q11
+    -0.00220163072,  # q12
 ])
 
 # initial speeds
@@ -74,6 +98,8 @@ u_vals = np.array([
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7
     -initial_speed/p_vals[rf],  # u8
+    0.0,  # u11
+    0.0,  # u12
 ])
 
 # initial tire forces
@@ -81,6 +107,9 @@ u_vals = np.array([
 f_vals = np.array([0.0, 0.0, 0.0, 0.0])
 
 initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
+
+print('equilibrium')
+print(equilibrium_eq(initial_conditions[0:10], p_arr))
 
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, calc_inputs, p_arr))
@@ -92,4 +121,5 @@ res = simulate(duration, calc_inputs, initial_conditions, p_arr, fps=fps)
 plot_all(*res)
 plot_wheel_paths(res[1], res[-3], res[-2])
 
-plt.show()
+if __name__ == "__main__":
+    plt.show()

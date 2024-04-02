@@ -21,6 +21,7 @@ References
    http://moorepants.github.io/dissertation.
 
 """
+import inspect
 
 import sympy as sm
 import sympy.physics.mechanics as mec
@@ -67,11 +68,18 @@ print('Defining time varying symbols.')
 # q6: rear wheel rotation angle
 # q7: steering rotation angle
 # q8: front wheel rotation angle
+# q9: perpendicular distance from the n2> axis to the front contact
+#     point in the ground plane
+# q10: perpendicular distance from the n1> axis to the front contact
+#     point in the ground plane
+# q11: rear tire vertical extension
+# q12: front tire vertical extension
 q1, q2, q3, q4 = mec.dynamicsymbols('q1, q2, q3, q4')
 q5, q6, q7, q8 = mec.dynamicsymbols('q5, q6, q7, q8')
+q11, q12 = mec.dynamicsymbols('q11, q12')
 
 # q's that will have kinematical differential equations
-qs = [q1, q2, q3, q4, q5, q6, q7, q8]
+qs = [q1, q2, q3, q4, q5, q6, q7, q8, q11, q12]
 
 # u1: speed of the rear wheel contact point in the n1> direction
 # u2: speed of the rear wheel contact point in the n2> direction
@@ -81,20 +89,19 @@ qs = [q1, q2, q3, q4, q5, q6, q7, q8]
 # u6: rear wheel rotation angular rate
 # u7: steering rotation angular rate
 # u8: front wheel rotation angular rate
-u1, u2, u3, u4 = mec.dynamicsymbols('u1, u2, u3, u4')
-u5, u6, u7, u8 = mec.dynamicsymbols('u5, u6, u7, u8')
-
-# u's that will have dynamical differential equations
-us = [u1, u2, u3, u4, u5, u6, u7, u8]
-
 # u9: speed of the front wheel contact point in the n1> direction
 # u10: speed of the front wheel contact point in the n2> direction
-# u11: auxiliary speed to determine the rear tire vertical force
-# u12: auxiliary speed to determine the front tire vertical force
+# u11: rear tire vertical extension speed
+# u12: front tire vertical extension speed
+u1, u2, u3, u4 = mec.dynamicsymbols('u1, u2, u3, u4')
+u5, u6, u7, u8 = mec.dynamicsymbols('u5, u6, u7, u8')
 u9, u10, u11, u12 = mec.dynamicsymbols('u9, u10, u11, u12')
 
+# u's that will have dynamical differential equations
+us = [u1, u2, u3, u4, u5, u6, u7, u8, u11, u12]
+
 # variables for the derivatives of the u's
-ups = tuple(sm.ordered([mec.dynamicsymbols(ui.name + 'p') for ui in us]))
+ups = tuple([mec.dynamicsymbols(ui.name + 'p') for ui in us])
 
 ###########
 # Specified
@@ -105,10 +112,6 @@ ups = tuple(sm.ordered([mec.dynamicsymbols(ui.name + 'p') for ui in us]))
 # T6 : rear wheel torque
 # T7 : steer torque
 T4, T6, T7 = mec.dynamicsymbols('T4, T6, T7')
-
-# Frz : rear wheel-ground contact normal force
-# Ffz : front wheel-ground contact normal force
-Frz, Ffz = mec.dynamicsymbols('Frz, Ffz')
 
 # Fry : rear wheel-ground contact lateral force
 # Ffy : front wheel-ground contact lateral force
@@ -127,12 +130,6 @@ Fkp = mec.dynamicsymbols('Fkp')
 
 qdot_repl = {qi.diff(t): ui for qi, ui in zip(qs, us)}
 udot_repl = {ui.diff(t): upi for ui, upi in zip(us, ups)}
-aux_zerod = {
-    u11.diff(t): 0,
-    u12.diff(t): 0,
-    u11: 0,
-    u12: 0,
-}
 
 #################################
 # Orientation of Reference Frames
@@ -203,6 +200,8 @@ id11, id22 = sm.symbols('id11, id22')
 ie11, ie22, ie33, ie31 = sm.symbols('ie11, ie22, ie33, ie31')
 if11, if22 = sm.symbols('if11, if22')
 
+# vertical tire stiffness and damping, tire cross section rolling radius
+k_f, k_r, c_r, c_f, r_tf, r_tr = sm.symbols('k_f, k_r, c_r, c_f, r_tf, r_tr')
 # vertical load normalized cornering coefficients for lateral force
 c_ar, c_af, c_pr, c_pf = sm.symbols('c_ar, c_af, c_pr, c_pf')
 # vertical load normalized coefficients for self aligning moment
@@ -224,9 +223,13 @@ o = mec.Point('o')
 nd = mec.Point('nd')
 nd.set_pos(o, q1*N['1'] + q2*N['2'])
 
-# newtonian origin to rear wheel center
+# rear rim point
+dt = mec.Point('dt')
+dt.set_pos(nd, -(r_tr + q11)*A['3'])
+
+# rim point to rear wheel center
 do = mec.Point('do')
-do.set_pos(nd, -rr*B['3'])
+do.set_pos(dt, -rr*B['3'])
 
 # point fixed on wheel at contact point (used for longitudinal holonomic
 # constraint), could also make nd=dn
@@ -249,9 +252,13 @@ fo.set_pos(ce, d2*E['3'] + d3*E['1'])
 eo = mec.Point('eo')
 eo.set_pos(fo, l3*E['1'] + l4*E['3'])
 
+# front rim point
+ft = mec.Point('ft')
+ft.set_pos(fo, rf*E['2'].cross(A['3']).cross(E['2']).normalize())
+
 # front wheel contact point
 fn = mec.Point('fn')
-fn.set_pos(fo, rf*E['2'].cross(A['3']).cross(E['2']).normalize())
+fn.set_pos(ft, (r_tf + q12)*A['3'])
 
 ######################
 # Holonomic Constraint
@@ -279,8 +286,9 @@ kinematical = [
     q6.diff(t) - u6,  # rear wheel rotation
     q7.diff(t) - u7,  # steer
     q8.diff(t) - u8,  # front wheel rotation
+    q11.diff(t) - u11,  # front tire squish
+    q12.diff(t) - u12,  # rear tire squish
 ]
-
 
 ####################
 # Angular Velocities
@@ -304,43 +312,42 @@ F.set_ang_vel(E, u8*E['2'])  # front wheel rate
 
 print('Defining linear velocities.')
 
-# rear wheel contact stays in ground plane and does not slip but the auxiliary
-# speed, u11, is included which corresponds to the vertical force
+# rear wheel contact stays in ground plane
 o.set_vel(N, 0)
 nd.set_vel(N, u1*N['1'] + u2*N['2'])
-nd_ = mec.Point('nd')
-nd_.set_pos(nd, 0)
-nd_.set_vel(N, nd.vel(N) + u11*A['3'])
+
+dt.set_vel(N, nd.vel(N) - u11*A['3'])
 
 # mass centers
-do.v2pt_theory(nd_, N, B)  # ensures u11 is present in velocities
+do.v2pt_theory(dt, N, B)
 co.v2pt_theory(do, N, C)
 ce.v2pt_theory(do, N, C)
 fo.v2pt_theory(ce, N, E)
 eo.v2pt_theory(fo, N, E)
 
 # rear and front wheel points fixed on wheels
-dn.v2pt_theory(do, N, D)
-fn.v2pt_theory(fo, N, F)
+dn.v2pt_theory(do, N, D)  # TODO : is dt, not dn
+ft.v2pt_theory(fo, N, F)
 
-fn_ = mec.Point('fn')
-fn_.set_pos(fn, 0)
-# includes u11 and u12
-fn_.set_vel(N, nd_.vel(N) + fn.pos_from(nd_).dt(N).xreplace(qdot_repl) +
-            u12*A['3'])
+fn.set_vel(F, u12*A['3'])
+fn.set_vel(N, fn.v1pt_theory(fo, N, F).xreplace(qdot_repl))
 
 # Slip angle components
 # project the velocity vectors at the contact point onto each wheel's yaw
 # direction
 N_v_nd1 = nd.vel(N).dot(A['1'])
 N_v_nd2 = nd.vel(N).dot(A['2'])
-N_v_fn1 = fn_.vel(N).dot(g1_hat).xreplace(qdot_repl)
-N_v_fn2 = fn_.vel(N).dot(g2_hat).xreplace(qdot_repl)
+# NOTE : Be careful on calculating these velocities for the slip angles. ft is
+# both the point fixed in the wheel (as shown in ft.v2pt_theory(fo, N, F) and
+# the point moving in the ground plane (as below). Probably should distinguish
+# them better.
+N_v_ft1 = ft.pos_from(o).dt(N).dot(g1_hat).xreplace(qdot_repl)
+N_v_ft2 = ft.pos_from(o).dt(N).dot(g2_hat).xreplace(qdot_repl)
 
-print_syms(N_v_nd1, "N_v_dn1 is a function of: ")
-print_syms(N_v_nd2, "N_v_dn2 is a function of: ")
-print_syms(N_v_fn1, "N_v_fn1 is a function of: ")
-print_syms(N_v_fn2, "N_v_fn2 is a function of: ")
+print_syms(N_v_nd1, "N_v_nd1 is a function of: ")
+print_syms(N_v_nd2, "N_v_nd2 is a function of: ")
+print_syms(N_v_ft1, "N_v_ft1 is a function of: ")
+print_syms(N_v_ft2, "N_v_ft2 is a function of: ")
 
 ####################
 # Motion Constraints
@@ -357,12 +364,10 @@ nonholonomic = [
     # no rear longitudinal slip
     sm.trigsimp(dn.vel(N).dot(A['1'])),
     # no front longitudinal slip
-    fn.vel(N).dot(g1_hat),
-    # front contact cannot move vertically wrt ground (include aux speeds)
-    holonomic.diff(t).xreplace(qdot_repl) + u11 + u12,
+    ft.vel(N).dot(g1_hat),
+    # front contact cannot move vertically wrt ground
+    holonomic.diff(t).xreplace(qdot_repl),
 ]
-
-tire_contact_vert_vel_expr = nonholonomic[2]
 
 print_syms(nonholonomic[0], "rear slip constraint is a function of: ")
 print_syms(nonholonomic[1], "front slip constraint is a function of: ")
@@ -412,23 +417,29 @@ Ffo = (fo, mf*g*A['3'])
 
 # The forces acting on the tire from the ground are defined in this convention:
 # TODO : Change sign of Fz, so it is consistent with the other measure numbers.
+# TODO : Not sure I'm following this with the new tire compliance model.
 # Fr = Fx*A['1'] + Fy*A['2'] - Fz*A['3']
 # Mr = Mrz*A['3']
 # Ff = Fx*G['1'] + Fy*G['2'] - Fz*G['3']
 # Mf = Mfz*G['3']
 
 # tire-ground lateral forces
-Fydn = (nd_, Fry*A['2'])
-Fyfn = (fn_, Ffy*g2_hat)
+Fydn = (nd, Fry*A['2'])
+Fyfn = (fn, Ffy*g2_hat)
 
 # kickplate force (acts on tire)
 Fykp = (nd, Fkp*N['2'])
 
-# tire-ground normal forces (non-contributing), need equal and opposite forces
+# Frz : rear wheel-ground contact normal force
+# Ffz : front wheel-ground contact normal force
+# tire-ground normal forces, need equal and opposite forces, compression is
+# positive
+Frz = -k_r*q11-c_r*u11  # positive when in compression
+Ffz = -k_f*q12-c_f*u12  # positive when in compression
 Fzdn = (nd, Frz*A['3'])
-Fzdn_ = (nd_, -Frz*A['3'])
-Fzfn = (fn, -Ffz*A['3'])
-Fzfn_ = (fn_, Ffz*A['3'])
+Fzdt = (dt, -Frz*A['3'])
+Ffzn = (fn, Ffz*A['3'])
+Ffzt = (ft, -Ffz*A['3'])
 
 # input torques
 Tc = (C, T4*A['1'] - T6*B['2'] - T7*C['3'])
@@ -438,8 +449,8 @@ Tf = (F, Mfz*A['3'])
 
 loads = [
     Fco, Fdo, Feo, Ffo,
-    Fydn, Fyfn, Fzdn, Fzfn,
-    Fzdn_, Fzfn_,
+    Fydn, Fyfn, Fzdn, Ffzn,
+    Fzdt, Ffzt,
     Fykp,
     Tc, Td, Te, Tf
 ]
@@ -451,27 +462,26 @@ loads = [
 newto = N
 # rear contact x, rear contact y, yaw, roll, rear wheel angle, steer, front
 # wheel angle
-q_ind = (q1, q2, q3, q4, q6, q7, q8)
+q_ind = (q1, q2, q3, q4, q6, q7, q8, q11, q12)
 q_dep = (q5,)  # pitch
-qs = tuple(sm.ordered(q_ind + q_dep))
 
 # yaw rate, roll rate, rear wheel rate, steer rate, front wheel rate
-u_ind = (u3, u4, u6, u7, u8)
+u_ind = (u3, u4, u6, u7, u8, u11, u12)
 # longitudinal rear speed, lateral rear speed, pitch rate
 u_dep = (u1, u2, u5)
-u_aux = (u11, u12)
-us = tuple(sm.ordered(u_ind + u_dep))
 fs = (Fry, Ffy, Mrz, Mfz)
 # the constants rely on being sorted
 ps = (
     c_af,
     c_ar,
+    c_f,
     c_maf,
     c_mar,
     c_mpf,
     c_mpr,
     c_pf,
     c_pr,
+    c_r,
     d1,
     d2,
     d3,
@@ -488,6 +498,8 @@ ps = (
     ie33,
     if11,
     if22,
+    k_f,
+    k_r,
     l1,
     l2,
     l3,
@@ -496,6 +508,8 @@ ps = (
     md,
     me,
     mf,
+    r_tf,
+    r_tr,
     rf,
     rr,
     s_yf,
@@ -522,7 +536,7 @@ kane = mec.KanesMethod(
     configuration_constraints=holon,
     u_dependent=u_dep,
     velocity_constraints=nonho,
-    u_auxiliary=u_aux,
+    constraint_solver='CRAMER',
 )
 
 kane.kanes_equations(bodies, loads=loads)
@@ -531,76 +545,73 @@ kane.kanes_equations(bodies, loads=loads)
 # Assemble Full EoM
 ###################
 
-aux_eqs = kane.auxiliary_eqs
-print_syms(aux_eqs, 'The auxiliary equations are a function of: ')
-
 # Tire forces
 # Relaxation length differential equation looks like so:
 # (s_yr/N_v_nd1)*Fyr' + Fyr = (-c_ar*alphar + c_pr*phir)*Frz
 # (s_yf/N_v_fn1)*Fyf' + Fyf = (-c_af*alphaf + c_pf*phif)*Ffz
 # slip angle
 alphar = sm.atan(N_v_nd2/N_v_nd1)
-alphaf = sm.atan(N_v_fn2/N_v_fn1)
+print_syms(alphar, 'Rear slip angle is a function of: ')
+alphaf = sm.atan(N_v_ft2/N_v_ft1)
+print_syms(alphaf, 'Front slip angle is a function of: ')
 # camber angle
 phir = q4
-phif = -sm.atan((mec.dot(fo.pos_from(fn), g2_hat) /
-                 mec.dot(fo.pos_from(fn), A['3'])))
-
+phif = -sm.atan((mec.dot(fo.pos_from(ft), g2_hat) /
+                 mec.dot(fo.pos_from(ft), A['3'])))
 Cf = sm.Matrix([
     [(s_yr/sm.Abs(N_v_nd1)), 0],
-    [0, (s_yf/sm.Abs(N_v_fn1))],
-])
-Cz = sm.Matrix([
-    [-(-c_ar*alphar + c_pr*phir), 0],
-    [0, -(-c_af*alphaf + c_pf*phif)],
+    [0, (s_yf/sm.Abs(N_v_ft1))],
 ])
 Df = sm.Matrix([
     [(s_zr/sm.Abs(N_v_nd1)), 0],
-    [0, (s_zf/sm.Abs(N_v_fn1))],
+    [0, (s_zf/sm.Abs(N_v_ft1))],
+])
+Fry_, Ffy_, Mrz_, Mfz_ = mec.dynamicsymbols('Fry_, Ffy_, Mrz_, Mfz_')
+rs = rs + (Fry_, Ffy_, Mrz_, Mfz_)
+#Fry_ = (-c_ar*alphar + c_pr*phir)*Frz
+#Ffy_ = (-c_af*alphaf + c_pf*phif)*Ffz
+#Mrz_ = (-c_mar*alphar + c_mpr*phir)*Frz
+#Mfz_ = (-c_maf*alphaf + c_mpf*phif)*Ffz
+nFy = sm.Matrix([
+    [-Fry + Fry_],
+    [-Ffy + Ffy_],
 ])
 # TODO : Make the sign of the camber effect on self-aligning moment is correct.
-Dz = sm.Matrix([
-    [-(-c_mar*alphar + c_mpr*phir), 0],
-    [0, -(-c_maf*alphaf + c_mpf*phif)],
+nMz = sm.Matrix([
+    [-Mrz + Mrz_],
+    [-Mfz + Mfz_],
 ])
-nFy = -sm.Matrix([Fry, Ffy])
-nMz = -sm.Matrix([Mrz, Mfz])
 
-# We need to solve the dynamic equations and the auxiliary equations
-# simultaneously to avoid having to solve the dynamic equations first and then
-# substitute in the derivatives of the speeds. So reconstruct the equations of
-# motion to this form:
-# [Mp  0,  0, -Mf]*[up ] = [F     ]
-# [0, Cf,  0,  Cz] [fyp]   [-Fy   ]
-# [0,  0, Df,  Dz] [mzp]   [-Mz   ]
-# [Ap, 0,  0,  Af] [fz ]   [-B_aux]
+# With the additional differential equations for relaxation length, the full
+# dynamical differential equations take this form:
+# [M,  0,  0]*[up ] = [F(Fy, Mz)     ]
+# [0, Cf,  0] [fyp]   [-Fy + f(Fz(q))]
+# [0,  0, Df] [mzp]   [-Mz + f(Fz(q))]
 print('Assembling full equations of motion.')
-Af, Ap, B_aux = decompose_linear_parts(aux_eqs, [Frz, Ffz],
-                                       sm.Matrix(us).diff(t))
 # KanesMethod stores the qs and us unordered, so fix.
-new_order = [2, 3, 5, 6, 7, 0, 1, 4]
+# kane.u[:] = [u3, u4, u6, u7, u8, u11, u12, u1, u2, u5]
+new_order = [2, 3, 5, 6, 7, 8, 9, 0, 1, 4]
 mass_matrix = sm.zeros(*kane.mass_matrix.shape)
 forcing = sm.zeros(*kane.forcing.shape)
-forcing_orig = kane.forcing.xreplace(aux_zerod)
+forcing_orig = kane.forcing
 for i in range(mass_matrix.shape[0]):
     forcing[new_order[i], 0] = forcing_orig[i, 0]
     for j in range(mass_matrix.shape[1]):
         mass_matrix[new_order[i], new_order[j]] = kane.mass_matrix[i, j]
-Mf, forcing = decompose_linear_parts(forcing, [Frz, Ffz])
 
-row1 = mass_matrix.row_join(sm.zeros(8, 4)).row_join(-Mf)
-row2 = sm.zeros(2, 8).row_join(Cf).row_join(sm.zeros(2, 2)).row_join(Cz)
-row3 = sm.zeros(2, 8).row_join(sm.zeros(2, 2)).row_join(Df).row_join(Dz)
-row4 = Ap.row_join(sm.zeros(2, 4)).row_join(Af)
+num_udots = mass_matrix.shape[0]
+row1 = mass_matrix.row_join(sm.zeros(num_udots, 4))
+row2 = sm.zeros(2, num_udots).row_join(Cf).row_join(sm.zeros(2, 2))
+row3 = sm.zeros(2, num_udots).row_join(sm.zeros(2, 2)).row_join(Df)
 
-A_all = row1.col_join(row2).col_join(row3).col_join(row4)
-b_all = forcing.col_join(nFy).col_join(nMz).col_join(-B_aux)
+A_all = row1.col_join(row2).col_join(row3)
+b_all = forcing.col_join(nFy).col_join(nMz)
 
 print_syms(A_all, 'A_all is a function of these dynamic variables: ')
 print_syms(b_all, 'b_all is a function of these dynamic variables: ')
 
 # Create matrices for solving for the dependent speeds.
-nonholonomic = sm.Matrix(nonholonomic).xreplace(aux_zerod)
+nonholonomic = sm.Matrix(nonholonomic)
 print_syms(nonholonomic,
            'The nonholonomic constraints are a function of these variables:')
 A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
@@ -614,13 +625,12 @@ q9 = fn.pos_from(o).dot(N['1'])
 q10 = fn.pos_from(o).dot(N['2'])
 
 print('Lambdifying equations of motion.')
-eval_holonomic = sm.lambdify((q5, q4, q7, d1, d2, d3, rf, rr), holonomic,
-                             cse=True)
+eval_holonomic = sm.lambdify((q5, q4, q7, q11, q12, d1, d2, d3, r_tf, r_tr, rf,
+                              rr), holonomic, cse=True)
 eval_dep_speeds = sm.lambdify([qs, u_ind, ps], [A_nh, -B_nh], cse=True)
 eval_dynamic = sm.lambdify([qs, us, fs, rs, ps], [A_all, b_all], cse=True)
 eval_angles = sm.lambdify((qs, us, ps), [alphar, alphaf, phir, phif], cse=True)
 eval_front_contact = sm.lambdify((qs, ps), [q9, q10], cse=True)
 
-import inspect
 with open('eval_dynamic.py', 'w') as file:
     file.write(inspect.getsource(eval_dynamic))

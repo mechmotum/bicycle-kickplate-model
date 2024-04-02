@@ -57,7 +57,7 @@ def rhs(t, x, r_func, p):
 def equilibrium_eq(q, p):
     u = np.ones(10)*1e-14
     f = np.zeros(4)
-    r = np.zeros(4)
+    r = np.zeros(8)
 
     def zeros(x, p):
         _, b = eval_dynamic(x, u, f, r, p)

@@ -109,7 +109,7 @@ f_vals = np.array([0.0, 0.0, 0.0, 0.0])
 initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
 
 print('equilibrium')
-#print(equilibrium_eq(initial_conditions[0:10], p_arr))
+print(equilibrium_eq(initial_conditions[0:10], p_arr))
 
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, calc_inputs, p_arr))

@@ -225,7 +225,7 @@ nd.set_pos(o, q1*N['1'] + q2*N['2'])
 
 # rear rim point
 dt = mec.Point('dt')
-dt.set_pos(nd, -(r_tr + q11)*A['3'])
+dt.set_pos(nd, -(2*r_tr + q11)*A['3'])
 
 # rim point to rear wheel center
 do = mec.Point('do')
@@ -258,7 +258,8 @@ ft.set_pos(fo, rf*E['2'].cross(A['3']).cross(E['2']).normalize())
 
 # front wheel contact point
 fn = mec.Point('fn')
-fn.set_pos(ft, (r_tf + q12)*A['3'])
+# TODO : I think the sign of q12 here should be negative.
+fn.set_pos(ft, (2*r_tf + q12)*A['3'])
 
 ######################
 # Holonomic Constraint
@@ -423,11 +424,11 @@ Ffo = (fo, mf*g*A['3'])
 # Ff = Fx*G['1'] + Fy*G['2'] - Fz*G['3']
 # Mf = Mfz*G['3']
 
-# tire-ground lateral forces
+# lateral forces acting on the tire at ground contact
 Fydn = (nd, Fry*A['2'])
 Fyfn = (fn, Ffy*g2_hat)
 
-# kickplate force (acts on tire)
+# kickplate force (acts on tire at ground contact)
 Fykp = (nd, Fkp*N['2'])
 
 # Frz : rear wheel-ground contact normal force

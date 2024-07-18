@@ -93,7 +93,10 @@ def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
     Fy = (-c_a*alpha + c_p*phi)*Fz
     # TODO : Make the sign of the camber effect on self-aligning moment is
     # correct.
-    Mz = (c_ma*alpha + c_mp*phi)*Fz
+    # TODO : This -c_ma*alpha*Fz should be positive! Don't understand this as
+    # it implies that a positive slip angle velocity vector pointing to right
+    # causes a negative moment pushing the wheel away from the velocity vector.
+    Mz = -(c_ma*alpha + c_mp*phi)*Fz
     return Fy, Mz
 
 

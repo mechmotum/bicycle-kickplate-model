@@ -10,10 +10,13 @@ from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions, rhs,
 
 
 def calc_fkp(t):
-    """Returns the lateral forced applied to the tire by the kick plate."""
+    """Returns the lateral forced applied to the tire by the kick plate. 
+    How? As a half period sinusoidal function, in order to go up to 1400 N without
+    having troubles for numerical errors. If we have a square function, you may
+     experience numerical errors (it looks like the bicycle does not feel the kick) """
 
-    if t > 1.0 and t < 1.5:
-        return 100.0
+    if 0.5 < t < 1:
+        return -200*np.cos(4*np.pi*t)+ 200
     else:
         return 0.0
 

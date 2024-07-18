@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 
 from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions, rhs,
                       simulate, plot_all, plot_wheel_paths, equilibrium_eq,
-                      calc_linear_tire_force, eval_angles)
+                      calc_linear_tire_force, calc_nonlinear_tire_force,
+                      eval_angles)
 
 
 def calc_fkp(t):
@@ -60,6 +61,10 @@ def calc_inputs(t, x, p):
                                       c_mpr)
     Ffy, Mfz = calc_linear_tire_force(alphaf, phif, Ffz, c_af, c_pf, c_maf,
                                       c_mpf)
+    print('Linear: ', Fry, Ffy)
+    Fry, Mrz = calc_nonlinear_tire_force(alphar, phir, Frz)
+    Ffy, Mfz = calc_nonlinear_tire_force(alphaf, phif, Ffz)
+    print('Non-linear: ', Fry, Ffy)
 
     # steer, rear wheel, roll torques set to zero
     T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x)

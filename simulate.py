@@ -100,6 +100,171 @@ def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
     return Fy, Mz
 
 
+def calc_nonlinear_tire_force(alpha, phi, Fz):
+    """Returns the lateral force and self-aligning moment at the contact patch
+    acting on the tire.
+
+    Parameters
+    ==========
+    alpha : float
+        Lateral slip angle in radians, positive is yaw to the right.
+    phi : float
+        Camber angle in radians, positive is roll to the right.
+    Fz : float
+        Normal force in Newtons, negative in compression.
+
+    Returns
+    =======
+    Fy : float
+        Lateral force in Newtons, positive to the right.
+    Mz : float
+        Self-aligning moment in Newton-Meters, positive moment will turn wheel
+        to the right.
+
+    """
+
+    Fz = Fz/1000.00  # MUST be in [kN]
+
+    ## Old simple case
+    opt_Pac_fy = [
+        # 0.296295594442076,  #values from OptPar_deg
+        # 3896.98838593407,
+        # 3964.30596402491,
+        # 115.333054984316,
+        # 0.638805088213141,
+        # 0.000552109911180092,
+        # 4.88569512529486,
+        # -0.0832906867626918,
+        # 0.0354269547190490,
+        # -0.116088892942258,
+        # -0.00175245144219161,
+        # 6.50409689362419,
+        # -4.56517105416890,
+        # -1.26062915456958,
+        4802.49127129661,           #values from Opt Par_rad
+        -411.483943584675,
+        1039.78973919905,
+        7770.72927522235,
+        0.990788636848624,
+        0.000470000000000000,
+        195.543489325314,
+        432.125989933535,
+        0.0400000000000000,
+        0.00462948605575456,
+        -0.00204252002863379,
+        23,
+        -28.7133576301737,
+        5.90903596659257,
+        # 0.0421157577662902,	    # From OptParameterMF_T03R01_camber0_p300.mat
+        # 6921.70703980922,
+        # 36184.4484921848,
+        # 117.679709488861,
+        # 0.671843568786086,
+        # 0.00244548261240910,
+        # 3.28647094098780,
+        # 0.567243118050733,
+        # 0.0405091858662170,
+        # 0.0665947740791520,
+        # -0.0660233172268580,
+        # 5.13196785763573,
+        # -8.70159208401445,
+        # -0.228798626988778,
+    ]
+
+    opt_Pac_Mz = [
+        # 4.64291579665827,   #values from OptPar_deg
+        # 10.0307510263452,
+        # 2.93733400697400,
+        # 0.00538014988781111,
+        # -3.09108719250574,
+        # -0.958523366802777,
+        # -0.00614502879858124,
+        # 1.85716282505503,
+        # -1.53447284898031,
+        # 0.318387396748285,
+        # -9.15012640518871,
+        # 0.0728219670843347,
+        # 0.411869078464016,
+        # -0.240103083582358,
+        # -0.000111504690469878,
+        # 0.329856499993466,
+        # 0.491921917244135,
+        # -0.0986453301580708
+        0.187591378220407,  #values from Opt Par_rad
+        137.765934193791,
+        1.71813617983282,
+        -35.2039167373913,
+        -230.570331500149,
+        -0.462270268994748,
+        0.00276990000000000,
+        -10.9248978046150,
+        10.4554960206743,
+        -0.921974478744944,
+        0.0255010000000000,
+        -0.0235700000000000,
+        -0.00106432726384250,
+        0.000198958173929200,
+        0.0211329000000000,
+        0.894690000000000,
+        0.131350350303294,
+        0.0878457704136251,
+        # 1.37808763179523,       	# From OptParameterMF_T03R01_camber0_p300.mat
+        # 4.24701824645087,
+        # 5.86957508131411,
+        # 0.000408850229834906,
+        # -5.88153147501883,
+        # 0.219451579832919,
+        # 0.00418578530343426,
+        # -44.7275441651533,
+        # 25.9062723115695,
+        # -2.36085049584848,
+        # 4.62449995053518,
+        # 0.0871018174594679,
+        # -0.226373443969147,
+        # 0.0909174155928722,
+        # 0.232326352204219,
+        # 0.215539422811174,
+        # 0.0268209223191697,
+        # 0.139175737361296
+    ]
+
+    C_mz = opt_Pac_Mz[0]  # Shape factor
+    D_mz = (opt_Pac_Mz[1]*Fz**2 + opt_Pac_Mz[2]*Fz)  # Peak factor
+    BCD_mz = ((opt_Pac_Mz[3]*Fz**2 + opt_Pac_Mz[4]*Fz) *
+              (1 - opt_Pac_Mz[6]*np.abs(phi))*np.exp(-opt_Pac_Mz[5]*Fz))
+    B_mz= BCD_mz/(C_mz*D_mz)  # Stiffness factor
+    Sh_mz = (opt_Pac_Mz[11]*phi + opt_Pac_Mz[12]*Fz +
+             opt_Pac_Mz[13])  # Horizontal shift
+    Sv_mz = ((opt_Pac_Mz[14]*Fz**2 + opt_Pac_Mz[15]*Fz)*phi +
+             opt_Pac_Mz[16]*Fz + opt_Pac_Mz[17])  # Vertical shift
+    X1_mz = alpha + Sh_mz  # Composite
+    E_mz = ((opt_Pac_Mz[7]*Fz**2 + opt_Pac_Mz[8]*Fz + opt_Pac_Mz[9])*
+            (1 - opt_Pac_Mz[10]*np.abs(phi)))  # Curvature factor
+
+    # TODO : Mz causes a slightly unstable oscillation.
+    # Evaluation of Mz
+    Mz = (D_mz*np.sin(C_mz*np.arctan(B_mz*X1_mz -
+          E_mz*(B_mz*X1_mz - np.arctan(B_mz*X1_mz))))) + Sv_mz
+
+    C_fy = opt_Pac_fy[0]  # Shape factor
+    D_fy = (opt_Pac_fy[1]*Fz**2 + opt_Pac_fy[2]*Fz)  # Peak factor
+    BCD_fy = (opt_Pac_fy[3]*np.sin(np.arctan(Fz/opt_Pac_fy[4])*2)*
+              (1 - opt_Pac_fy[5]*np.abs(phi)))
+    B_fy = BCD_fy/(C_fy*D_fy)  # Stiffness factor
+    Sh_fy = (opt_Pac_fy[9]*Fz + opt_Pac_fy[10] +
+             opt_Pac_fy[8]*phi)  # Horizontal shift
+    Sv_fy = (opt_Pac_fy[11]*Fz*phi + opt_Pac_fy[12]*Fz +
+             opt_Pac_fy[13])  # Vertical shift
+    X1_fy = alpha + Sh_fy  # Composite
+    E_fy = opt_Pac_fy[6]*Fz + opt_Pac_fy[7]
+
+    # Evaluation of Fy
+    Fy = (D_fy*np.sin(C_fy*np.arctan(B_fy*X1_fy -
+          E_fy*(B_fy*X1_fy - np.arctan(B_fy*X1_fy))))) + Sv_fy
+
+    return -Fy, Mz
+
+
 ########################
 # Setup Numerical Values
 ########################

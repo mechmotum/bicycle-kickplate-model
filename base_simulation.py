@@ -13,7 +13,7 @@ def calc_fkp(t):
     """Returns the lateral forced applied to the tire by the kick plate."""
 
     if t > 1.0 and t < 1.5:
-        return 500.0
+        return 100.0
     else:
         return 0.0
 
@@ -50,8 +50,8 @@ def calc_inputs(t, x, p):
 
     q11, q12, u11, u12 = q[8], q[9], u[8], u[9]
     c_f, c_r, k_f, k_r = p[2], p[9], p[26], p[27]
-    Frz = -k_r*q11-c_r*u11  # positive when in compression
-    Ffz = -k_f*q12-c_f*u12  # positive when in compression
+    Frz = k_r*q11 + c_r*u11  # positive when in compression
+    Ffz = k_f*q12 + c_f*u12  # positive when in compression
 
     c_af, c_ar = p[0], p[1]
     c_maf, c_mar, c_mpf, c_mpr, c_pf, c_pr = p[3:9]
@@ -83,8 +83,8 @@ q_vals = np.array([
     1e-14,  # q7, setting to zero gives singular matrix
     0.0,  # q8
     # TODO : these can be generated from equilibrium_eq (copied for now)
-    -0.00664797028,  # q11
-    -0.00220163072,  # q12
+    0.00664797028,  # q11
+    0.00220163072,  # q12
 ])
 
 # initial speeds
@@ -93,7 +93,7 @@ u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
-    1e-10,  # u4, rad/s
+    1e-14,  # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7

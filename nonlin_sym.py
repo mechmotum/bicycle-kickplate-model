@@ -225,7 +225,7 @@ nd.set_pos(o, q1*N['1'] + q2*N['2'])
 
 # rear rim point
 dt = mec.Point('dt')
-dt.set_pos(nd, -(2*r_tr + q11)*A['3'])
+dt.set_pos(nd, -(2*r_tr - q11)*A['3'])
 
 # rim point to rear wheel center
 do = mec.Point('do')
@@ -258,8 +258,7 @@ ft.set_pos(fo, rf*E['2'].cross(A['3']).cross(E['2']).normalize())
 
 # front wheel contact point
 fn = mec.Point('fn')
-# TODO : I think the sign of q12 here should be negative.
-fn.set_pos(ft, (2*r_tf + q12)*A['3'])
+fn.set_pos(ft, (2*r_tf - q12)*A['3'])
 
 ######################
 # Holonomic Constraint
@@ -317,7 +316,7 @@ print('Defining linear velocities.')
 o.set_vel(N, 0)
 nd.set_vel(N, u1*N['1'] + u2*N['2'])
 
-dt.set_vel(N, nd.vel(N) - u11*A['3'])
+dt.set_vel(N, nd.vel(N) + u11*A['3'])
 
 # mass centers
 do.v2pt_theory(dt, N, B)
@@ -330,7 +329,8 @@ eo.v2pt_theory(fo, N, E)
 dn.v2pt_theory(do, N, D)  # TODO : is dt, not dn
 ft.v2pt_theory(fo, N, F)
 
-fn.set_vel(F, u12*A['3'])
+# TODO : I don't understand why this needs to be negative.
+fn.set_vel(F, -u12*A['3'])
 fn.set_vel(N, fn.v1pt_theory(fo, N, F).xreplace(qdot_repl))
 
 # Slip angle components
@@ -417,8 +417,6 @@ Feo = (eo, me*g*A['3'])
 Ffo = (fo, mf*g*A['3'])
 
 # The forces acting on the tire from the ground are defined in this convention:
-# TODO : Change sign of Fz, so it is consistent with the other measure numbers.
-# TODO : Not sure I'm following this with the new tire compliance model.
 # Fr = Fx*A['1'] + Fy*A['2'] - Fz*A['3']
 # Mr = Mrz*A['3']
 # Ff = Fx*G['1'] + Fy*G['2'] - Fz*G['3']
@@ -435,12 +433,12 @@ Fykp = (nd, Fkp*N['2'])
 # Ffz : front wheel-ground contact normal force
 # tire-ground normal forces, need equal and opposite forces, compression is
 # positive
-Frz = -k_r*q11-c_r*u11  # positive when in compression
-Ffz = -k_f*q12-c_f*u12  # positive when in compression
+Frz = k_r*q11 + c_r*u11  # positive when in compression
+Ffz = k_f*q12 + c_f*u12  # positive when in compression
 Fzdn = (nd, Frz*A['3'])
 Fzdt = (dt, -Frz*A['3'])
-Ffzn = (fn, Ffz*A['3'])
-Ffzt = (ft, -Ffz*A['3'])
+Fzfn = (fn, Ffz*A['3'])
+Fzft = (ft, -Ffz*A['3'])
 
 # input torques
 Tc = (C, T4*A['1'] - T6*B['2'] - T7*C['3'])
@@ -450,8 +448,8 @@ Tf = (F, Mfz*A['3'])
 
 loads = [
     Fco, Fdo, Feo, Ffo,
-    Fydn, Fyfn, Fzdn, Ffzn,
-    Fzdt, Ffzt,
+    Fydn, Fyfn, Fzdn, Fzfn,
+    Fzdt, Fzft,
     Fykp,
     Tc, Td, Te, Tf
 ]
@@ -548,8 +546,11 @@ kane.kanes_equations(bodies, loads=loads)
 
 # Tire forces
 # Relaxation length differential equation looks like so:
-# (s_yr/N_v_nd1)*Fyr' + Fyr = (-c_ar*alphar + c_pr*phir)*Frz
-# (s_yf/N_v_fn1)*Fyf' + Fyf = (-c_af*alphaf + c_pf*phif)*Ffz
+# (s_yr/N_v_nd1)*Fyr' + Fyr = Fyr_ = (-c_ar*alphar + c_pr*phir)*Frz
+# (s_yf/N_v_fn1)*Fyf' + Fyf = Fyf_ = (-c_af*alphaf + c_pf*phif)*Ffz
+# TODO : Make the sign of the camber effect on self-aligning moment is correct.
+# (s_yr/N_v_nd1)*Mrz' + Mrz = Mrz_ = (c_mar*alphar + c_pr*phir)*Frz
+# (s_yf/N_v_fn1)*Mrz' + Mrz = Mrz_ = (c_maf*alphaf + c_pf*phif)*Ffz
 # slip angle
 alphar = sm.atan(N_v_nd2/N_v_nd1)
 print_syms(alphar, 'Rear slip angle is a function of: ')
@@ -569,15 +570,10 @@ Df = sm.Matrix([
 ])
 Fry_, Ffy_, Mrz_, Mfz_ = mec.dynamicsymbols('Fry_, Ffy_, Mrz_, Mfz_')
 rs = rs + (Fry_, Ffy_, Mrz_, Mfz_)
-#Fry_ = (-c_ar*alphar + c_pr*phir)*Frz
-#Ffy_ = (-c_af*alphaf + c_pf*phif)*Ffz
-#Mrz_ = (-c_mar*alphar + c_mpr*phir)*Frz
-#Mfz_ = (-c_maf*alphaf + c_mpf*phif)*Ffz
 nFy = sm.Matrix([
     [-Fry + Fry_],
     [-Ffy + Ffy_],
 ])
-# TODO : Make the sign of the camber effect on self-aligning moment is correct.
 nMz = sm.Matrix([
     [-Mrz + Mrz_],
     [-Mfz + Mfz_],

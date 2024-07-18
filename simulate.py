@@ -56,8 +56,8 @@ def rhs(t, x, r_func, p):
 
 def equilibrium_eq(q, p):
     u = np.ones(10)*1e-14
-    f = np.zeros(4)
-    r = np.zeros(8)
+    f = np.zeros(4)  # Fry, Ffy, Mrz, Mfz
+    r = np.zeros(8)  # T4, T6, T7, Fkp, Fry_, Ffy_, Mrz_, Mfz_
 
     def zeros(x, p):
         _, b = eval_dynamic(x, u, f, r, p)
@@ -79,20 +79,21 @@ def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
     Fz : float
         Normal force, positive in compression.
     c_a, c_p, c_ma, c_mp : floats
-        Laterial slip and camber coefficients for force and moment.
+        Laterial slip and camber coefficients for force and moment, all
+        positive values.
 
     Returns
     =======
     Fy : float
         Lateral force, positive to the right.
     Mz : float
-        Self-aligning moment, positive to the right.
+        Self-aligning moment, positive moment will turn wheel to the right.
 
     """
     Fy = (-c_a*alpha + c_p*phi)*Fz
     # TODO : Make the sign of the camber effect on self-aligning moment is
     # correct.
-    Mz = (-c_ma*alpha + c_mp*phi)*Fz
+    Mz = (c_ma*alpha + c_mp*phi)*Fz
     return Fy, Mz
 
 
@@ -210,7 +211,8 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     times = np.linspace(t0, tf, num=int(dur*fps) + 1)
 
     res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p), (t0, tf),
-                    x0, t_eval=times, method='LSODA', rtol=1e-10)
+                    x0, t_eval=times, method='LSODA',
+                    rtol=1e-10)
 
     times = res.t
     x_traj = res.y.T
@@ -240,8 +242,8 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     r_traj = np.zeros((len(times), 4))
     for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
         statei = np.hstack((qi, ui, fi))
-        fz_traj[i, :] = np.array([-p[27]*qi[8]-p[9]*ui[8],
-                                  -p[26]*qi[9]-p[2]*ui[9]])
+        fz_traj[i, :] = np.array([p[27]*qi[8] + p[9]*ui[8],
+                                  p[26]*qi[9] + p[2]*ui[9]])
         slip_traj[i, :] = eval_angles(qi, ui, p)
         q9_traj[i], q10_traj[i] = eval_front_contact(qi, p)
         r_traj[i] = calc_inputs(ti, statei, p)[:4]

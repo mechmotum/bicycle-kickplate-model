@@ -18,7 +18,8 @@ print(eval_dynamic(*[np.ones_like(a) for a in [qs, us, fs, rs, ps]]))
 
 
 def rhs(t, x, r_func, p):
-    """
+    """Evaluates the time derivative of the state.
+
     Parameters
     ==========
     t : float
@@ -28,7 +29,8 @@ def rhs(t, x, r_func, p):
                                 u1, u2, u3, u4, u5, u6, u7, u8, u11, u12,
                                 Fry, Ffy, Mrz, Mfz].
     r_func : function
-        Function of the form ``r = f(t, x, p)``.
+        Function of the form ``r = f(t, x, p)``. Returns all specified inputs
+        where: r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz].
     p : array_like, shape(44,)
         Constant values.
         [c_af, c_ar, c_f, c_maf, c_mar, c_mpf, c_mpr, c_pf, c_pr, c_r, d1, d2,

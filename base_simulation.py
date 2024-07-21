@@ -11,13 +11,19 @@ from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions, rhs,
 
 
 def calc_fkp(t):
-    """Returns the lateral forced applied to the tire by the kick plate. 
-    How? As a half period sinusoidal function, in order to go up to 1400 N without
-    having troubles for numerical errors. If we have a square function, you may
-     experience numerical errors (it looks like the bicycle does not feel the kick) """
+    """Returns the lateral forced applied to the tire by the kick plate. The
+    force is modeled as a sinusoidal pulse."""
 
-    if 0.5 < t < 1:
-        return -200*np.cos(4*np.pi*t)+ 200
+    start = 0.4  # seconds
+    stop = 0.6  # seconds
+    magnitude = 200  # Newtons
+
+    period = stop - start
+    frequency = 1.0/period
+    omega = 2*np.pi*frequency  # rad/s
+
+    if start < t < stop:
+        return magnitude/2.0*(1.0 - np.cos(omega*(t - start)))
     else:
         return 0.0
 
@@ -64,10 +70,10 @@ def calc_inputs(t, x, p):
                                       c_mpr)
     Ffy, Mfz = calc_linear_tire_force(alphaf, phif, Ffz, c_af, c_pf, c_maf,
                                       c_mpf)
-    print('Linear: ', Fry, Ffy)
+    #print('Linear: ', Fry, Ffy)
     Fry, Mrz = calc_nonlinear_tire_force(alphar, phir, Frz)
     Ffy, Mfz = calc_nonlinear_tire_force(alphaf, phif, Ffz)
-    print('Non-linear: ', Fry, Ffy)
+    #print('Non-linear: ', Fry, Ffy)
 
     # steer, rear wheel, roll torques set to zero
     T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x)

@@ -29,6 +29,7 @@ def calc_fkp(t):
 
 
 def calc_steer_torque(t, x):
+    """Simple LQR control based on linear Carvallo-Whipple model."""
 
     q = x[:10]
     u = x[10:20]

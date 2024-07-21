@@ -72,8 +72,8 @@ print('Defining time varying symbols.')
 #     point in the ground plane
 # q10: perpendicular distance from the n1> axis to the front contact
 #     point in the ground plane
-# q11: rear tire vertical extension
-# q12: front tire vertical extension
+# q11: rear tire vertical sinkage
+# q12: front tire vertical sinkage
 q1, q2, q3, q4 = mec.dynamicsymbols('q1, q2, q3, q4')
 q5, q6, q7, q8 = mec.dynamicsymbols('q5, q6, q7, q8')
 q11, q12 = mec.dynamicsymbols('q11, q12')
@@ -329,9 +329,8 @@ eo.v2pt_theory(fo, N, E)
 dn.v2pt_theory(do, N, D)  # TODO : is dt, not dn
 ft.v2pt_theory(fo, N, F)
 
-# TODO : I don't understand why this needs to be negative.
-fn.set_vel(F, -u12*A['3'])
-fn.set_vel(N, fn.v1pt_theory(fo, N, F).xreplace(qdot_repl))
+# front wheel contact point velocity
+fn.set_vel(N, ft.pos_from(o).dt(N).xreplace(qdot_repl) - u12*A['3'])
 
 # Slip angle components
 # project the velocity vectors at the contact point onto each wheel's yaw
@@ -356,7 +355,7 @@ print_syms(N_v_ft2, "N_v_ft2 is a function of: ")
 
 # impose rolling without longitudinal slip on the front and rear wheel
 # contacts, but allow lateral slip
-# add a velocity contraint for the holonomic constraint (front wheel contacts
+# add a velocity constraint for the holonomic constraint (front wheel contacts
 # the ground)
 
 print('Defining nonholonomic constraints.')

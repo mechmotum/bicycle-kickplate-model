@@ -302,8 +302,8 @@ p_vals = {
     ie33: 0.06782113764394461,
     if11: 0.0904106601579,
     if22: 0.149389340425,
-    k_f: 100000.0,
-    k_r: 100000.0,
+    k_f: 120000.0,  # ~ twice the stiffness of a 1.25" tire from Rothhamel 2024
+    k_r: 120000.0,  # ~ twice the stiffness of a 1.25" tire from Rothhamel 2024
     l1: 0.5384415640161426,
     l2: -0.531720230353059,
     l3: -0.07654646159268344,
@@ -386,7 +386,7 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
 
     res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p), (t0, tf),
                     x0, t_eval=times, method='LSODA',
-                    rtol=1e-10)
+                    rtol=1e-12)
 
     times = res.t
     x_traj = res.y.T

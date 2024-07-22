@@ -67,6 +67,9 @@ fall_detector.direction = -1
 
 def equilibrium_eq(q, p):
     """Returns the static equilibrium configuration of the model."""
+    # TODO : When I change the tire vertical stiffness values I don't get a
+    # change in equilibrium state. So this doesn't seem to work in a full proof
+    # way.
 
     u = np.ones(10)
     f = np.zeros(4)  # Fry, Ffy, Mrz, Mfz

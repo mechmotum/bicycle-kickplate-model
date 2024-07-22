@@ -118,7 +118,7 @@ q_vals = np.array([
     0.0,  # q4
     np.nan,  # q5
     0.0,  # q6
-    1e-12,  # q7, setting to zero gives singular matrix
+    1e-14,  # q7, setting to zero gives singular matrix
     0.0,  # q8
     # TODO : these can be generated from equilibrium_eq (copied for now)
     0.00664797028,  # q11
@@ -131,7 +131,7 @@ u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
-    0.0, # u4, rad/s
+    0.0,  # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7

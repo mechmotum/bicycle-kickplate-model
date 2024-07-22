@@ -14,8 +14,8 @@ def calc_fkp(t):
     """Returns the lateral forced applied to the tire by the kick plate. The
     force is modeled as a sinusoidal pulse."""
 
-    start = 0.4  # seconds
-    stop = 0.6  # seconds
+    start = 1.0  # seconds
+    stop = 1.4  # seconds
     magnitude = 400  # Newtons
 
     period = stop - start
@@ -52,6 +52,7 @@ def calc_steer_torque(t, x):
     #ku7 = 1.8634394089384874
 
     return -(kq4*q4 + kq7*q7 + ku4*u4 + ku7*u7)
+    #return 4.0*u4
 
 
 def calc_inputs(t, x, p):
@@ -105,6 +106,8 @@ def calc_inputs(t, x, p):
     # kick plate force
     fkp = calc_fkp(t)
 
+    #Mrz, Mfz = 0.0, 0.0
+
     r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz]
 
     return r
@@ -151,7 +154,7 @@ print(initial_conditions)
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, calc_inputs, p_arr))
 
-fps = 100  # frames per second
+fps = 400  # frames per second
 duration = 6.0  # seconds
 res = simulate(duration, calc_inputs, initial_conditions, p_arr, fps=fps)
 

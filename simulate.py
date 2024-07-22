@@ -70,8 +70,10 @@ def equilibrium_eq(q, p):
     # TODO : When I change the tire vertical stiffness values I don't get a
     # change in equilibrium state. So this doesn't seem to work in a full proof
     # way.
+    # TODO : May be better to solve Fr + Frstar + holonomic constraint all
+    # equal zero.
 
-    u = np.ones(10)
+    u = np.ones(10)*1e-13  # divide by zeros if u is simple all zeros
     f = np.zeros(4)  # Fry, Ffy, Mrz, Mfz
     r = np.zeros(8)  # T4, T6, T7, Fkp, Fry_, Ffy_, Mrz_, Mfz_
 
@@ -79,7 +81,7 @@ def equilibrium_eq(q, p):
         _, b = eval_dynamic(x, u, f, r, p)
         return np.squeeze(b[0:10])
 
-    return fsolve(zeros, q, args=p)
+    return fsolve(zeros, q, args=p, xtol=1e-11)
 
 
 def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
@@ -290,14 +292,14 @@ def calc_nonlinear_tire_force(alpha, phi, Fz):
 p_vals = {
     c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
     c_ar: 11.46,
-    c_f: 1000.0,  # guess
+    c_f: 4000.0,  # guess
     c_maf: 0.33,  # 0.33 is rough calc from gabriele's data
     c_mar: 0.33,
     c_mpf: 0.0,  # need real numbers for this
     c_mpr: 0.0,  # need real numbers for this
     c_pf: 0.573,
     c_pr: 0.573,
-    c_r: 1000.0,  # guess
+    c_r: 4000.0,  # guess
     d1: 0.9631492634872098,
     d2: 0.4338396131640938,
     d3: 0.0705000000001252,
@@ -372,10 +374,12 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     q_vals[4] = initial_pitch_angle
 
     q_eq = equilibrium_eq(q_vals, p_arr)
-    print('Initial coordinates: ', q_eq)
+    print('Equilibrium coordinates: ', q_eq)
+
+    q_vals[-2:] = q_eq[-2:]
 
     print('Independent generalized speeds:', u_vals[[2, 3, 5, 6, 7, 8, 9]])
-    A_nh_vals, B_nh_vals = eval_dep_speeds(q_eq,
+    A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals,
                                            u_vals[[2, 3, 5, 6, 7, 8, 9]],
                                            p_arr)
     res = np.linalg.solve(A_nh_vals, B_nh_vals.squeeze())
@@ -392,7 +396,7 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     # value of q7.
     u_vals[1] = 0.0
 
-    return np.hstack((q_eq, u_vals, f_vals))
+    return np.hstack((q_vals, u_vals, f_vals))
 
 
 def simulate(dur, calc_inputs, x0, p, fps=60):

@@ -56,6 +56,15 @@ def rhs(t, x, r_func, p):
     return np.hstack((u, udot))
 
 
+def fall_detector(t, x):
+    max_roll = np.deg2rad(45.0)
+    return max_roll - np.abs(x[3])
+
+
+fall_detector.terminal = True
+fall_detector.direction = -1
+
+
 def equilibrium_eq(q, p):
     """Returns the static equilibrium configuration of the model."""
 
@@ -266,7 +275,7 @@ def calc_nonlinear_tire_force(alpha, phi, Fz):
     Fy = (D_fy*np.sin(C_fy*np.arctan(B_fy*X1_fy -
           E_fy*(B_fy*X1_fy - np.arctan(B_fy*X1_fy))))) + Sv_fy
 
-    return -Fy, Mz
+    return -Fy, -Mz
 
 
 ########################
@@ -385,7 +394,7 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     times = np.linspace(t0, tf, num=int(dur*fps) + 1)
 
     res = solve_ivp(lambda t, x: rhs(t, x, calc_inputs, p), (t0, tf),
-                    x0, t_eval=times, method='LSODA',
+                    x0, t_eval=times, events=fall_detector, method='LSODA',
                     rtol=1e-12)
 
     times = res.t

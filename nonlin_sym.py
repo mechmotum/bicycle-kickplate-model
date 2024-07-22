@@ -79,7 +79,18 @@ q5, q6, q7, q8 = mec.dynamicsymbols('q5, q6, q7, q8')
 q11, q12 = mec.dynamicsymbols('q11, q12')
 
 # q's that will have kinematical differential equations
-qs = [q1, q2, q3, q4, q5, q6, q7, q8, q11, q12]
+qs = [
+    q1,  # 0
+    q2,  # 1
+    q3,  # 2
+    q4,  # 3
+    q5,  # 4
+    q6,  # 5
+    q7,  # 6
+    q8,  # 7
+    q11,  # 8
+    q12,  # 9
+]
 
 # u1: speed of the rear wheel contact point in the n1> direction
 # u2: speed of the rear wheel contact point in the n2> direction
@@ -98,7 +109,18 @@ u5, u6, u7, u8 = mec.dynamicsymbols('u5, u6, u7, u8')
 u9, u10, u11, u12 = mec.dynamicsymbols('u9, u10, u11, u12')
 
 # u's that will have dynamical differential equations
-us = [u1, u2, u3, u4, u5, u6, u7, u8, u11, u12]
+us = [
+    u1,  # 0, dep
+    u2,  # 1, dep
+    u3,  # 2, ind
+    u4,  # 3, ind
+    u5,  # 4, dep
+    u6,  # 5, ind
+    u7,  # 6, ind
+    u8,  # 7, ind
+    u11,  # 8, ind
+    u12,  # 9, ind
+]
 
 # variables for the derivatives of the u's
 ups = tuple([mec.dynamicsymbols(ui.name + 'p') for ui in us])
@@ -470,50 +492,50 @@ u_dep = (u1, u2, u5)
 fs = (Fry, Ffy, Mrz, Mfz)
 # the constants rely on being sorted
 ps = (
-    c_af,
-    c_ar,
-    c_f,
-    c_maf,
-    c_mar,
-    c_mpf,
-    c_mpr,
-    c_pf,
-    c_pr,
-    c_r,
-    d1,
-    d2,
-    d3,
-    g,
-    ic11,
-    ic22,
-    ic31,
-    ic33,
-    id11,
-    id22,
-    ie11,
-    ie22,
-    ie31,
-    ie33,
-    if11,
-    if22,
-    k_f,
-    k_r,
-    l1,
-    l2,
-    l3,
-    l4,
-    mc,
-    md,
-    me,
-    mf,
-    r_tf,
-    r_tr,
-    rf,
-    rr,
-    s_yf,
-    s_yr,
-    s_zf,
-    s_zr,
+    c_af,  # 0
+    c_ar,  # 1
+    c_f,  # 2
+    c_maf,  # 3
+    c_mar,  # 4
+    c_mpf,  # 5
+    c_mpr,  # 6
+    c_pf,  # 7
+    c_pr,  # 8
+    c_r,  # 9
+    d1,  # 10
+    d2,  # 11
+    d3,  # 12
+    g,  # 13
+    ic11,  # 14
+    ic22,  # 15
+    ic31,  # 16
+    ic33,  # 17
+    id11,  # 18
+    id22,  # 19
+    ie11,  # 20
+    ie22,  # 21
+    ie31,  # 22
+    ie33,  # 23
+    if11,  # 24
+    if22,  # 25
+    k_f,  # 26
+    k_r,  # 27
+    l1,  # 28
+    l2,  # 29
+    l3,  # 30
+    l4,  # 31
+    mc,  # 32
+    md,  # 33
+    me,  # 34
+    mf,  # 35
+    r_tf,  # 36
+    r_tr,  # 37
+    rf,  # 38
+    rr,  # 39
+    s_yf,  # 40
+    s_yr,  # 41
+    s_zf,  # 42
+    s_zr,  # 43
 )
 rs = (T4, T6, T7, Fkp)
 holon = (holonomic,)

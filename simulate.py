@@ -368,19 +368,26 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     print('Initial pitch angle:', np.rad2deg(initial_pitch_angle))
     q_vals[4] = initial_pitch_angle
 
-    A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals,
+    q_eq = equilibrium_eq(q_vals, p_arr)
+    print('Initial coordinates: ', q_eq)
+
+    print('Independent generalized speeds:', u_vals[[2, 3, 5, 6, 7, 8, 9]])
+    A_nh_vals, B_nh_vals = eval_dep_speeds(q_eq,
                                            u_vals[[2, 3, 5, 6, 7, 8, 9]],
                                            p_arr)
+    res = np.linalg.solve(A_nh_vals, B_nh_vals.squeeze())
+    print('res', res)
     u_vals[[0, 1, 4]] = np.linalg.solve(A_nh_vals, B_nh_vals).squeeze()
+    print('zero', A_nh_vals @ u_vals[[0, 1, 4]] - B_nh_vals.squeeze())
+
     print('Initial dependent speeds (u1 [m/s], u2 [m/s], u5 [deg/s]): ',
           u_vals[0], u_vals[1], np.rad2deg(u_vals[4]))
     print('Initial speeds: ', u_vals)
     # TODO: When the speed is higher than about 4.6, the initial lateral speed
     # is non-zero. Need to investigate. For now, force to zero.
+    # The singularity with q7=0.0 causes this and it is very sensitive to the
+    # value of q7.
     u_vals[1] = 0.0
-
-    q_eq = equilibrium_eq(q_vals, p_arr)
-    print('Initial coordinates: ', q_eq)
 
     return np.hstack((q_eq, u_vals, f_vals))
 

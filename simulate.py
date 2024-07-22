@@ -57,7 +57,9 @@ def rhs(t, x, r_func, p):
 
 
 def equilibrium_eq(q, p):
-    u = np.ones(10)*1e-14
+    """Returns the static equilibrium configuration of the model."""
+
+    u = np.ones(10)
     f = np.zeros(4)  # Fry, Ffy, Mrz, Mfz
     r = np.zeros(8)  # T4, T6, T7, Fkp, Fry_, Ffy_, Mrz_, Mfz_
 
@@ -356,7 +358,6 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
                                        args=ehom_args))
     print('Initial pitch angle:', np.rad2deg(initial_pitch_angle))
     q_vals[4] = initial_pitch_angle
-    print('Initial coordinates: ', q_vals)
 
     A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals,
                                            u_vals[[2, 3, 5, 6, 7, 8, 9]],
@@ -367,9 +368,12 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     print('Initial speeds: ', u_vals)
     # TODO: When the speed is higher than about 4.6, the initial lateral speed
     # is non-zero. Need to investigate. For now, force to zero.
-    #u_vals[1] = 0.0
+    u_vals[1] = 0.0
 
-    return np.hstack((q_vals, u_vals, f_vals))
+    q_eq = equilibrium_eq(q_vals, p_arr)
+    print('Initial coordinates: ', q_eq)
+
+    return np.hstack((q_eq, u_vals, f_vals))
 
 
 def simulate(dur, calc_inputs, x0, p, fps=60):

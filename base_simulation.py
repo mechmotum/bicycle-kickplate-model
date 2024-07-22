@@ -16,7 +16,7 @@ def calc_fkp(t):
 
     start = 0.4  # seconds
     stop = 0.6  # seconds
-    magnitude = 200  # Newtons
+    magnitude = 400  # Newtons
 
     period = stop - start
     frequency = 1.0/period
@@ -55,6 +55,29 @@ def calc_steer_torque(t, x):
 
 
 def calc_inputs(t, x, p):
+    """Returns all specified forces and torques.
+
+    Parameters
+    ==========
+    t : float
+        Time in seconds.
+    x : array_like, shape(24,)
+        State values where x = [q1, q2, q3, q4, q5, q6, q7, q8, q11, q12,
+                                u1, u2, u3, u4, u5, u6, u7, u8, u11, u12,
+                                Fry, Ffy, Mrz, Mfz].
+    p : array_like, shape(44,)
+        Constant values.
+        [c_af, c_ar, c_f, c_maf, c_mar, c_mpf, c_mpr, c_pf, c_pr, c_r, d1, d2,
+        d3, g, ic11, ic22, ic31, ic33, id11, id22, ie11, ie22, ie31, ie33,
+        if11, if22, k_f, k_r, l1, l2, l3, l4, mc, md, me, mf, r_tf, r_tr, rf,
+        rr, s_yf, s_yr, s_zf, s_zr]
+
+    Returns
+    =======
+    r : ndarray, shape(8,)
+        r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz].
+
+    """
 
     q = x[:10]
     u = x[10:20]
@@ -108,7 +131,7 @@ u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
-    1e-14,  # u4, rad/s
+    0.0, # u4, rad/s
     np.nan,  # u5, rad/s
     -initial_speed/p_vals[rr],  # u6
     0.0,  # u7
@@ -122,9 +145,8 @@ u_vals = np.array([
 f_vals = np.array([0.0, 0.0, 0.0, 0.0])
 
 initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
-
-print('equilibrium')
-print(equilibrium_eq(initial_conditions[0:10], p_arr))
+print('Initial conditions:')
+print(initial_conditions)
 
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, calc_inputs, p_arr))

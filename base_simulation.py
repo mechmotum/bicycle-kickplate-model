@@ -16,7 +16,7 @@ def calc_fkp(t):
 
     start = 1.0  # seconds
     stop = 1.4  # seconds
-    magnitude = 400  # Newtons
+    magnitude = 100  # Newtons
 
     period = stop - start
     frequency = 1.0/period
@@ -51,8 +51,9 @@ def calc_steer_torque(t, x):
     #ku4 = -7.999852938163112
     #ku7 = 1.8634394089384874
 
-    return -(kq4*q4 + kq7*q7 + ku4*u4 + ku7*u7)
-    return 10.0*u4
+    #return -(kq4*q4 + kq7*q7 + ku4*u4 + ku7*u7)
+    #return 10.0*u4
+    return 0.0
 
 
 def calc_inputs(t, x, p):

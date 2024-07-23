@@ -52,7 +52,7 @@ def calc_steer_torque(t, x):
     #ku7 = 1.8634394089384874
 
     return -(kq4*q4 + kq7*q7 + ku4*u4 + ku7*u7)
-    #return 4.0*u4
+    return 10.0*u4
 
 
 def calc_inputs(t, x, p):
@@ -89,7 +89,8 @@ def calc_inputs(t, x, p):
     Ffz = k_f*q12 + c_f*u12  # positive when in compression
 
     c_af, c_ar = p[0], p[1]
-    c_maf, c_mar, c_mpf, c_mpr, c_pf, c_pr = p[3:9]
+    c_maf, c_mar, c_mpf = p[3], p[4], p[5]
+    c_mpr, c_pf, c_pr = p[6], p[7], p[8]
     alphar, alphaf, phir, phif = eval_angles(q, u, p)
     Fry, Mrz = calc_linear_tire_force(alphar, phir, Frz, c_ar, c_pr, c_mar,
                                       c_mpr)
@@ -106,7 +107,7 @@ def calc_inputs(t, x, p):
     # kick plate force
     fkp = calc_fkp(t)
 
-    #Mrz, Mfz = 0.0, 0.0
+    Mrz, Mfz = 0.0, 0.0
 
     r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz]
 

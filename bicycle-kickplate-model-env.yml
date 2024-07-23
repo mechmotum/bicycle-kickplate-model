@@ -3,11 +3,9 @@ channels:
   - conda-forge
 dependencies:
   - cython
-  - gmpy2
   - ipython
   - jupyter
   - matplotlib
-  - mpmath
   - notebook
   - numpy
   - pydy

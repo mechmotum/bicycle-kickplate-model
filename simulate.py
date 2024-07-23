@@ -1,5 +1,5 @@
 from scipy.integrate import solve_ivp
-from scipy.optimize import fsolve
+from scipy.optimize import fsolve, least_squares
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -70,18 +70,26 @@ def equilibrium_eq(q, p):
     # TODO : When I change the tire vertical stiffness values I don't get a
     # change in equilibrium state. So this doesn't seem to work in a full proof
     # way.
-    # TODO : May be better to solve Fr + Frstar + holonomic constraint all
-    # equal zero.
-
-    u = np.ones(10)*1e-13  # divide by zeros if u is simple all zeros
+    #u = np.ones(10)*1e-13  # divide by zeros if u is simple all zeros
+    u = np.zeros(10)
     f = np.zeros(4)  # Fry, Ffy, Mrz, Mfz
     r = np.zeros(8)  # T4, T6, T7, Fkp, Fry_, Ffy_, Mrz_, Mfz_
 
-    def zeros(x, p):
-        _, b = eval_dynamic(x, u, f, r, p)
-        return np.squeeze(b[0:10])
+    def zeros(x):
+        """
+        x = [q5, q11, q12]
+        """
+        q_ = q.copy()
+        q_[4] = x[0]
+        q_[8] = x[1]
+        q_[9] = x[2]
+        return eval_equilibrium(q_, u, f, r, p).squeeze()
 
-    return fsolve(zeros, q, args=p, xtol=1e-11)
+    sol = least_squares(zeros, q[[4, 8, 9]])
+    q[4] = sol.x[0]
+    q[8] = sol.x[1]
+    q[9] = sol.x[2]
+    return q
 
 
 def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
@@ -368,15 +376,29 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
         p_arr[38],  # rf
         p_arr[39],  # rr
     )
-    initial_pitch_angle = float(fsolve(eval_holonomic, np.pi/10,
-                                       args=ehom_args))
-    print('Initial pitch angle:', np.rad2deg(initial_pitch_angle))
-    q_vals[4] = initial_pitch_angle
+    initial_pitch_angle_guess = float(fsolve(eval_holonomic, np.pi/10,
+                                             args=ehom_args))
+    print('Initial pitch angle guess:', np.rad2deg(initial_pitch_angle_guess))
+    q_vals[4] = initial_pitch_angle_guess
+
+    wheelbase = (p_arr[10]*np.cos(q_vals[4]) +
+                 p_arr[11]*np.sin(q_vals[4]) +
+                 p_arr[12]*np.cos(q_vals[4]))
+    print('wheelbase', wheelbase)
+    com_d = eval_dist_to_com(q_vals, p_arr)
+    print('com_d', com_d)
+    q11_guess = (wheelbase - com_d)/wheelbase*np.sum(p_arr[32:36])*p_arr[13]/p_arr[27]
+    q12_guess = com_d/wheelbase*np.sum(p_arr[32:36])*p_arr[13]/p_arr[26]
+    print('q11, q12 guess:', q11_guess, q12_guess)
+    q_vals[-2] = q11_guess
+    q_vals[-1] = q12_guess
 
     q_eq = equilibrium_eq(q_vals, p_arr)
     print('Equilibrium coordinates: ', q_eq)
 
+    q_vals[4] = q_eq[4]
     q_vals[-2:] = q_eq[-2:]
+    print('Initial pitch angle:', np.rad2deg(q_eq[4]))
 
     print('Independent generalized speeds:', u_vals[[2, 3, 5, 6, 7, 8, 9]])
     A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals,

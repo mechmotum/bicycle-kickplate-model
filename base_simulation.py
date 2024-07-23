@@ -124,8 +124,8 @@ q_vals = np.array([
     1e-14,  # q7, setting to zero gives singular matrix
     0.0,  # q8
     # TODO : these can be generated from equilibrium_eq (copied for now)
-    0.00664797028,  # q11
-    0.00220163072,  # q12
+    0.0, #0.00664797028,  # q11
+    0.0, #0.00220163072,  # q12
 ])
 
 # initial speeds

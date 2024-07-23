@@ -111,7 +111,7 @@ def calc_inputs(t, x, p):
 
     #Mrz, Mfz = 0.0, 0.0
 
-    r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz]
+    r = [T4, T6, T7, fkp, Fry, Ffy, -Mrz, -Mfz]
 
     return r
 

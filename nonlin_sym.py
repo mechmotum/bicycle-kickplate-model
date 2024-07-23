@@ -652,10 +652,11 @@ eval_angles = sm.lambdify((qs, us, ps), [alphar, alphaf, phir, phif], cse=True)
 eval_front_contact = sm.lambdify((qs, ps), [q9, q10], cse=True)
 eval_equilibrium = sm.lambdify((qs, us, fs, rs, ps),
                                kane.forcing[:6, 0].col_join(sm.Matrix([holonomic])))
-eval_dist_to_com = sm.lambdify((qs, ps), center_of_mass(nd, rear_frame,
-                                                        rear_wheel,
-                                                        front_frame,
-                                                        front_wheel).dot(N.x))
+eval_balance = sm.lambdify((qs, ps),
+                           (mc + md + me + mf,
+                            fn.pos_from(nd).dot(N.x),
+                            center_of_mass(nd, rear_frame, rear_wheel,
+                                           front_frame, front_wheel).dot(N.x)))
 
 with open('eval_dynamic.py', 'w') as file:
     file.write(inspect.getsource(eval_dynamic))

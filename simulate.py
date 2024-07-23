@@ -363,6 +363,14 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
 
     """
 
+    # NOTE : The following equilibrium state calculated assuming that the tire
+    # vertical stiffness is very high and that the bicycle is in the nominal
+    # configuration. It does not solve the general equilibrium state. It sets
+    # the pitch angle to be that of the bike with no tire deflection and it
+    # sets the tire deflection based on the force balance of the bike with
+    # infintely stiff tires. This gives reliable results for the initial
+    # configuration being the nomrinal configuration.
+
     ehom_args = (
         q_vals[3],  # q4
         q_vals[6],  # q7
@@ -376,29 +384,28 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
         p_arr[38],  # rf
         p_arr[39],  # rr
     )
-    initial_pitch_angle_guess = float(fsolve(eval_holonomic, np.pi/10,
-                                             args=ehom_args))
-    print('Initial pitch angle guess:', np.rad2deg(initial_pitch_angle_guess))
-    q_vals[4] = initial_pitch_angle_guess
+    initial_pitch_angle = float(fsolve(eval_holonomic, np.pi/10,
+                                       args=ehom_args))
+    print('Initial pitch angle:', np.rad2deg(initial_pitch_angle))
+    q_vals[4] = initial_pitch_angle
 
-    wheelbase = (p_arr[10]*np.cos(q_vals[4]) +
-                 p_arr[11]*np.sin(q_vals[4]) +
-                 p_arr[12]*np.cos(q_vals[4]))
-    print('wheelbase', wheelbase)
-    com_d = eval_dist_to_com(q_vals, p_arr)
-    print('com_d', com_d)
-    q11_guess = (wheelbase - com_d)/wheelbase*np.sum(p_arr[32:36])*p_arr[13]/p_arr[27]
-    q12_guess = com_d/wheelbase*np.sum(p_arr[32:36])*p_arr[13]/p_arr[26]
-    print('q11, q12 guess:', q11_guess, q12_guess)
-    q_vals[-2] = q11_guess
-    q_vals[-1] = q12_guess
+    total_mass, wheelbase, com_d = eval_balance(q_vals, p_arr)
+    print('Total mass:', total_mass)
+    print('Wheelbase:', wheelbase)
+    print('Longitudinal distance to total mass center:', com_d)
+    q11 = (wheelbase - com_d)*total_mass*p_arr[13]/wheelbase/p_arr[27]
+    q12 = com_d*total_mass*p_arr[13]/wheelbase/p_arr[26]
+    print('q11, q12 :', q11, q12)
+    q_vals[-2] = q11
+    q_vals[-1] = q12
 
-    q_eq = equilibrium_eq(q_vals, p_arr)
-    print('Equilibrium coordinates: ', q_eq)
-
-    q_vals[4] = q_eq[4]
-    q_vals[-2:] = q_eq[-2:]
-    print('Initial pitch angle:', np.rad2deg(q_eq[4]))
+    # TODO : Find a reliable method of calculating the general equilibrium
+    # state.
+    #q_eq = equilibrium_eq(q_vals, p_arr)
+    #print('Equilibrium coordinates: ', q_eq)
+    #q_vals[4] = q_eq[4]
+    #q_vals[-2:] = q_eq[-2:]
+    #print('Initial pitch angle:', np.rad2deg(q_eq[4]))
 
     print('Independent generalized speeds:', u_vals[[2, 3, 5, 6, 7, 8, 9]])
     A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals,

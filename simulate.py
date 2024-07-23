@@ -543,6 +543,61 @@ def plot_wheel_paths(q_traj, q9_traj, q10_traj):
     return ax
 
 
+def plot_tire_curves():
+
+    camber_range = np.deg2rad(45.0)
+    camber_angles = np.linspace(-camber_range, camber_range)
+
+    slip_range = np.deg2rad(20.0)
+    slip_angles = np.linspace(-slip_range, slip_range)
+
+    normal_forces = [200.0, 400.0, 600.0, 800.0]
+
+    fig, axes = plt.subplots(2, 2, layout='constrained')
+
+    for Fz in normal_forces:
+        Fys, Mzs = [], []
+        for alpha in slip_angles:
+            Fy, Mz = calc_nonlinear_tire_force(alpha, 0.0, Fz)
+            Fys.append(Fy)
+            Mzs.append(Mz)
+        axes[0, 0].plot(np.rad2deg(slip_angles), Fys,
+                        label='Fz = {} N'.format(Fz))
+        axes[1, 0].plot(np.rad2deg(slip_angles), Mzs,
+                        label='Fz = {} N'.format(Fz))
+        Fys, Mzs = [], []
+        for phi in camber_angles:
+            Fy, Mz = calc_nonlinear_tire_force(0.0, phi, Fz)
+            Fys.append(Fy)
+            Mzs.append(Mz)
+        axes[0, 1].plot(np.rad2deg(camber_angles), Fys,
+                        label='Fz = {} N'.format(Fz))
+        axes[1, 1].plot(np.rad2deg(camber_angles), Mzs,
+                        label='Fz = {} N'.format(Fz))
+
+    axes[0, 0].legend()
+    axes[0, 0].set_xlabel('Slip angle [deg]')
+    axes[0, 0].set_ylabel('Lateral Force [N]')
+    axes[0, 0].grid()
+
+    axes[1, 0].legend()
+    axes[1, 0].set_xlabel('Slip angle [deg]')
+    axes[1, 0].set_ylabel('Self-aligning Moment [N-m]')
+    axes[1, 0].grid()
+
+    axes[0, 1].legend()
+    axes[0, 1].set_xlabel('Camber angle [deg]')
+    axes[0, 1].set_ylabel('Lateral Force [N]')
+    axes[0, 1].grid()
+
+    axes[1, 1].legend()
+    axes[1, 1].set_xlabel('Camber angle [deg]')
+    axes[1, 1].set_ylabel('Self-aligning Moment [N-m]')
+    axes[1, 1].grid()
+
+    return axes
+
+
 # simplified figure
 # compare normal tire numbers and 10% change in slip coefficient
 # plot slip angle, lateral force for front and rear steer angle and force input

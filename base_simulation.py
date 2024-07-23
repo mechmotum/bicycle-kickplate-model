@@ -5,9 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions, rhs,
-                      simulate, plot_all, plot_wheel_paths, equilibrium_eq,
-                      calc_linear_tire_force, calc_nonlinear_tire_force,
-                      eval_angles)
+                      simulate, plot_all, plot_wheel_paths, plot_tire_curves,
+                      equilibrium_eq, calc_linear_tire_force,
+                      calc_nonlinear_tire_force, eval_angles)
 
 
 def calc_fkp(t):
@@ -98,6 +98,7 @@ def calc_inputs(t, x, p):
     Ffy, Mfz = calc_linear_tire_force(alphaf, phif, Ffz, c_af, c_pf, c_maf,
                                       c_mpf)
     #print('Linear: ', Fry, Ffy)
+
     Fry, Mrz = calc_nonlinear_tire_force(alphar, phir, Frz)
     Ffy, Mfz = calc_nonlinear_tire_force(alphaf, phif, Ffz)
     #print('Non-linear: ', Fry, Ffy)
@@ -107,7 +108,6 @@ def calc_inputs(t, x, p):
 
     # kick plate force
     fkp = calc_fkp(t)
-    fkp = 0.0
 
     Mrz, Mfz = 0.0, 0.0
 
@@ -163,6 +163,7 @@ res = simulate(duration, calc_inputs, initial_conditions, p_arr, fps=fps)
 
 plot_all(*res)
 plot_wheel_paths(res[1], res[-3], res[-2])
+plot_tire_curves()
 
 if __name__ == "__main__":
     plt.show()

@@ -107,8 +107,9 @@ def calc_inputs(t, x, p):
 
     # kick plate force
     fkp = calc_fkp(t)
+    fkp = 0.0
 
-    Mrz, Mfz = 0.0, 0.0
+    #Mrz, Mfz = 0.0, 0.0
 
     r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz]
 

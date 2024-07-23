@@ -288,7 +288,7 @@ def calc_nonlinear_tire_force(alpha, phi, Fz):
     Fy = (D_fy*np.sin(C_fy*np.arctan(B_fy*X1_fy -
           E_fy*(B_fy*X1_fy - np.arctan(B_fy*X1_fy))))) + Sv_fy
 
-    return -Fy, Mz
+    return -Fy, -Mz
 
 
 ########################

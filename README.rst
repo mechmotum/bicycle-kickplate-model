@@ -24,7 +24,7 @@ The simulation can be run in Octave also. First generate the Octave functions::
 
 And then run the simulation::
 
-   octave simulate.m
+   octave octave/simulate.m
 
 License
 =======

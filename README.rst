@@ -1,17 +1,17 @@
 Description
 ===========
 
-Dynamic model of a bicycle that includes linear lateral tire forces, linear
-tire self-aligning moments, relaxation length, and an input capable of applying
-a force to the contact point under the rear wheel to simulate a lateral kick
-plate.
+Dynamic model of a bicycle that includes both a nonlinear and linear tire
+model. The model includes lateral forces, self-aligning moments, relaxation
+length, and an input capable of applying a force to the contact point under the
+rear wheel to simulate a lateral kick plate.
 
 Usage
 =====
 
 Install the software into a conda environment and activate::
 
-   conda env create -f env.yml
+   conda env create -f bicycle-kickplate-model-env.yml
    conda activate bicycle-kickplate-model
 
 After that you can run the simulation, e.g.::

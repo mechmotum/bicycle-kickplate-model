@@ -552,18 +552,37 @@ def plot_tire_curves():
     slip_angles = np.linspace(-slip_range, slip_range)
 
     normal_forces = [200.0, 400.0, 600.0, 800.0]
+    colors = ['C0', 'C1', 'C2', 'C3']
 
     fig, axes = plt.subplots(2, 2, layout='constrained')
 
-    for Fz in normal_forces:
+    for Fz, color in zip(normal_forces, colors):
         Fys, Mzs = [], []
+        Fys_lin, Mzs_lin = [], []
         for alpha in slip_angles:
             Fy, Mz = calc_nonlinear_tire_force(alpha, 0.0, Fz)
+            Fy_lin, Mz_lin = calc_linear_tire_force(alpha, 0.0, Fz,
+                                                    p_vals[c_ar],
+                                                    p_vals[c_pr],
+                                                    p_vals[c_mar],
+                                                    p_vals[c_mpr])
             Fys.append(Fy)
             Mzs.append(Mz)
+            Fys_lin.append(Fy_lin)
+            Mzs_lin.append(Mz_lin)
         axes[0, 0].plot(np.rad2deg(slip_angles), Fys,
+                        color=color,
                         label='Fz = {} N'.format(Fz))
         axes[1, 0].plot(np.rad2deg(slip_angles), Mzs,
+                        color=color,
+                        label='Fz = {} N'.format(Fz))
+        axes[0, 0].plot(np.rad2deg(slip_angles), Fys_lin,
+                        color=color,
+                        linestyle='--',
+                        label='Fz = {} N'.format(Fz))
+        axes[1, 0].plot(np.rad2deg(slip_angles), Mzs_lin,
+                        color=color,
+                        linestyle='--',
                         label='Fz = {} N'.format(Fz))
         Fys, Mzs = [], []
         for phi in camber_angles:
@@ -571,8 +590,10 @@ def plot_tire_curves():
             Fys.append(Fy)
             Mzs.append(Mz)
         axes[0, 1].plot(np.rad2deg(camber_angles), Fys,
+                        color=color,
                         label='Fz = {} N'.format(Fz))
         axes[1, 1].plot(np.rad2deg(camber_angles), Mzs,
+                        color=color,
                         label='Fz = {} N'.format(Fz))
 
     axes[0, 0].legend()

@@ -14,15 +14,15 @@ def calc_fkp(t):
     """Returns the lateral forced applied to the tire by the kick plate. The
     force is modeled as a sinusoidal pulse."""
 
-    start = 1.0  # seconds
-    stop = 1.02  # seconds
-    magnitude = 1000  # Newtons
+    start = 0.4  # seconds
+    stop = 0.6  # seconds
+    magnitude = 360  # Newtons
 
     period = stop - start
     frequency = 1.0/period
     omega = 2*np.pi*frequency  # rad/s
 
-    if start < t < stop:
+    if start + period/2 < t < stop:
         return magnitude/2.0*(1.0 - np.cos(omega*(t - start)))
     else:
         return 0.0

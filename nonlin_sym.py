@@ -439,9 +439,9 @@ Feo = (eo, me*g*A['3'])
 Ffo = (fo, mf*g*A['3'])
 
 # The forces acting on the tire from the ground are defined in this convention:
-# Fr = Fx*A['1'] + Fy*A['2'] - Fz*A['3']
+# Fr = Fx*A['1'] + Fy*A['2'] + Fz*A['3']
 # Mr = Mrz*A['3']
-# Ff = Fx*G['1'] + Fy*G['2'] - Fz*G['3']
+# Ff = Fx*G['1'] + Fy*G['2'] + Fz*G['3']
 # Mf = Mfz*G['3']
 
 # lateral forces acting on the tire at ground contact
@@ -455,12 +455,12 @@ Fykp = (nd, Fkp*N['2'])
 # Ffz : front wheel-ground contact normal force
 # tire-ground normal forces, need equal and opposite forces, compression is
 # positive
-Frz = k_r*q11 + c_r*u11  # positive when in compression
-Ffz = k_f*q12 + c_f*u12  # positive when in compression
-Fzdn = (nd, Frz*A['3'])
-Fzdt = (dt, -Frz*A['3'])
-Fzfn = (fn, Ffz*A['3'])
-Fzft = (ft, -Ffz*A['3'])
+Frz = -k_r*q11 - c_r*u11  # negative when in compression
+Ffz = -k_f*q12 - c_f*u12  # negative when in compression
+Fzdn = (nd, -Frz*A['3'])
+Fzdt = (dt, Frz*A['3'])
+Fzfn = (fn, -Ffz*A['3'])
+Fzft = (ft, Ffz*A['3'])
 
 # input torques
 Tc = (C, T4*A['1'] - T6*B['2'] - T7*C['3'])
@@ -568,11 +568,11 @@ kane.kanes_equations(bodies, loads=loads)
 
 # Tire forces
 # Relaxation length differential equation looks like so:
-# (s_yr/N_v_nd1)*Fyr' + Fyr = Fyr_ = (-c_ar*alphar + c_pr*phir)*Frz
-# (s_yf/N_v_fn1)*Fyf' + Fyf = Fyf_ = (-c_af*alphaf + c_pf*phif)*Ffz
+# (s_yr/N_v_nd1)*Fyr' + Fyr = Fyr_ = (c_ar*alphar + c_pr*phir)*Frz
+# (s_yf/N_v_fn1)*Fyf' + Fyf = Fyf_ = (c_af*alphaf + c_pf*phif)*Ffz
 # TODO : Make the sign of the camber effect on self-aligning moment is correct.
-# (s_yr/N_v_nd1)*Mrz' + Mrz = Mrz_ = (c_mar*alphar + c_pr*phir)*Frz
-# (s_yf/N_v_fn1)*Mrz' + Mrz = Mrz_ = (c_maf*alphaf + c_pf*phif)*Ffz
+# (s_yr/N_v_nd1)*Mrz' + Mrz = Mrz_ = -(c_mar*alphar + c_pr*phir)*Frz
+# (s_yf/N_v_fn1)*Mrz' + Mrz = Mrz_ = -(c_maf*alphaf + c_pf*phif)*Ffz
 # slip angle
 alphar = sm.atan(N_v_nd2/N_v_nd1)
 print_syms(alphar, 'Rear slip angle is a function of: ')

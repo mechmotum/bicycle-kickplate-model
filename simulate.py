@@ -103,7 +103,7 @@ def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
     phi : float
         Camber angle, positive is roll to the right.
     Fz : float
-        Normal force, positive in compression.
+        Normal force, negative in compression.
     c_a, c_p, c_ma, c_mp : floats
         Laterial slip and camber coefficients for force and moment, all
         positive values.
@@ -116,12 +116,9 @@ def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
         Self-aligning moment, positive moment will turn wheel to the right.
 
     """
-    Fy = (-c_a*alpha + c_p*phi)*Fz
+    Fy = (c_a*alpha + c_p*phi)*Fz
     # TODO : Make the sign of the camber effect on self-aligning moment is
     # correct.
-    # TODO : This -c_ma*alpha*Fz should be positive! Don't understand this as
-    # it implies that a positive slip angle velocity vector pointing to right
-    # causes a negative moment pushing the wheel away from the velocity vector.
     Mz = -(c_ma*alpha + c_mp*phi)*Fz
     return Fy, Mz
 
@@ -149,7 +146,7 @@ def calc_nonlinear_tire_force(alpha, phi, Fz):
 
     """
 
-    Fz = Fz/1000.00  # MUST be in [kN]
+    Fz = -Fz/1000.00  # MUST be in [kN]
 
     ## Old simple case
     opt_Pac_fy = [
@@ -468,8 +465,8 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     r_traj = np.zeros((len(times), 4))
     for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
         statei = np.hstack((qi, ui, fi))
-        fz_traj[i, :] = np.array([p[27]*qi[8] + p[9]*ui[8],
-                                  p[26]*qi[9] + p[2]*ui[9]])
+        fz_traj[i, :] = np.array([-p[27]*qi[8] - p[9]*ui[8],
+                                  -p[26]*qi[9] - p[2]*ui[9]])
         slip_traj[i, :] = eval_angles(qi, ui, p)
         q9_traj[i], q10_traj[i] = eval_front_contact(qi, p)
         r_traj[i] = calc_inputs(ti, statei, p)[:4]
@@ -551,7 +548,7 @@ def plot_tire_curves():
     slip_range = np.deg2rad(20.0)
     slip_angles = np.linspace(-slip_range, slip_range)
 
-    normal_forces = [200.0, 400.0, 600.0, 800.0]
+    normal_forces = [-200.0, -400.0, -600.0, -800.0]
     colors = ['C0', 'C1', 'C2', 'C3']
 
     fig, axes = plt.subplots(2, 2, layout='constrained')

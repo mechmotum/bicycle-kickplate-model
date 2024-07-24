@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions, rhs,
                       simulate, plot_all, plot_wheel_paths, plot_tire_curves,
-                      equilibrium_eq, calc_linear_tire_force,
-                      calc_nonlinear_tire_force, eval_angles)
+                      calc_linear_tire_force, calc_nonlinear_tire_force,
+                      eval_angles)
 
 
 def calc_fkp(t):
@@ -15,8 +15,8 @@ def calc_fkp(t):
     force is modeled as a sinusoidal pulse."""
 
     start = 1.0  # seconds
-    stop = 1.4  # seconds
-    magnitude = 100  # Newtons
+    stop = 1.02  # seconds
+    magnitude = 1000  # Newtons
 
     period = stop - start
     frequency = 1.0/period

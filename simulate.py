@@ -610,11 +610,13 @@ def plot_tire_curves():
     axes[0, 0].legend()
     axes[0, 0].set_xlabel('Slip angle [deg]')
     axes[0, 0].set_ylabel('Lateral Force [N]')
+    axes[0, 0].set_ylim(-1000, 1000)
     axes[0, 0].grid()
 
     axes[1, 0].legend()
     axes[1, 0].set_xlabel('Slip angle [deg]')
     axes[1, 0].set_ylabel('Self-aligning Moment [N-m]')
+    axes[1, 0].set_ylim(-25, 25)
     axes[1, 0].grid()
 
     axes[0, 1].legend()

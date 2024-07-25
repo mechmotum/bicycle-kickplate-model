@@ -16,7 +16,7 @@ def calc_fkp(t):
 
     start = 0.4  # seconds
     stop = 0.6  # seconds
-    magnitude = 360  # Newtons
+    magnitude = 700  # Newtons
 
     period = stop - start
     frequency = 1.0/period

@@ -68,8 +68,8 @@ def calc_inputs(t, x, p):
 
     q11, q12, u11, u12 = q[8], q[9], u[8], u[9]
     c_f, c_r, k_f, k_r = p[2], p[9], p[26], p[27]
-    Frz = k_r*q11 + c_r*u11  # positive when in compression
-    Ffz = k_f*q12 + c_f*u12  # positive when in compression
+    Frz = -k_r*q11 - c_r*u11  # negative when in compression
+    Ffz = -k_f*q12 - c_f*u12  # negative when in compression
 
     c_af, c_ar = p[0], p[1]
     c_maf, c_mar, c_mpf = p[3], p[4], p[5]

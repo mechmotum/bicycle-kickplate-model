@@ -117,9 +117,7 @@ def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
 
     """
     Fy = (c_a*alpha + c_p*phi)*Fz
-    # TODO : Make the sign of the camber effect on self-aligning moment is
-    # correct.
-    Mz = -(c_ma*alpha + c_mp*phi)*Fz
+    Mz = -(c_ma*alpha - c_mp*phi)*Fz
     return Fy, Mz
 
 
@@ -300,8 +298,8 @@ p_vals = {
     c_f: 4000.0,  # guess
     c_maf: 0.33,  # 0.33 is rough calc from gabriele's data
     c_mar: 0.33,
-    c_mpf: 0.0,  # need real numbers for this
-    c_mpr: 0.0,  # need real numbers for this
+    c_mpf: 0.005,  # need real numbers for this
+    c_mpr: 0.005,  # need real numbers for this
     c_pf: 0.573,
     c_pr: 0.573,
     c_r: 4000.0,  # guess
@@ -582,15 +580,31 @@ def plot_tire_curves():
                         linestyle='--',
                         label='Fz = {} N'.format(Fz))
         Fys, Mzs = [], []
+        Fys_lin, Mzs_lin = [], []
         for phi in camber_angles:
             Fy, Mz = calc_nonlinear_tire_force(0.0, phi, Fz)
+            Fy_lin, Mz_lin = calc_linear_tire_force(0.0, phi, Fz,
+                                                    p_vals[c_ar],
+                                                    p_vals[c_pr],
+                                                    p_vals[c_mar],
+                                                    p_vals[c_mpr])
             Fys.append(Fy)
             Mzs.append(Mz)
+            Fys_lin.append(Fy_lin)
+            Mzs_lin.append(Mz_lin)
         axes[0, 1].plot(np.rad2deg(camber_angles), Fys,
                         color=color,
                         label='Fz = {} N'.format(Fz))
         axes[1, 1].plot(np.rad2deg(camber_angles), Mzs,
                         color=color,
+                        label='Fz = {} N'.format(Fz))
+        axes[0, 1].plot(np.rad2deg(camber_angles), Fys_lin,
+                        color=color,
+                        linestyle='--',
+                        label='Fz = {} N'.format(Fz))
+        axes[1, 1].plot(np.rad2deg(camber_angles), Mzs_lin,
+                        color=color,
+                        linestyle='--',
                         label='Fz = {} N'.format(Fz))
 
     axes[0, 0].legend()

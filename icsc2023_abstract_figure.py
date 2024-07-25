@@ -76,9 +76,9 @@ def calc_inputs(t, x, p):
     c_mpr, c_pf, c_pr = p[6], p[7], p[8]
     alphar, alphaf, phir, phif = eval_angles(q, u, p)
     Fry, Mrz = calc_linear_tire_force(alphar, phir, Frz, c_ar, c_pr, c_mar,
-                                      c_mpr)
+                                      0.0)
     Ffy, Mfz = calc_linear_tire_force(alphaf, phif, Ffz, c_af, c_pf, c_maf,
-                                      c_mpf)
+                                      0.0)
 
     # steer, rear wheel, roll torques set to zero
     T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x)

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from nonlin_sym import *
-
+from tire_data import TireCoefficients, SchwalbeT03_300kPa, SchwalbeT03_400kPa, SchwalbeT03_500kPa
 ##########################
 # Check evaluation of EoMs
 ##########################
@@ -121,7 +121,7 @@ def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
     return Fy, Mz
 
 
-def calc_nonlinear_tire_force(alpha, phi, Fz):
+def calc_nonlinear_tire_force(alpha, phi, Fz, tire: TireCoefficients):
     """Returns the lateral force and self-aligning moment at the contact patch
     acting on the tire.
 
@@ -148,44 +148,8 @@ def calc_nonlinear_tire_force(alpha, phi, Fz):
     alpha = np.rad2deg(alpha)    # angles input in [deg]
     phi = np.rad2deg(phi)        # angles input in [deg]
     
-    ## Old simple case
-    opt_Pac_fy = [
-        3.09483543840412,        # MF Coefficients (14 par): Tyre Schwalbe T03, Pressure 300 kPa. For input in deg. Upper Limit Fz: 850 N
-        -833.298526818646,
-        1222.24884375991,
-        126.521947081503,
-        0.778861968154064,
-        0.00244548261240910,
-        -0.0333335720538738,
-        1.56305190892662,
-        0.0405091858662170,
-        0.425184410484715,
-        -0.200785507366221,
-        5.13196785763573,
-        -38.5361482794574,
-        10.8388718469886,
-    ]
-
-    opt_Pac_Mz = [
-        2.54775597566787,    # MF Coefficients (18 par): Tyre Schwalbe T03, Pressure 300 kPa. For input in deg. Upper Limit Fz: 850 N
-        9.77652841170630,
-        2.85545595826746,
-        5.27150805869713e-05,
-        -3.06442031861145,
-        -1.00007041490272,
-        0.00276990000000000,
-        6.37832483435234,
-        -4.12977779072092,
-        -0.240640517616636,
-        0.0255010000000000,
-        -0.0235700000000000,
-        0.647106195155914,
-        -0.353797599862846,
-        0.0211329000000000,
-        0.894690000000000,
-        0.791470235960874,
-        -0.255261801087002,
-    ]
+    opt_Pac_fy = tire.Fy_coef
+    opt_Pac_Mz = tire.Mz_coef
 
     C_mz = opt_Pac_Mz[0]  # Shape factor
     D_mz = (opt_Pac_Mz[1]*Fz**2 + opt_Pac_Mz[2]*Fz)  # Peak factor
@@ -230,6 +194,7 @@ def calc_nonlinear_tire_force(alpha, phi, Fz):
 
 # batavus browser with Jason sitting on it, tire parameters from
 # Andrew/Gabriele
+# TODO Create new dataclass to handle different riders' parameters
 p_vals = {
     c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
     c_ar: 11.46,
@@ -245,33 +210,79 @@ p_vals = {
     d2: 0.4338396131640938,
     d3: 0.0705000000001252,
     g: 9.81,
-    ic11: 11.519805885486146,
-    ic22: 12.2177848012,
-    ic31: 1.57915608541552,
-    ic33: 2.959474124693854,
-    id11: 0.0883819364527,
-    id22: 0.152467620286,
-    ie11: 0.2811355367159554,
-    ie22: 0.246138810935,
-    ie31: 0.0063377219110826045,
-    ie33: 0.06782113764394461,
-    if11: 0.0904106601579,
-    if22: 0.149389340425,
+    
+    ic11 : 12.242077,   # --START-- Parameters for Gabriele (635 N)
+    ic22 : 14.951251,
+    ic31 : 3.214818,
+    ic33 : 4.493685,
+    id11 : 0.070096,
+    id22 : 0.129342,
+    ie11 : 0.374921,
+    ie22 : 0.339925,
+    ie31 : -0.002581,
+    ie33 : 0.072061,
+    if11 : 0.052448,
+    if22 : 0.098372,
+    l1 : 0.526720,
+    l2 : -0.537772,
+    l3 : -0.030119,
+    l4 : -0.694391,
+    mc : 83.900000,
+    md : 4.900000,
+    me : 5.400000,
+    mf : 1.550000,
+    rr : 0.332528,
+    rf : 0.335573,  # --END-- Parameters for Gabriele (635 N)
+
+    # ic11 : 14.338830,   # --START-- Parameters for Timo (701 N)
+    # ic22 : 17.115790,
+    # ic31 : 3.610619,
+    # ic33 : 4.976662,
+    # id11 : 0.070096,
+    # id22 : 0.129342,
+    # ie11 : 0.374921,
+    # ie22 : 0.339925,
+    # ie31 : -0.002581,
+    # ie33 : 0.072061,
+    # if11 : 0.052448,
+    # if22 : 0.098372,
+    # l1 : 0.542381,
+    # l2 : -0.556788,
+    # l3 : -0.030119,
+    # l4 : -0.694391,
+    # mc : 92.900000,
+    # md : 4.900000,
+    # me : 5.400000,
+    # mf : 1.550000,
+    # rr : 0.332528,
+    # rf : 0.335573,  # --END-- Parameters for Timo (701 N)
+    
+    # ic11: 11.519805885486146,      # --- Old parameters (original ones from Jason)
+    # ic22: 12.2177848012,
+    # ic31: 1.57915608541552,
+    # ic33: 2.959474124693854,
+    # id11: 0.0883819364527,
+    # id22: 0.152467620286,
+    # ie11: 0.2811355367159554,
+    # ie22: 0.246138810935,
+    # ie31: 0.0063377219110826045,
+    # ie33: 0.06782113764394461,
+    # if11: 0.0904106601579,
+    # if22: 0.149389340425,
+    # l1: 0.5384415640161426,
+    # l2: -0.531720230353059,
+    # l3: -0.07654646159268344,
+    # l4: -0.47166687226492093,
+    # mc: 81.86,
+    # md: 3.11,
+    # me: 3.22,
+    # mf: 2.02,
+    # rf: 0.34352982332,
+    # rr: 0.340958858855,   # --- Old parameters (original ones from Jason)
     k_f: 120000.0,  # ~ twice the stiffness of a 1.25" tire from Rothhamel 2024
     k_r: 120000.0,  # ~ twice the stiffness of a 1.25" tire from Rothhamel 2024
-    l1: 0.5384415640161426,
-    l2: -0.531720230353059,
-    l3: -0.07654646159268344,
-    l4: -0.47166687226492093,
-    mc: 81.86,
-    md: 3.11,
-    me: 3.22,
-    mf: 2.02,
     r_tf: 0.01,
-    r_tr: 0.01,
-    rf: 0.34352982332,
-    rr: 0.340958858855,
-    s_yf: 0.175,  # Andrew's estimates from his dissertation data
+    r_tr: 0.01,s_yf: 0.175,  # Andrew's estimates from his dissertation data
     s_yr: 0.175,
     s_zf: 0.175,
     s_zr: 0.175,
@@ -489,11 +500,13 @@ def plot_tire_curves():
 
     fig, axes = plt.subplots(2, 2, layout='constrained')
 
+    # Update "tire" to plot the current tire characteristics you are using for simulations 
     for Fz, color in zip(normal_forces, colors):
         Fys, Mzs = [], []
         Fys_lin, Mzs_lin = [], []
+        tire = SchwalbeT03_300kPa
         for alpha in slip_angles:
-            Fy, Mz = calc_nonlinear_tire_force(alpha, 0.0, Fz)
+            Fy, Mz = calc_nonlinear_tire_force(alpha, 0.0, Fz, tire)
             Fy_lin, Mz_lin = calc_linear_tire_force(alpha, 0.0, Fz,
                                                     p_vals[c_ar],
                                                     p_vals[c_pr],
@@ -520,7 +533,7 @@ def plot_tire_curves():
         Fys, Mzs = [], []
         Fys_lin, Mzs_lin = [], []
         for phi in camber_angles:
-            Fy, Mz = calc_nonlinear_tire_force(0.0, phi, Fz)
+            Fy, Mz = calc_nonlinear_tire_force(0.0, phi, Fz, tire)
             Fy_lin, Mz_lin = calc_linear_tire_force(0.0, phi, Fz,
                                                     p_vals[c_ar],
                                                     p_vals[c_pr],

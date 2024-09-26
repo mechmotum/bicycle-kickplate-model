@@ -33,6 +33,25 @@ def calc_fkp(t):
         return 0.0
 
 
+def calc_kick_motion(t):
+    """Returns the lateral forced applied to the tire by the kick plate. The
+    force is modeled as a sinusoidal pulse."""
+    # TODO : return y, yd, ydd
+
+    start = 0.4  # seconds
+    stop = 0.6  # seconds
+    magnitude = 50.0  # m/s/s
+
+    period = stop - start
+    frequency = 1.0/period
+    omega = 2*np.pi*frequency  # rad/s
+
+    if start + period/2 < t < stop:
+        return magnitude/2.0*(1.0 - np.cos(omega*(t - start)))
+    else:
+        return 0.0
+
+
 def calc_steer_torque(t, x):
     """Simple LQR control based on linear Carvallo-Whipple model."""
 
@@ -88,7 +107,7 @@ def calc_inputs(t, x, p):
     Returns
     =======
     r : ndarray, shape(8,)
-        r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz].
+        r = [T4, T6, T7, fkp, y, yd, ydd, Fry, Ffy, Mrz, Mfz].
 
     """
 
@@ -118,11 +137,14 @@ def calc_inputs(t, x, p):
     T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x)
 
     # kick plate force
-    fkp = calc_fkp(t)
+    fkp = 0.0 #calc_fkp(t)
+
+    #
+    y, yd, ydd = calc_kick_motion(t)
 
     Mrz, Mfz = 0.0, 0.0
 
-    r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz]
+    r = [T4, T6, T7, fkp, y, yd, ydd, Fry, Ffy, Mrz, Mfz]
 
     return r
 

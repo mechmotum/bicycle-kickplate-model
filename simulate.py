@@ -30,7 +30,7 @@ def rhs(t, x, r_func, p):
                                 Fry, Ffy, Mrz, Mfz].
     r_func : function
         Function of the form ``r = f(t, x, p)``. Returns all specified inputs
-        where: r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz].
+        where: r = [T4, T6, T7, fkp, y, yd, ydd, Fry, Ffy, Mrz, Mfz].
     p : array_like, shape(44,)
         Constant values.
         [c_af, c_ar, c_f, c_maf, c_mar, c_mpf, c_mpr, c_pf, c_pr, c_r, d1, d2,
@@ -73,7 +73,7 @@ def equilibrium_eq(q, p):
     #u = np.ones(10)*1e-13  # divide by zeros if u is simple all zeros
     u = np.zeros(10)
     f = np.zeros(4)  # Fry, Ffy, Mrz, Mfz
-    r = np.zeros(8)  # T4, T6, T7, Fkp, Fry_, Ffy_, Mrz_, Mfz_
+    r = np.zeros(11)  # T4, T6, T7, Fkp, y, yd, ydd, Fry_, Ffy_, Mrz_, Mfz_
 
     def zeros(x):
         """
@@ -121,7 +121,7 @@ def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
     return Fy, Mz
 
 
-def calc_nonlinear_tire_force(alpha, phi, Fz, tire: TireCoefficients):
+def calc_nonlinear_tire_force(alpha, phi, Fz, tire_data):
     """Returns the lateral force and self-aligning moment at the contact patch
     acting on the tire.
 
@@ -133,6 +133,8 @@ def calc_nonlinear_tire_force(alpha, phi, Fz, tire: TireCoefficients):
         Camber angle in radians, positive is roll to the right.
     Fz : float
         Normal force in Newtons, negative in compression.
+    tire_data : TireCoefficients
+        Tire model constants.
 
     Returns
     =======
@@ -147,9 +149,9 @@ def calc_nonlinear_tire_force(alpha, phi, Fz, tire: TireCoefficients):
     Fz = -Fz/1000.00  # MUST be in [kN]
     alpha = np.rad2deg(alpha)    # angles input in [deg]
     phi = np.rad2deg(phi)        # angles input in [deg]
-    
-    opt_Pac_fy = tire.Fy_coef
-    opt_Pac_Mz = tire.Mz_coef
+
+    opt_Pac_fy = tire_data.Fy_coef
+    opt_Pac_Mz = tire_data.Mz_coef
 
     C_mz = opt_Pac_Mz[0]  # Shape factor
     D_mz = (opt_Pac_Mz[1]*Fz**2 + opt_Pac_Mz[2]*Fz)  # Peak factor
@@ -210,7 +212,7 @@ p_vals = {
     d2: 0.4338396131640938,
     d3: 0.0705000000001252,
     g: 9.81,
-    
+
     ic11 : 12.242077,   # --START-- Parameters for Gabriele (635 N)
     ic22 : 14.951251,
     ic31 : 3.214818,
@@ -256,7 +258,7 @@ p_vals = {
     # mf : 1.550000,
     # rr : 0.332528,
     # rf : 0.335573,  # --END-- Parameters for Timo (701 N)
-    
+
     # ic11: 11.519805885486146,      # --- Old parameters (original ones from Jason)
     # ic22: 12.2177848012,
     # ic31: 1.57915608541552,
@@ -500,7 +502,7 @@ def plot_tire_curves():
 
     fig, axes = plt.subplots(2, 2, layout='constrained')
 
-    # Update "tire" to plot the current tire characteristics you are using for simulations 
+    # Update "tire" to plot the current tire characteristics you are using for simulations
     for Fz, color in zip(normal_forces, colors):
         Fys, Mzs = [], []
         Fys_lin, Mzs_lin = [], []

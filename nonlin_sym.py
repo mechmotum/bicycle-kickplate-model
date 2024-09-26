@@ -49,8 +49,6 @@ D = ReferenceFrame('D')
 E = ReferenceFrame('E')
 # Front Wheel Frame
 F = ReferenceFrame('F')
-# Kickplate Frame
-Kp = ReferenceFrame('Kp')
 
 ####################################
 # Generalized Coordinates and Speeds
@@ -80,13 +78,6 @@ print('Defining time varying symbols.')
 q1, q2, q3, q4 = mec.dynamicsymbols('q1, q2, q3, q4')
 q5, q6, q7, q8 = mec.dynamicsymbols('q5, q6, q7, q8')
 q11, q12 = mec.dynamicsymbols('q11, q12')
-
-# Needed to define the speeds (y speed, x constraint)
-kp_x = mec.dynamicsymbols('kp_x')
-kp_y = mec.dynamicsymbols('kp_y')
-
-kp_vx = 0  # Only y-axis is allowed
-kp_vy = mec.dynamicsymbols('kp_vy')
 
 # q's that will have kinematical differential equations
 qs = [
@@ -183,8 +174,6 @@ B.orient(A, 'Axis', (q4, A['1']))
 C.orient(B, 'Axis', (q5, B['2']))
 # front frame steer
 E.orient(C, 'Axis', (q7, C['3']))
-# kickplate frame
-Kp.orient(N, 'Axis', (0, N['3'])) # Not 100% sure: it should be Kp['1'] parallel to N['1'] (OK), Kp['2'] parallel to N['2'] and NO rotation around z-axis N['3']
 
 # create a front "yaw" frame that is equivalent to the A frame for the rear
 # wheel.
@@ -228,9 +217,6 @@ g = sm.symbols('g')
 # mass for each rigid body: C, D, E, F
 mc, md, me, mf = sm.symbols('mc, md, me, mf')
 
-mkp = sm.symbols('mkp')  # kickplate mass
-ikp = sm.symbols('ikp')  # kickplate inertia
-
 # inertia components for each rigid body: C, D, E, F
 ic11, ic22, ic33, ic31 = sm.symbols('ic11, ic22, ic33, ic31')
 id11, id22 = sm.symbols('id11, id22')
@@ -259,10 +245,6 @@ o = mec.Point('o')
 # location
 nd = mec.Point('nd')
 nd.set_pos(o, q1*N['1'] + q2*N['2'])
-
-# kickplate point
-kp_point = mec.Point('kp_point')
-kp_point.set_pos(nd, q1 * Kp['1'])  # it is like having a kickplate which follows the rear tyre. Or perhaps I need a new variable like kickplate_position, instead of q1???
 
 # rear rim point
 dt = mec.Point('dt')
@@ -329,8 +311,6 @@ kinematical = [
     q8.diff(t) - u8,  # front wheel rotation
     q11.diff(t) - u11,  # front tire squish
     q12.diff(t) - u12,  # rear tire squish
-    kp_x - 0,  # Constraint x-direction
-    kp_y.diff(t) - kp_vy, # kickplate lateral displacement 
 ]
 
 ####################
@@ -375,8 +355,6 @@ ft.v2pt_theory(fo, N, F)
 # front wheel contact point velocity
 fn.set_vel(N, ft.pos_from(o).dt(N).xreplace(qdot_repl) - u12*A['3'])
 
-kp_point.vel(N) = kp_vx * Kp['1'] + kp_vy * Kp['2']
-
 # Slip angle components
 # project the velocity vectors at the contact point onto each wheel's yaw
 # direction
@@ -405,8 +383,6 @@ print_syms(N_v_ft2, "N_v_ft2 is a function of: ")
 
 print('Defining nonholonomic constraints.')
 
-kp_x_constraint = kp_x
-
 nonholonomic = [
     # no rear longitudinal slip
     sm.trigsimp(dn.vel(N).dot(A['1'])),
@@ -418,7 +394,6 @@ nonholonomic = [
     # ft.vel(N).dot(g2_hat),
     # front contact cannot move vertically wrt ground
     holonomic.diff(t).xreplace(qdot_repl),
-    kp_x_constraint,
 ]
 
 print_syms(nonholonomic[0], "rear slip constraint is a function of: ")
@@ -448,13 +423,12 @@ If = mec.inertia(E, if11, if22, if11, 0, 0, 0)
 
 print('Defining the rigid bodies.')
 
-kickplate = mec.RigidBody('Kickplate', kp_point, Kp, mkp, ikp)
 rear_frame = mec.RigidBody('Rear Frame', co, C, mc, (Ic, co))
 rear_wheel = mec.RigidBody('Rear Wheel', do, D, md, (Id, do))
 front_frame = mec.RigidBody('Front Frame', eo, E, me, (Ie, eo))
 front_wheel = mec.RigidBody('Front Wheel', fo, F, mf, (If, fo))
 
-bodies = [kickplate, rear_frame, rear_wheel, front_frame, front_wheel]
+bodies = [rear_frame, rear_wheel, front_frame, front_wheel]
 
 ###########################
 # Generalized Active Forces
@@ -479,8 +453,7 @@ Fydn = (nd, Fry*A['2'])
 Fyfn = (fn, Ffy*g2_hat)
 
 # kickplate force (acts on tire at ground contact)
-# Kickplate force (only in the y-direction)
-Fykp = (kp_point, Fkp * Kp['2']) # Fkp has been already defined 
+Fykp = (nd, Fkp*N['2'])
 
 # Frz : rear wheel-ground contact normal force
 # Ffz : front wheel-ground contact normal force
@@ -691,3 +664,4 @@ eval_balance = sm.lambdify((qs, ps),
 
 with open('eval_dynamic.py', 'w') as file:
     file.write(inspect.getsource(eval_dynamic))
+

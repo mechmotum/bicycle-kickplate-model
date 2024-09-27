@@ -356,6 +356,7 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     print('Independent generalized speeds:', u_vals[[2, 3, 5, 6, 7, 8, 9]])
     A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals,
                                            u_vals[[2, 3, 5, 6, 7, 8, 9]],
+                                           [0.0, 0.0],  # y, yd
                                            p_arr)
     res = np.linalg.solve(A_nh_vals, B_nh_vals.squeeze())
     print('res', res)
@@ -411,14 +412,14 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     slip_traj = np.zeros((len(times), 4))
     q9_traj = np.zeros_like(times)
     q10_traj = np.zeros_like(times)
-    r_traj = np.zeros((len(times), 4))
+    r_traj = np.zeros((len(times), 7))
     for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
         statei = np.hstack((qi, ui, fi))
+        r_traj[i] = calc_inputs(ti, statei, p)[:7]
         fz_traj[i, :] = np.array([-p[27]*qi[8] - p[9]*ui[8],
                                   -p[26]*qi[9] - p[2]*ui[9]])
-        slip_traj[i, :] = eval_angles(qi, ui, p)
+        slip_traj[i, :] = eval_angles(qi, ui, r_traj[i, 3:5], p)
         q9_traj[i], q10_traj[i] = eval_front_contact(qi, p)
-        r_traj[i] = calc_inputs(ti, statei, p)[:4]
 
     return (times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
             q9_traj, q10_traj, r_traj)

@@ -40,16 +40,22 @@ def calc_kick_motion(t):
 
     start = 0.4  # seconds
     stop = 0.6  # seconds
-    magnitude = 50.0  # m/s/s
+    acc_magnitude = 50.0  # m/s/s
 
     period = stop - start
     frequency = 1.0/period
     omega = 2*np.pi*frequency  # rad/s
 
+    magnitude = acc_magnitude/omega**2
+
     if start + period/2 < t < stop:
-        return magnitude/2.0*(1.0 - np.cos(omega*(t - start)))
+        y = magnitude/2.0*(1.0 - np.cos(omega*(t - start)))
+        yd = magnitude*omega*np.sin(omega*(t - start))/2
+        ydd = magnitude*omega**2*np.cos(omega*(start - t))/2
     else:
-        return 0.0
+        y, yd, ydd = 0.0, 0.0, 0.0
+
+    return y, yd, ydd
 
 
 def calc_steer_torque(t, x):
@@ -119,10 +125,13 @@ def calc_inputs(t, x, p):
     Frz = -k_r*q11 - c_r*u11  # negative when in compression
     Ffz = -k_f*q12 - c_f*u12  # negative when in compression
 
+    # plate motion
+    y, yd, ydd = calc_kick_motion(t)
+
     c_af, c_ar = p[0], p[1]
     c_maf, c_mar, c_mpf = p[3], p[4], p[5]
     c_mpr, c_pf, c_pr = p[6], p[7], p[8]
-    alphar, alphaf, phir, phif = eval_angles(q, u, p)
+    alphar, alphaf, phir, phif = eval_angles(q, u, [y, yd], p)
     Fry, Mrz = calc_linear_tire_force(alphar, phir, Frz, c_ar, c_pr, c_mar,
                                       c_mpr)
     Ffy, Mfz = calc_linear_tire_force(alphaf, phif, Ffz, c_af, c_pf, c_maf,
@@ -137,10 +146,7 @@ def calc_inputs(t, x, p):
     T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x)
 
     # kick plate force
-    fkp = 0.0 #calc_fkp(t)
-
-    #
-    y, yd, ydd = calc_kick_motion(t)
+    fkp = 0.0  # calc_fkp(t)
 
     Mrz, Mfz = 0.0, 0.0
 

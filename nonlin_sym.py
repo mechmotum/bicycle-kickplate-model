@@ -656,9 +656,9 @@ q10 = fn.pos_from(o).dot(N['2'])
 print('Lambdifying equations of motion.')
 eval_holonomic = sm.lambdify((q5, q4, q7, q11, q12, d1, d2, d3, r_tf, r_tr, rf,
                               rr), holonomic, cse=True)
-eval_dep_speeds = sm.lambdify([qs, u_ind, ps], [A_nh, -B_nh], cse=True)
+eval_dep_speeds = sm.lambdify([qs, u_ind, [y, yd], ps], [A_nh, -B_nh], cse=True)
 eval_dynamic = sm.lambdify([qs, us, fs, rs, ps], [A_all, b_all], cse=True)
-eval_angles = sm.lambdify((qs, us, ps), [alphar, alphaf, phir, phif], cse=True)
+eval_angles = sm.lambdify((qs, us, [y, yd], ps), [alphar, alphaf, phir, phif], cse=True)
 eval_front_contact = sm.lambdify((qs, ps), [q9, q10], cse=True)
 eval_equilibrium = sm.lambdify((qs, us, fs, rs, ps),
                                kane.forcing[:6, 0].col_join(sm.Matrix([holonomic])))

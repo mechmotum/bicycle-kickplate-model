@@ -472,12 +472,17 @@ def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
     axes[14, 1].set_ylabel('phif\n[deg]')
 
     axes[-1, 0].plot(times, r_traj[:, -1])
-    axes[-1, 0].set_ylabel('$F_{kp}$\n[N]')
+    axes[-1, 0].set_ylabel('$\ddot{y}$\n[m/s/s]')
     axes[-1, 0].set_xlabel('Time [s]')
     axes[-1, 1].plot(times, con_traj)
     axes[-1, 1].set_ylabel('constraint\n[m]')
     axes[-1, 1].set_xlabel('Time [s]')
     plt.tight_layout()
+
+    fig2, ax2 = plt.subplots(3, 1, sharex=True)
+    ax2[0].plot(times, r_traj[:, -1])
+    ax2[1].plot(times, r_traj[:, -2])
+    ax2[2].plot(times, r_traj[:, -3])
 
     return axes
 

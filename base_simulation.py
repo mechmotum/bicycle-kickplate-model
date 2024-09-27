@@ -40,18 +40,18 @@ def calc_kick_motion(t):
 
     start = 0.4  # seconds
     stop = 0.6  # seconds
-    acc_magnitude = 50.0  # m/s/s
+    magnitude = 5.0  # m/s/s
 
     period = stop - start
     frequency = 1.0/period
     omega = 2*np.pi*frequency  # rad/s
 
-    magnitude = acc_magnitude/omega**2
-
-    if start + period/2 < t < stop:
-        y = magnitude/2.0*(1.0 - np.cos(omega*(t - start)))
-        yd = magnitude*omega*np.sin(omega*(t - start))/2
-        ydd = magnitude*omega**2*np.cos(omega*(start - t))/2
+    # TODO : figure out how to calculate the integration constants (-0.2 and
+    # -1.0)
+    if start < t < stop:
+        y = magnitude/2.0*(t**2/2.0 - (-np.cos(omega*(t - start))/omega)/omega) - 0.2
+        yd = magnitude/2.0*(t - np.sin(omega*(t - start))/omega) - 1.0
+        ydd = magnitude/2.0*(1.0 - np.cos(omega*(t - start)))
     else:
         y, yd, ydd = 0.0, 0.0, 0.0
 

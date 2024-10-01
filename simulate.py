@@ -284,10 +284,11 @@ p_vals = {
     # mf: 2.02,
     # rf: 0.34352982332,
     # rr: 0.340958858855,   # --- Old parameters (original ones from Jason)
-    k_f: 120000.0,  # ~ twice the stiffness of a 1.25" tire from Rothhamel 2024
-    k_r: 120000.0,  # ~ twice the stiffness of a 1.25" tire from Rothhamel 2024
+    k_f: 133000.0,  # [pressure 3 bar k_f:80000] [pressure 4 bar k_f:106000] [pressure 5 bar k_f:133000]. From G. Dell'Orto 2023 (EJM/A Solids)
+    k_r: 133000.0,  # same as k_f [N/m]
     r_tf: 0.01,
-    r_tr: 0.01,s_yf: 0.175,  # Andrew's estimates from his dissertation data
+    r_tr: 0.01,
+    s_yf: 0.175,  # Andrew's estimates from his dissertation data
     s_yr: 0.175,
     s_zf: 0.175,
     s_zr: 0.175,

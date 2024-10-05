@@ -49,9 +49,14 @@ def calc_kick_motion(t):
     # TODO : figure out how to calculate the integration constants (-0.2 and
     # -1.0)
     if start < t < stop:
-        y = magnitude/2.0*(t**2/2.0 - (-np.cos(omega*(t - start))/omega)/omega) - 0.2
-        yd = magnitude/2.0*(t - np.sin(omega*(t - start))/omega) - 1.0
-        ydd = magnitude/2.0*(1.0 - np.cos(omega*(t - start)))
+        # y = magnitude/2.0*(t**2/2.0 - (-np.cos(omega*(t - start))/omega)/omega) - 0.2
+        # yd = magnitude/2.0*(t - np.sin(omega*(t - start))/omega) - 1.0
+        # ydd = magnitude/2.0*(1.0 - np.cos(omega*(t - start)))
+
+        y = magnitude*((-np.cos(omega*(t - start))/omega)/omega)
+        yd = magnitude*(t - np.sin(omega*(t - start))/omega)
+        ydd = magnitude*(np.cos(omega*(t - start)))
+      
     else:
         y, yd, ydd = 0.0, 0.0, 0.0
 

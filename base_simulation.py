@@ -38,20 +38,40 @@ def calc_kick_motion(t):
     force is modeled as a sinusoidal pulse."""
     # TODO : return y, yd, ydd
 
-    start = 0.4  # seconds
+    start = 0.45  # seconds
     stop = 0.6  # seconds
-    magnitude = 5.0  # m/s/s
+    magnitude = 0.15    # m (plate displacement) 
 
     period = stop - start
     frequency = 1.0/period
-    omega = 2*np.pi*frequency  # rad/s
+    omega = np.pi*frequency  # rad/s
 
     # TODO : figure out how to calculate the integration constants (-0.2 and
     # -1.0)
-    if start < t < stop:
-        y = magnitude/2.0*(t**2/2.0 - (-np.cos(omega*(t - start))/omega)/omega) - 0.2
-        yd = magnitude/2.0*(t - np.sin(omega*(t - start))/omega) - 1.0
-        ydd = magnitude/2.0*(1.0 - np.cos(omega*(t - start)))
+    if (start) <= t < (stop):
+    #if start < t < stop:
+        t_shifted = t - start
+        # Test #1
+        # y = magnitude*((-np.cos(omega*(t - start))/omega)/omega)
+        # yd = magnitude*(np.sin(omega*(t - start))/omega)
+        # ydd = magnitude*(np.cos(omega*(t - start))) 
+        ### Original one
+        # y = magnitude/2.0*(t**2/2.0 - (-np.cos(omega*(t - start))/omega)/omega) - 0.2
+        # yd = magnitude/2.0*(t - np.sin(omega*(t - start))/omega) - 1.0
+        # ydd = magnitude/2.0*(1.0 - np.cos(omega*(t)))
+        ## Test #2
+        # y = magnitude*(np.sin(omega * t_shifted)) / omega**2  # Integral of yd
+        # yd = magnitude * (np.cos(omega * t_shifted)) / omega  # Integral of ydd       
+        # ydd = magnitude*(np.sin(omega*(t)))
+        
+        # Test building the displacement, then derivate to obtain yd and ydd
+        y = magnitude*(1-np.cos(omega * t_shifted)) / 2  
+        yd = magnitude * omega * (np.sin(omega * t_shifted)) / 2 + magnitude * t_shifted # Derivative of y       
+        ydd = magnitude* omega ** 2 * (np.cos(omega*(t_shifted))) / 2 + magnitude * t_shifted ** 2
+    elif stop <= t <= stop + 0.1:
+        y = magnitude
+        yd = 0
+        ydd = 0
     else:
         y, yd, ydd = 0.0, 0.0, 0.0
 

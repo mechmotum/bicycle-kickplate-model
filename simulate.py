@@ -488,9 +488,9 @@ def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
     return axes
 
 
-def plot_wheel_paths(q_traj, q9_traj, q10_traj):
+def plot_wheel_paths(q_traj, q9_traj, q10_traj, kick_displacement):
     fig, ax = plt.subplots(1, 1)
-    ax.plot(q_traj[:, 0], q_traj[:, 1])
+    ax.plot(q_traj[:, 0], q_traj[:, 1] - kick_displacement)
     ax.plot(q9_traj, q10_traj)
     ax.set_aspect('equal')
     return ax

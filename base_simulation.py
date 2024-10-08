@@ -10,10 +10,12 @@ from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions, rhs,
                       calc_linear_tire_force, calc_nonlinear_tire_force,
                       eval_angles)
 
-from tire_data import TireCoefficients, SchwalbeT03_300kPa, SchwalbeT03_400kPa, SchwalbeT03_500kPa
+from tire_data import (TireCoefficients, SchwalbeT03_300kPa,
+                       SchwalbeT03_400kPa, SchwalbeT03_500kPa)
 
 # Define the tire to equip the bicycle
 tire = SchwalbeT03_500kPa
+
 
 def calc_fkp(t):
     """Returns the lateral forced applied to the tire by the kick plate. The
@@ -33,14 +35,39 @@ def calc_fkp(t):
         return 0.0
 
 
-def calc_kick_motion(t):
+def calc_kick_motion_constant_acc(t):
+    """Returns the kick plate displacement, velocity, and acceleration assuming
+    a constant acceleration and instaneous deceleration with a plate
+    displacement of 15 cm in 0.05 seconds. Constant acceleration is assumed
+    because the air cyclider force is mostly constant."""
+
+    stop = 0.05  # seconds
+    kick_displacement = 0.15  # meters
+
+    # y(t) = m*t**2
+    # y'(t) = 2*m*t
+    # y''(t) = 2*m
+    # y(stop) = d = m*stop**2 -> d = m*stop**2 -> m = d/(stop**2)
+
+    m = kick_displacement/(stop**2)
+    if 0.0 <= t < stop:
+        y, yd, ydd = m*t**2, 2.0*m*t, 2.0*m
+    elif t >= stop:
+        y, yd, ydd = kick_displacement, 0.0, 0.0
+    else:
+        y, yd, ydd = 0.0, 0.0, 0.0
+
+    return y, yd, ydd
+
+
+def calc_kick_motion_pulse_acc(t):
     """Returns the lateral forced applied to the tire by the kick plate. The
     force is modeled as a sinusoidal pulse."""
     # TODO : return y, yd, ydd
 
     start = 0.4  # seconds
     stop = 0.6  # seconds
-    magnitude = 5.0  # m/s/s
+    magnitude = 20.0  # m/s/s
 
     period = stop - start
     frequency = 1.0/period
@@ -49,9 +76,11 @@ def calc_kick_motion(t):
     # TODO : figure out how to calculate the integration constants (-0.2 and
     # -1.0)
     if start < t < stop:
-        y = magnitude/2.0*(t**2/2.0 - (-np.cos(omega*(t - start))/omega)/omega) - 0.2
-        yd = magnitude/2.0*(t - np.sin(omega*(t - start))/omega) - 1.0
+        y = magnitude/2.0*(t**2/2.0 - (-np.cos(omega*(t - start))/omega)/omega) - 0.8
+        yd = magnitude/2.0*(t - np.sin(omega*(t - start))/omega) - 4.0
         ydd = magnitude/2.0*(1.0 - np.cos(omega*(t - start)))
+    elif t >= stop:
+        y, yd, ydd = 1.0, 0.0, 0.0
     else:
         y, yd, ydd = 0.0, 0.0, 0.0
 
@@ -88,8 +117,6 @@ def calc_steer_torque(t, x):
     ku7 = 1.5876
 
     return -(kq4*q4 + kq7*q7 + ku4*u4 + ku7*u7)
-    #return 10.0*u4
-    #return 0.0
 
 
 def calc_inputs(t, x, p):
@@ -126,7 +153,7 @@ def calc_inputs(t, x, p):
     Ffz = -k_f*q12 - c_f*u12  # negative when in compression
 
     # plate motion
-    y, yd, ydd = calc_kick_motion(t)
+    y, yd, ydd = calc_kick_motion_constant_acc(t)
 
     c_af, c_ar = p[0], p[1]
     c_maf, c_mar, c_mpf = p[3], p[4], p[5]
@@ -201,7 +228,7 @@ duration = 6.0  # seconds
 res = simulate(duration, calc_inputs, initial_conditions, p_arr, fps=fps)
 
 plot_all(*res)
-plot_wheel_paths(res[1], res[-3], res[-2])
+plot_wheel_paths(res[1], res[-3], res[-2], res[-1][:, 4])
 plot_tire_curves()
 
 if __name__ == "__main__":

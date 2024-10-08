@@ -38,10 +38,10 @@ def calc_fkp(t):
 def calc_kick_motion_constant_acc(t):
     """Returns the kick plate displacement, velocity, and acceleration assuming
     a constant acceleration and instaneous deceleration with a plate
-    displacement of 15 cm in 0.05 seconds. Constant acceleration is assumed
+    displacement of 15 cm in 0.1 seconds. Constant acceleration is assumed
     because the air cyclider force is mostly constant."""
 
-    stop = 0.05  # seconds
+    stop = 0.1  # seconds
     kick_displacement = 0.15  # meters
 
     # y(t) = m*t**2

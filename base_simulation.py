@@ -39,9 +39,10 @@ def calc_kick_motion_constant_acc(t):
     """Returns the kick plate displacement, velocity, and acceleration assuming
     a constant acceleration and instaneous deceleration with a plate
     displacement of 15 cm in 0.1 seconds. Constant acceleration is assumed
-    because the air cyclider force is mostly constant."""
+    because the air cylinder force is approximately constant based on the
+    pressure sensor measurement."""
 
-    stop = 0.1  # seconds
+    stop = 0.05  # seconds
     kick_displacement = 0.15  # meters
 
     # y(t) = m*t**2
@@ -61,9 +62,8 @@ def calc_kick_motion_constant_acc(t):
 
 
 def calc_kick_motion_pulse_acc(t):
-    """Returns the lateral forced applied to the tire by the kick plate. The
-    force is modeled as a sinusoidal pulse."""
-    # TODO : return y, yd, ydd
+    """Returns the kick plate displacement, velocity, and acceleration assuming
+    a sinusoidal pulse acceleration."""
 
     start = 0.4  # seconds
     stop = 0.6  # seconds

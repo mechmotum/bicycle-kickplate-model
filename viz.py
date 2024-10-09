@@ -1,5 +1,5 @@
 import numpy as np
-from pydy.viz import (Sphere, Cylinder, VisualizationFrame, Scene,
+from pydy.viz import (Sphere, Cylinder, Box, VisualizationFrame, Scene,
                       PerspectiveCamera)
 from simulate import *
 from base_simulation import *
@@ -34,15 +34,23 @@ eo_sphere = Sphere(radius=0.05, color='blue', name='rear frame eo')
 co_frame = VisualizationFrame(C, co, co_sphere)
 eo_frame = VisualizationFrame(E, eo, eo_sphere)
 
+plate_box = Box(width=1.0, height=1.0, depth=0.01, color='red', name='grey')
+plate_frame = VisualizationFrame(N, p.locatenew('below', 0.005*N['3']),
+                                 plate_box)
+
 # TODO : Moving camera does not seem to work.
 camera_loc = o.locatenew('p_camera', -10*N.z + q1*N.x)
 camera = PerspectiveCamera('camera', N, camera_loc)
 
 scene = Scene(N, o) #, cameras=[camera])
 scene.visualization_frames = [front_wheel_vframe, rear_wheel_vframe, d1_frame,
-                              d2_frame, d3_frame, co_frame, eo_frame]
+                              d2_frame, d3_frame, co_frame, eo_frame,
+                              plate_frame]
 
 scene.times = times
 scene.constants = p_vals
-scene.states_symbols = qs + us
-scene.states_trajectories = np.hstack((q_traj, u_traj))
+# Scene does not seem to accept specified values. In our case we need to pass
+# in y (kickplate displacement) for the visualization. The following is a hack
+# to swap one of the u's with y.
+scene.states_symbols = qs + us[0:9] + [rs[4]]
+scene.states_trajectories = np.hstack((q_traj, u_traj[:, 0:9], r_traj[:, 4:5]))

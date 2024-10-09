@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 
 
 from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions, rhs,
-                      simulate, plot_all, plot_wheel_paths, plot_tire_curves,
-                      calc_linear_tire_force, calc_nonlinear_tire_force,
-                      eval_angles)
+                      simulate, plot_all, plot_kick_motion, plot_wheel_paths,
+                      plot_tire_curves, calc_linear_tire_force,
+                      calc_nonlinear_tire_force, eval_angles)
 
 from tire_data import (TireCoefficients, SchwalbeT03_300kPa,
                        SchwalbeT03_400kPa, SchwalbeT03_500kPa)
@@ -175,7 +175,9 @@ def calc_inputs(t, x, p):
     # kick plate force
     fkp = 0.0  # calc_fkp(t)
 
-    Mrz, Mfz = 0.0, 0.0
+    # NOTE : Self-aligning moment has a destabilizing effect, you can disable
+    # it by uncommenting the following line.
+    #Mrz, Mfz = 0.0, 0.0
 
     r = [T4, T6, T7, fkp, y, yd, ydd, Fry, Ffy, Mrz, Mfz]
 
@@ -228,6 +230,7 @@ duration = 6.0  # seconds
 res = simulate(duration, calc_inputs, initial_conditions, p_arr, fps=fps)
 
 plot_all(*res)
+plot_kick_motion(res[0], res[-1])
 plot_wheel_paths(res[1], res[-3], res[-2], res[-1][:, 4])
 plot_tire_curves()
 

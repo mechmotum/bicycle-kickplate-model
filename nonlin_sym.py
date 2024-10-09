@@ -388,6 +388,10 @@ nonholonomic = [
     sm.trigsimp(dn.vel(N).dot(A['1'])),
     # no front longitudinal slip
     ft.vel(N).dot(g1_hat),
+    # # no rear lateral slip
+    # sm.trigsimp(dn.vel(N).dot(A['2'])),
+    # # no front lateral slip
+    # ft.vel(N).dot(g2_hat),
     # front contact cannot move vertically wrt ground
     holonomic.diff(t).xreplace(qdot_repl),
 ]
@@ -660,3 +664,4 @@ eval_balance = sm.lambdify((qs, ps),
 
 with open('eval_dynamic.py', 'w') as file:
     file.write(inspect.getsource(eval_dynamic))
+

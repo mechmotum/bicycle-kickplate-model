@@ -430,7 +430,7 @@ def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
              q9_traj, q10_traj, r_traj):
 
     deg = [False, False, True, True, True, True, True, True, False, False]
-    fig, axes = plt.subplots(16, 2, sharex=True)
+    fig, axes = plt.subplots(16, 2, sharex=True, layout='constrained')
     fig.set_size_inches(8, 10)
     # fills right 10 rows
     for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 0], q_traj.T, qs, deg)):
@@ -478,21 +478,35 @@ def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
     axes[-1, 1].plot(times, con_traj)
     axes[-1, 1].set_ylabel('constraint\n[m]')
     axes[-1, 1].set_xlabel('Time [s]')
-    plt.tight_layout()
 
-    fig2, ax2 = plt.subplots(3, 1, sharex=True)
-    ax2[0].plot(times, r_traj[:, -1])
-    ax2[1].plot(times, r_traj[:, -2])
-    ax2[2].plot(times, r_traj[:, -3])
+
+def plot_kick_motion(times, r_traj):
+
+    fig, axes = plt.subplots(3, 1, sharex=True, layout='constrained')
+    axes[0].plot(times, r_traj[:, -1])
+    axes[0].set_ylabel(r'$\ddot{y}$ [m/s/s]')
+    axes[1].plot(times, r_traj[:, -2])
+    axes[1].set_ylabel(r'$\dot{y}$ [m/s]')
+    axes[2].plot(times, r_traj[:, -3])
+    axes[2].set_ylabel(r'$y$ [m]')
+    axes[2].set_xlabel('Time [s]')
 
     return axes
 
 
 def plot_wheel_paths(q_traj, q9_traj, q10_traj, kick_displacement):
     fig, ax = plt.subplots(1, 1)
-    ax.plot(q_traj[:, 0], q_traj[:, 1] - kick_displacement)
-    ax.plot(q9_traj, q10_traj)
+    ax.plot(q_traj[:, 0], q_traj[:, 1], label='Rear Wheel Contact')
+    ax.plot(q9_traj, q10_traj, label='Front Wheel Contact')
+    # NOTE : I plot the kickplate displacement vs rear wheel longitudinal
+    # motion for comparison purposes.
+    ax.plot(q_traj[:, 0], kick_displacement, label='Kick Plate Displacement')
     ax.set_aspect('equal')
+    ax.set_xlabel(r'$\hat{n}_1$')
+    ax.set_ylabel(r'$\hat{n}_2$')
+    ax.invert_yaxis()
+    ax.grid()
+    ax.legend()
     return ax
 
 

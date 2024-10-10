@@ -78,6 +78,7 @@ print('Defining time varying symbols.')
 q1, q2, q3, q4 = mec.dynamicsymbols('q1, q2, q3, q4')
 q5, q6, q7, q8 = mec.dynamicsymbols('q5, q6, q7, q8')
 q11, q12 = mec.dynamicsymbols('q11, q12')
+y, yd, ydd = mec.dynamicsymbols('y, yd, ydd')
 
 # q's that will have kinematical differential equations
 qs = [
@@ -241,10 +242,14 @@ print('Defining position vectors.')
 # point fixed on the ground
 o = mec.Point('o')
 
+# point fixed on the kickplate (laterally moving ground)
+p = mec.Point('p')
+p.set_pos(o, y*N['2'])
+
 # rear wheel contact point, moves in ground plane, y is the kickplate lateral
 # location
 nd = mec.Point('nd')
-nd.set_pos(o, q1*N['1'] + q2*N['2'])
+nd.set_pos(p, q1*N['1'] + (q2 - y)*N['2'])
 
 # rear rim point
 dt = mec.Point('dt')
@@ -335,8 +340,11 @@ F.set_ang_vel(E, u8*E['2'])  # front wheel rate
 
 print('Defining linear velocities.')
 
-# rear wheel contact stays in ground plane
 o.set_vel(N, 0)
+
+p.set_vel(N, yd*N['2'])
+
+# rear wheel contact stays in ground plane
 nd.set_vel(N, u1*N['1'] + u2*N['2'])
 
 dt.set_vel(N, nd.vel(N) + u11*A['3'])
@@ -358,8 +366,9 @@ fn.set_vel(N, ft.pos_from(o).dt(N).xreplace(qdot_repl) - u12*A['3'])
 # Slip angle components
 # project the velocity vectors at the contact point onto each wheel's yaw
 # direction
-N_v_nd1 = nd.vel(N).dot(A['1'])
-N_v_nd2 = nd.vel(N).dot(A['2'])
+rear_slip_vel = nd.vel(N) - p.vel(N)
+N_v_nd1 = rear_slip_vel.dot(A['1'])
+N_v_nd2 = rear_slip_vel.dot(A['2'])
 # NOTE : Be careful on calculating these velocities for the slip angles. ft is
 # both the point fixed in the wheel (as shown in ft.v2pt_theory(fo, N, F) and
 # the point moving in the ground plane (as below). Probably should distinguish
@@ -385,7 +394,7 @@ print('Defining nonholonomic constraints.')
 
 nonholonomic = [
     # no rear longitudinal slip
-    sm.trigsimp(dn.vel(N).dot(A['1'])),
+    sm.trigsimp((dn.vel(N) - p.vel(N)).dot(A['1'])),
     # no front longitudinal slip
     ft.vel(N).dot(g1_hat),
     # # no rear lateral slip
@@ -542,7 +551,7 @@ ps = (
     s_zf,  # 42
     s_zr,  # 43
 )
-rs = (T4, T6, T7, Fkp)
+rs = (T4, T6, T7, Fkp, y, yd, ydd)
 holon = (holonomic,)
 nonho = tuple(nonholonomic)
 
@@ -621,6 +630,7 @@ for i in range(mass_matrix.shape[0]):
     forcing[new_order[i], 0] = forcing_orig[i, 0]
     for j in range(mass_matrix.shape[1]):
         mass_matrix[new_order[i], new_order[j]] = kane.mass_matrix[i, j]
+forcing = forcing.xreplace({yd.diff(t): ydd})
 
 num_udots = mass_matrix.shape[0]
 row1 = mass_matrix.row_join(sm.zeros(num_udots, 4))
@@ -650,9 +660,9 @@ q10 = fn.pos_from(o).dot(N['2'])
 print('Lambdifying equations of motion.')
 eval_holonomic = sm.lambdify((q5, q4, q7, q11, q12, d1, d2, d3, r_tf, r_tr, rf,
                               rr), holonomic, cse=True)
-eval_dep_speeds = sm.lambdify([qs, u_ind, ps], [A_nh, -B_nh], cse=True)
+eval_dep_speeds = sm.lambdify([qs, u_ind, [y, yd], ps], [A_nh, -B_nh], cse=True)
 eval_dynamic = sm.lambdify([qs, us, fs, rs, ps], [A_all, b_all], cse=True)
-eval_angles = sm.lambdify((qs, us, ps), [alphar, alphaf, phir, phif], cse=True)
+eval_angles = sm.lambdify((qs, us, [y, yd], ps), [alphar, alphaf, phir, phif], cse=True)
 eval_front_contact = sm.lambdify((qs, ps), [q9, q10], cse=True)
 eval_equilibrium = sm.lambdify((qs, us, fs, rs, ps),
                                kane.forcing[:6, 0].col_join(sm.Matrix([holonomic])))

@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from nonlin_sym import *
-from tire_data import TireCoefficients, SchwalbeT03_300kPa, SchwalbeT03_400kPa, SchwalbeT03_500kPa
+from tire_data import (TireCoefficients, SchwalbeT03_300kPa,
+                       SchwalbeT03_400kPa, SchwalbeT03_500kPa)
 ##########################
 # Check evaluation of EoMs
 ##########################
@@ -30,7 +31,7 @@ def rhs(t, x, r_func, p):
                                 Fry, Ffy, Mrz, Mfz].
     r_func : function
         Function of the form ``r = f(t, x, p)``. Returns all specified inputs
-        where: r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz].
+        where: r = [T4, T6, T7, fkp, y, yd, ydd, Fry, Ffy, Mrz, Mfz].
     p : array_like, shape(44,)
         Constant values.
         [c_af, c_ar, c_f, c_maf, c_mar, c_mpf, c_mpr, c_pf, c_pr, c_r, d1, d2,
@@ -73,7 +74,7 @@ def equilibrium_eq(q, p):
     #u = np.ones(10)*1e-13  # divide by zeros if u is simple all zeros
     u = np.zeros(10)
     f = np.zeros(4)  # Fry, Ffy, Mrz, Mfz
-    r = np.zeros(8)  # T4, T6, T7, Fkp, Fry_, Ffy_, Mrz_, Mfz_
+    r = np.zeros(11)  # T4, T6, T7, Fkp, y, yd, ydd, Fry_, Ffy_, Mrz_, Mfz_
 
     def zeros(x):
         """
@@ -121,7 +122,7 @@ def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
     return Fy, Mz
 
 
-def calc_nonlinear_tire_force(alpha, phi, Fz, tire: TireCoefficients):
+def calc_nonlinear_tire_force(alpha, phi, Fz, tire_data):
     """Returns the lateral force and self-aligning moment at the contact patch
     acting on the tire.
 
@@ -133,6 +134,8 @@ def calc_nonlinear_tire_force(alpha, phi, Fz, tire: TireCoefficients):
         Camber angle in radians, positive is roll to the right.
     Fz : float
         Normal force in Newtons, negative in compression.
+    tire_data : TireCoefficients
+        Tire model constants.
 
     Returns
     =======
@@ -147,9 +150,9 @@ def calc_nonlinear_tire_force(alpha, phi, Fz, tire: TireCoefficients):
     Fz = -Fz/1000.00  # MUST be in [kN]
     alpha = np.rad2deg(alpha)    # angles input in [deg]
     phi = np.rad2deg(phi)        # angles input in [deg]
-    
-    opt_Pac_fy = tire.Fy_coef
-    opt_Pac_Mz = tire.Mz_coef
+
+    opt_Pac_fy = tire_data.Fy_coef
+    opt_Pac_Mz = tire_data.Mz_coef
 
     C_mz = opt_Pac_Mz[0]  # Shape factor
     D_mz = (opt_Pac_Mz[1]*Fz**2 + opt_Pac_Mz[2]*Fz)  # Peak factor
@@ -189,7 +192,7 @@ def calc_nonlinear_tire_force(alpha, phi, Fz, tire: TireCoefficients):
                                         # Obtained as: Friction coeff kickplate / Friction coeff test-rig
     Fy = Fy * Friction_coeff
     Mz = Mz * Friction_coeff
-    
+
     return -Fy, -Mz
 
 
@@ -199,7 +202,6 @@ def calc_nonlinear_tire_force(alpha, phi, Fz, tire: TireCoefficients):
 
 # batavus browser with Jason sitting on it, tire parameters from
 # Andrew/Gabriele
-# TODO Create new dataclass to handle different riders' parameters
 p_vals = {
     c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
     c_ar: 11.46,
@@ -215,85 +217,61 @@ p_vals = {
     d2: 0.4338396131640938,
     d3: 0.0705000000001252,
     g: 9.81,
-    
-    ic11 : 12.242077,   # --START-- Parameters for Gabriele (635 N)
-    ic22 : 14.951251,
-    ic31 : 3.214818,
-    ic33 : 4.493685,
-    id11 : 0.070096,
-    id22 : 0.129342,
-    ie11 : 0.374921,
-    ie22 : 0.339925,
-    ie31 : -0.002581,
-    ie33 : 0.072061,
-    if11 : 0.052448,
-    if22 : 0.098372,
-    l1 : 0.526720,
-    l2 : -0.537772,
-    l3 : -0.030119,
-    l4 : -0.694391,
-    mc : 83.900000,
-    md : 4.900000,
-    me : 5.400000,
-    mf : 1.550000,
-    rr : 0.332528,
-    rf : 0.335573,  # --END-- Parameters for Gabriele (635 N)
-
-    # ic11 : 14.338830,   # --START-- Parameters for Timo (701 N)
-    # ic22 : 17.115790,
-    # ic31 : 3.610619,
-    # ic33 : 4.976662,
-    # id11 : 0.070096,
-    # id22 : 0.129342,
-    # ie11 : 0.374921,
-    # ie22 : 0.339925,
-    # ie31 : -0.002581,
-    # ie33 : 0.072061,
-    # if11 : 0.052448,
-    # if22 : 0.098372,
-    # l1 : 0.542381,
-    # l2 : -0.556788,
-    # l3 : -0.030119,
-    # l4 : -0.694391,
-    # mc : 92.900000,
-    # md : 4.900000,
-    # me : 5.400000,
-    # mf : 1.550000,
-    # rr : 0.332528,
-    # rf : 0.335573,  # --END-- Parameters for Timo (701 N)
-    
-    # ic11: 11.519805885486146,      # --- Old parameters (original ones from Jason)
-    # ic22: 12.2177848012,
-    # ic31: 1.57915608541552,
-    # ic33: 2.959474124693854,
-    # id11: 0.0883819364527,
-    # id22: 0.152467620286,
-    # ie11: 0.2811355367159554,
-    # ie22: 0.246138810935,
-    # ie31: 0.0063377219110826045,
-    # ie33: 0.06782113764394461,
-    # if11: 0.0904106601579,
-    # if22: 0.149389340425,
-    # l1: 0.5384415640161426,
-    # l2: -0.531720230353059,
-    # l3: -0.07654646159268344,
-    # l4: -0.47166687226492093,
-    # mc: 81.86,
-    # md: 3.11,
-    # me: 3.22,
-    # mf: 2.02,
-    # rf: 0.34352982332,
-    # rr: 0.340958858855,   # --- Old parameters (original ones from Jason)
+    ic11: 12.242077,   # --START-- Parameters for Gabriele (635 N)
+    ic22: 14.951251,
+    ic31: 3.214818,
+    ic33: 4.493685,
+    id11: 0.070096,
+    id22: 0.129342,
+    ie11: 0.374921,
+    ie22: 0.339925,
+    ie31: -0.002581,
+    ie33: 0.072061,
+    if11: 0.052448,
+    if22: 0.098372,
     k_f: 133000.0,  # [pressure 3 bar k_f:80000] [pressure 4 bar k_f:106000] [pressure 5 bar k_f:133000]. From G. Dell'Orto 2023 (EJM/A Solids)
     k_r: 133000.0,  # same as k_f [N/m]
+    l1: 0.526720,
+    l2: -0.537772,
+    l3: -0.030119,
+    l4: -0.694391,
+    mc: 83.900000,
+    md: 4.900000,
+    me: 5.400000,
+    mf: 1.550000,
     r_tf: 0.01,
     r_tr: 0.01,
+    rf: 0.335573,  # --END-- Parameters for Gabriele (635 N)
+    rr: 0.332528,
     s_yf: 0.175,  # Andrew's estimates from his dissertation data
     s_yr: 0.175,
     s_zf: 0.175,
     s_zr: 0.175,
 }
 p_arr = np.array([p_vals[pi] for pi in ps])
+
+# ic11 : 14.338830,   # --START-- Parameters for Timo (701 N)
+# ic22 : 17.115790,
+# ic31 : 3.610619,
+# ic33 : 4.976662,
+# id11 : 0.070096,
+# id22 : 0.129342,
+# ie11 : 0.374921,
+# ie22 : 0.339925,
+# ie31 : -0.002581,
+# ie33 : 0.072061,
+# if11 : 0.052448,
+# if22 : 0.098372,
+# l1 : 0.542381,
+# l2 : -0.556788,
+# l3 : -0.030119,
+# l4 : -0.694391,
+# mc : 92.900000,
+# md : 4.900000,
+# me : 5.400000,
+# mf : 1.550000,
+# rf : 0.335573,  # --END-- Parameters for Timo (701 N)
+# rr : 0.332528,
 
 
 def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
@@ -360,6 +338,7 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     print('Independent generalized speeds:', u_vals[[2, 3, 5, 6, 7, 8, 9]])
     A_nh_vals, B_nh_vals = eval_dep_speeds(q_vals,
                                            u_vals[[2, 3, 5, 6, 7, 8, 9]],
+                                           [0.0, 0.0],  # y, yd
                                            p_arr)
     res = np.linalg.solve(A_nh_vals, B_nh_vals.squeeze())
     print('res', res)
@@ -415,14 +394,14 @@ def simulate(dur, calc_inputs, x0, p, fps=60):
     slip_traj = np.zeros((len(times), 4))
     q9_traj = np.zeros_like(times)
     q10_traj = np.zeros_like(times)
-    r_traj = np.zeros((len(times), 4))
+    r_traj = np.zeros((len(times), 7))
     for i, (ti, qi, ui, fi) in enumerate(zip(times, q_traj, u_traj, f_traj)):
         statei = np.hstack((qi, ui, fi))
+        r_traj[i] = calc_inputs(ti, statei, p)[:7]
         fz_traj[i, :] = np.array([-p[27]*qi[8] - p[9]*ui[8],
                                   -p[26]*qi[9] - p[2]*ui[9]])
-        slip_traj[i, :] = eval_angles(qi, ui, p)
+        slip_traj[i, :] = eval_angles(qi, ui, r_traj[i, 3:5], p)
         q9_traj[i], q10_traj[i] = eval_front_contact(qi, p)
-        r_traj[i] = calc_inputs(ti, statei, p)[:4]
 
     return (times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
             q9_traj, q10_traj, r_traj)
@@ -432,7 +411,7 @@ def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
              q9_traj, q10_traj, r_traj):
 
     deg = [False, False, True, True, True, True, True, True, False, False]
-    fig, axes = plt.subplots(16, 2, sharex=True)
+    fig, axes = plt.subplots(16, 2, sharex=True, layout='constrained')
     fig.set_size_inches(8, 10)
     # fills right 10 rows
     for i, (ax, traj, s, degi) in enumerate(zip(axes[:, 0], q_traj.T, qs, deg)):
@@ -475,21 +454,40 @@ def plot_all(times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj,
     axes[14, 1].set_ylabel('phif\n[deg]')
 
     axes[-1, 0].plot(times, r_traj[:, -1])
-    axes[-1, 0].set_ylabel('$F_{kp}$\n[N]')
+    axes[-1, 0].set_ylabel('$\ddot{y}$\n[m/s/s]')
     axes[-1, 0].set_xlabel('Time [s]')
     axes[-1, 1].plot(times, con_traj)
     axes[-1, 1].set_ylabel('constraint\n[m]')
     axes[-1, 1].set_xlabel('Time [s]')
-    plt.tight_layout()
+
+
+def plot_kick_motion(times, r_traj):
+
+    fig, axes = plt.subplots(3, 1, sharex=True, layout='constrained')
+    axes[0].plot(times, r_traj[:, -1])
+    axes[0].set_ylabel(r'$\ddot{y}$ [m/s/s]')
+    axes[1].plot(times, r_traj[:, -2])
+    axes[1].set_ylabel(r'$\dot{y}$ [m/s]')
+    axes[2].plot(times, r_traj[:, -3])
+    axes[2].set_ylabel(r'$y$ [m]')
+    axes[2].set_xlabel('Time [s]')
 
     return axes
 
 
-def plot_wheel_paths(q_traj, q9_traj, q10_traj):
+def plot_wheel_paths(q_traj, q9_traj, q10_traj, kick_displacement):
     fig, ax = plt.subplots(1, 1)
-    ax.plot(q_traj[:, 0], q_traj[:, 1])
-    ax.plot(q9_traj, q10_traj)
+    ax.plot(q_traj[:, 0], q_traj[:, 1], label='Rear Wheel Contact')
+    ax.plot(q9_traj, q10_traj, label='Front Wheel Contact')
+    # NOTE : I plot the kickplate displacement vs rear wheel longitudinal
+    # motion for comparison purposes.
+    ax.plot(q_traj[:, 0], kick_displacement, label='Kick Plate Displacement')
     ax.set_aspect('equal')
+    ax.set_xlabel(r'$\hat{n}_1$')
+    ax.set_ylabel(r'$\hat{n}_2$')
+    ax.invert_yaxis()
+    ax.grid()
+    ax.legend()
     return ax
 
 
@@ -506,7 +504,8 @@ def plot_tire_curves():
 
     fig, axes = plt.subplots(2, 2, layout='constrained')
 
-    # Update "tire" to plot the current tire characteristics you are using for simulations 
+    # Update "tire" to plot the current tire characteristics you are using for
+    # simulations
     for Fz, color in zip(normal_forces, colors):
         Fys, Mzs = [], []
         Fys_lin, Mzs_lin = [], []

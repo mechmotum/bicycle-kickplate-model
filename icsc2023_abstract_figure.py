@@ -4,9 +4,59 @@ initial forward speed and apply a pulse kick."""
 import numpy as np
 import matplotlib.pyplot as plt
 
-from simulate import (rr, rf, c_af, c_ar, c_maf, c_mar, c_pf, c_pr, ps, p_vals,
-                      p_arr, setup_initial_conditions, simulate,
-                      calc_linear_tire_force, eval_angles, plot_minimal)
+from simulate import *
+
+# batavus browser with Jason sitting on it, tire parameters from
+# Andrew/Gabriele
+p_vals = {
+    c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
+    c_ar: 11.46,
+    c_f: 4000.0,  # guess
+    c_maf: 0.33,  # 0.33 is rough calc from Gabriele's data
+    c_mar: 0.33,
+    c_mpf: 0.0,  # need real numbers for this
+    c_mpr: 0.0,  # need real numbers for this
+    c_pf: 0.573,
+    c_pr: 0.573,
+    c_r: 4000.0,  # guess
+    d1: 0.9631492634872098,
+    d2: 0.4338396131640938,
+    d3: 0.0705000000001252,
+    g: 9.81,
+    ic11: 11.519805885486146,
+    ic22: 12.2177848012,
+    ic31: 1.57915608541552,
+    ic33: 2.959474124693854,
+    id11: 0.0883819364527,
+    id22: 0.152467620286,
+    ie11: 0.2811355367159554,
+    ie22: 0.246138810935,
+    ie31: 0.0063377219110826045,
+    ie33: 0.06782113764394461,
+    if11: 0.0904106601579,
+    if22: 0.149389340425,
+    k_f: 120000.0,  # ~ twice the stiffness of a 1.25" tire from Rothhamel 2024
+    k_r: 120000.0,  # ~ twice the stiffness of a 1.25" tire from Rothhamel 2024
+    l1: 0.5384415640161426,
+    l2: -0.531720230353059,
+    l3: -0.07654646159268344,
+    l4: -0.47166687226492093,
+    mc: 81.86,
+    md: 3.11,
+    me: 3.22,
+    mf: 2.02,
+    r_tf: 0.01,
+    r_tr: 0.01,
+    rf: 0.34352982332,
+    rr: 0.340958858855,
+    s_yf: 0.175,  # Andrew's estimates from his dissertation data
+    s_yr: 0.175,
+    s_zf: 0.175,
+    s_zr: 0.175,
+}
+p_arr = np.array([p_vals[pi] for pi in ps])
+for i, k in enumerate(p_vals.keys()):
+    print(i, k)
 
 
 def calc_fkp(t):
@@ -59,7 +109,7 @@ def calc_inputs(t, x, p):
     Returns
     =======
     r : ndarray, shape(8,)
-        r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz].
+        r = [T4, T6, T7, fkp, y, yd, ydd, Fry, Ffy, Mrz, Mfz].
 
     """
 
@@ -71,10 +121,13 @@ def calc_inputs(t, x, p):
     Frz = -k_r*q11 - c_r*u11  # negative when in compression
     Ffz = -k_f*q12 - c_f*u12  # negative when in compression
 
+    # plate motion
+    y, yd, ydd = 0.0, 0.0, 0.0
+
     c_af, c_ar = p[0], p[1]
     c_maf, c_mar, c_mpf = p[3], p[4], p[5]
     c_mpr, c_pf, c_pr = p[6], p[7], p[8]
-    alphar, alphaf, phir, phif = eval_angles(q, u, p)
+    alphar, alphaf, phir, phif = eval_angles(q, u, [y, yd], p)
     Fry, Mrz = calc_linear_tire_force(alphar, phir, Frz, c_ar, c_pr, c_mar,
                                       0.0)
     Ffy, Mfz = calc_linear_tire_force(alphaf, phif, Ffz, c_af, c_pf, c_maf,
@@ -86,7 +139,7 @@ def calc_inputs(t, x, p):
     # kick plate force
     fkp = calc_fkp(t)
 
-    r = [T4, T6, T7, fkp, Fry, Ffy, Mrz, Mfz]
+    r = [T4, T6, T7, fkp, y, yd, ydd, Fry, Ffy, Mrz, Mfz]
 
     return r
 

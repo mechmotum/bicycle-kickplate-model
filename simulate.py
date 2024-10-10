@@ -188,6 +188,11 @@ def calc_nonlinear_tire_force(alpha, phi, Fz, tire_data):
     Fy = (D_fy*np.sin(C_fy*np.arctan(B_fy*X1_fy -
           E_fy*(B_fy*X1_fy - np.arctan(B_fy*X1_fy))))) + Sv_fy
 
+    Friction_coeff = 1.31917 #1.279368  # Used to adjust the Friction coefficient indoor test-rig VS kickplate sandpaper
+                                        # Obtained as: Friction coeff kickplate / Friction coeff test-rig
+    Fy = Fy * Friction_coeff
+    Mz = Mz * Friction_coeff
+
     return -Fy, -Mz
 
 

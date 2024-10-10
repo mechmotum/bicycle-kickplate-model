@@ -42,7 +42,7 @@ def calc_kick_motion_constant_acc(t):
     because the air cylinder force is approximately constant based on the
     pressure sensor measurement."""
 
-    stop = 0.05  # seconds
+    stop = 0.15  # seconds
     kick_displacement = 0.15  # meters
 
     # y(t) = m*t**2

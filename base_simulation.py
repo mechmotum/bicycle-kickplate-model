@@ -5,18 +5,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-from simulate import (rr, rf, ps, setup_initial_conditions, rhs, simulate,
-                      plot_all, plot_kick_motion, plot_wheel_paths,
-                      plot_tire_curves, calc_linear_tire_force,
-                      calc_nonlinear_tire_force, eval_angles)
-from inputs import calc_kick_motion_constant_acc
+from nonlin_sym import rr, rf, ps, eval_angles
+from inputs import (calc_kick_motion_constant_acc, calc_linear_tire_force,
+                    calc_nonlinear_tire_force)
 from inputs import calc_full_state_feedback_steer_torque as calc_steer_torque
 from parameters import balanceassistv1_gabriele as p_vals
-from tire_data import (SchwalbeT03_300kPa, SchwalbeT03_400kPa,
-                       SchwalbeT03_500kPa)
-
-# Define the tire to equip the bicycle
-tire = SchwalbeT03_500kPa
+from tire_data import SchwalbeT03_500kPa as tire
+from simulate import (setup_initial_conditions, rhs, simulate, plot_all,
+                      plot_kick_motion, plot_wheel_paths, plot_tire_curves)
 
 p_arr = np.array([p_vals[pi] for pi in ps])
 

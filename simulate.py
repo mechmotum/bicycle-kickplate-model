@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from nonlin_sym import *
-from tire_data import (TireCoefficients, SchwalbeT03_300kPa,
-                       SchwalbeT03_400kPa, SchwalbeT03_500kPa)
+from tire_data import SchwalbeT03_500kPa as TIRE
+from inputs import calc_linear_tire_force, calc_nonlinear_tire_force
 
 ##########################
 # Check evaluation of EoMs
@@ -59,6 +59,8 @@ def rhs(t, x, r_func, p):
 
 
 def fall_detector(t, x):
+    """Returns the difference in the absoluate value of the roll angle and the
+    maximum tolerable roll angle magnitude."""
     max_roll = np.deg2rad(45.0)
     return max_roll - np.abs(x[3])
 
@@ -92,109 +94,6 @@ def equilibrium_eq(q, p):
     q[8] = sol.x[1]
     q[9] = sol.x[2]
     return q
-
-
-def calc_linear_tire_force(alpha, phi, Fz, c_a, c_p, c_ma, c_mp):
-    """Returns the lateral force and self-aligning moment at the contact patch
-    acting on the tire.
-
-    Parameters
-    ==========
-    alpha : float
-        Lateral slip angle, positive is yaw to the right.
-    phi : float
-        Camber angle, positive is roll to the right.
-    Fz : float
-        Normal force, negative in compression.
-    c_a, c_p, c_ma, c_mp : floats
-        Laterial slip and camber coefficients for force and moment, all
-        positive values.
-
-    Returns
-    =======
-    Fy : float
-        Lateral force, positive to the right.
-    Mz : float
-        Self-aligning moment, positive moment will turn wheel to the right.
-
-    """
-    Fy = (c_a*alpha + c_p*phi)*Fz
-    Mz = -(c_ma*alpha - c_mp*phi)*Fz
-    return Fy, Mz
-
-
-def calc_nonlinear_tire_force(alpha, phi, Fz, tire_data):
-    """Returns the lateral force and self-aligning moment at the contact patch
-    acting on the tire.
-
-    Parameters
-    ==========
-    alpha : float
-        Lateral slip angle in radians, positive is yaw to the right.
-    phi : float
-        Camber angle in radians, positive is roll to the right.
-    Fz : float
-        Normal force in Newtons, negative in compression.
-    tire_data : TireCoefficients
-        Tire model constants.
-
-    Returns
-    =======
-    Fy : float
-        Lateral force in Newtons, positive to the right.
-    Mz : float
-        Self-aligning moment in Newton-Meters, positive moment will turn wheel
-        to the right.
-
-    """
-
-    Fz = -Fz/1000.00  # MUST be in [kN]
-    alpha = np.rad2deg(alpha)    # angles input in [deg]
-    phi = np.rad2deg(phi)        # angles input in [deg]
-
-    opt_Pac_fy = tire_data.Fy_coef
-    opt_Pac_Mz = tire_data.Mz_coef
-
-    C_mz = opt_Pac_Mz[0]  # Shape factor
-    D_mz = (opt_Pac_Mz[1]*Fz**2 + opt_Pac_Mz[2]*Fz)  # Peak factor
-    BCD_mz = ((opt_Pac_Mz[3]*Fz**2 + opt_Pac_Mz[4]*Fz) *
-              (1 - opt_Pac_Mz[6]*np.abs(phi))*np.exp(-opt_Pac_Mz[5]*Fz))
-    B_mz= BCD_mz/(C_mz*D_mz)  # Stiffness factor
-    Sh_mz = (opt_Pac_Mz[11]*phi + opt_Pac_Mz[12]*Fz +
-             opt_Pac_Mz[13])  # Horizontal shift
-    Sv_mz = ((opt_Pac_Mz[14]*Fz**2 + opt_Pac_Mz[15]*Fz)*phi +
-             opt_Pac_Mz[16]*Fz + opt_Pac_Mz[17])  # Vertical shift
-    X1_mz = alpha + Sh_mz  # Composite
-    E_mz = ((opt_Pac_Mz[7]*Fz**2 + opt_Pac_Mz[8]*Fz + opt_Pac_Mz[9])*
-            (1 - opt_Pac_Mz[10]*np.abs(phi)))  # Curvature factor
-
-    # TODO : Mz causes a slightly unstable oscillation.
-    # Evaluation of Mz
-    Mz = (D_mz*np.sin(C_mz*np.arctan(B_mz*X1_mz -
-          E_mz*(B_mz*X1_mz - np.arctan(B_mz*X1_mz))))) + Sv_mz
-
-    C_fy = opt_Pac_fy[0]  # Shape factor
-    D_fy = (opt_Pac_fy[1]*Fz**2 + opt_Pac_fy[2]*Fz)  # Peak factor
-    BCD_fy = (opt_Pac_fy[3]*np.sin(np.arctan(Fz/opt_Pac_fy[4])*2)*
-              (1 - opt_Pac_fy[5]*np.abs(phi)))
-    B_fy = BCD_fy/(C_fy*D_fy)  # Stiffness factor
-    Sh_fy = (opt_Pac_fy[9]*Fz + opt_Pac_fy[10] +
-             opt_Pac_fy[8]*phi)  # Horizontal shift
-    Sv_fy = (opt_Pac_fy[11]*Fz*phi + opt_Pac_fy[12]*Fz +
-             opt_Pac_fy[13])  # Vertical shift
-    X1_fy = alpha + Sh_fy  # Composite
-    E_fy = opt_Pac_fy[6]*Fz + opt_Pac_fy[7]
-
-    # Evaluation of Fy
-    Fy = (D_fy*np.sin(C_fy*np.arctan(B_fy*X1_fy -
-          E_fy*(B_fy*X1_fy - np.arctan(B_fy*X1_fy))))) + Sv_fy
-
-    Friction_coeff = 1.31917 #1.279368  # Used to adjust the Friction coefficient indoor test-rig VS kickplate sandpaper
-                                        # Obtained as: Friction coeff kickplate / Friction coeff test-rig
-    Fy = Fy * Friction_coeff
-    Mz = Mz * Friction_coeff
-
-    return -Fy, -Mz
 
 
 def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
@@ -432,9 +331,8 @@ def plot_tire_curves(p_vals):
     for Fz, color in zip(normal_forces, colors):
         Fys, Mzs = [], []
         Fys_lin, Mzs_lin = [], []
-        tire = SchwalbeT03_300kPa
         for alpha in slip_angles:
-            Fy, Mz = calc_nonlinear_tire_force(alpha, 0.0, Fz, tire)
+            Fy, Mz = calc_nonlinear_tire_force(alpha, 0.0, Fz, TIRE)
             Fy_lin, Mz_lin = calc_linear_tire_force(alpha, 0.0, Fz,
                                                     p_vals[c_ar],
                                                     p_vals[c_pr],
@@ -461,7 +359,7 @@ def plot_tire_curves(p_vals):
         Fys, Mzs = [], []
         Fys_lin, Mzs_lin = [], []
         for phi in camber_angles:
-            Fy, Mz = calc_nonlinear_tire_force(0.0, phi, Fz, tire)
+            Fy, Mz = calc_nonlinear_tire_force(0.0, phi, Fz, TIRE)
             Fy_lin, Mz_lin = calc_linear_tire_force(0.0, phi, Fz,
                                                     p_vals[c_ar],
                                                     p_vals[c_pr],

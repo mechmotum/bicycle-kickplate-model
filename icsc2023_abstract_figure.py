@@ -5,12 +5,12 @@ speed and apply a pulse kick."""
 import numpy as np
 import matplotlib.pyplot as plt
 
-from nonlin_sym import rr, rf, c_af, c_ar, c_maf, c_mar, c_pf, c_pr, ps
-from generated_functions import eval_angles
+from symbols import rr, rf, c_af, c_ar, c_maf, c_mar, c_pf, c_pr, ps
 from inputs import calc_linear_tire_force
 from inputs import calc_full_state_feedback_steer_torque as calc_steer_torque
 from parameters import browser_jason_par as p_vals
 from simulate import setup_initial_conditions, simulate, plot_minimal
+from generated_functions import eval_angles
 
 p_arr = np.array([p_vals[pi] for pi in ps])
 

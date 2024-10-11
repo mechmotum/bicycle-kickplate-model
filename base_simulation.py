@@ -4,9 +4,7 @@ initial forward speed and apply a pulse kick."""
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-from nonlin_sym import rr, rf, ps
-from generated_functions import eval_angles
+from symbols import rr, rf, ps
 from inputs import (calc_kick_motion_constant_acc, calc_linear_tire_force,
                     calc_nonlinear_tire_force)
 from inputs import calc_full_state_feedback_steer_torque as calc_steer_torque
@@ -14,6 +12,7 @@ from parameters import balanceassistv1_gabriele as p_vals
 from tire_data import SchwalbeT03_500kPa as tire
 from simulate import (setup_initial_conditions, rhs, simulate, plot_all,
                       plot_kick_motion, plot_wheel_paths, plot_tire_curves)
+from generated_functions import eval_angles
 
 p_arr = np.array([p_vals[pi] for pi in ps])
 

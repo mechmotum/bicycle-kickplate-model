@@ -41,8 +41,15 @@ or recreate the plot from our ICSC 2023 poster presentation::
 
    python icsc2023_abstract_figure.py
 
+After ``nonlin_sym.py`` is run once, it generates a Python module
+``generated_functions.py`` which caches the equations of motion. If you edit
+``symbols.py`` or ``nonlin_sym.py`` you'll need to delete the
+``generated_functions.py`` and rerun the model construction. Delete the
+``generated_functions.py`` anytime you want to rebuild the model.
+
 The various files in the repository are described below:
 
+- ``symbols.py``: contains all symbol symbol definitions
 - ``nonlin_sym.py``: formulates the symbolic equations of motion and generates
   numeric functions to evaluate them
 - ``inputs.py``: contains different function for specified inputs (kick plate

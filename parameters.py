@@ -1,6 +1,6 @@
 """Parameter data for the bicycle, rider, and linear tire model."""
 
-from nonlin_sym import ps
+from symbols import ps
 
 # TODO : Define all symbols in a seperate Python file so the can be imported
 # and used without constructing the symbolic equations of motion.

@@ -1,69 +1,21 @@
-"""Simulate the standard condition: initial conditions are zero except for an
-initial forward speed and apply a pulse kick."""
+"""Generates the plot for our ICSC 2023 poster and abstract. Simulate the
+standard condition: initial conditions are zero except for an initial forward
+speed and apply a pulse kick."""
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from simulate import *
+from parameters import browser_jason_par as p_vals
 
-# batavus browser with Jason sitting on it, tire parameters from
-# Andrew/Gabriele
-p_vals = {
-    c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
-    c_ar: 11.46,
-    c_f: 4000.0,  # guess
-    c_maf: 0.33,  # 0.33 is rough calc from Gabriele's data
-    c_mar: 0.33,
-    c_mpf: 0.0,  # need real numbers for this
-    c_mpr: 0.0,  # need real numbers for this
-    c_pf: 0.573,
-    c_pr: 0.573,
-    c_r: 4000.0,  # guess
-    d1: 0.9631492634872098,
-    d2: 0.4338396131640938,
-    d3: 0.0705000000001252,
-    g: 9.81,
-    ic11: 11.519805885486146,
-    ic22: 12.2177848012,
-    ic31: 1.57915608541552,
-    ic33: 2.959474124693854,
-    id11: 0.0883819364527,
-    id22: 0.152467620286,
-    ie11: 0.2811355367159554,
-    ie22: 0.246138810935,
-    ie31: 0.0063377219110826045,
-    ie33: 0.06782113764394461,
-    if11: 0.0904106601579,
-    if22: 0.149389340425,
-    k_f: 120000.0,  # ~ twice the stiffness of a 1.25" tire from Rothhamel 2024
-    k_r: 120000.0,  # ~ twice the stiffness of a 1.25" tire from Rothhamel 2024
-    l1: 0.5384415640161426,
-    l2: -0.531720230353059,
-    l3: -0.07654646159268344,
-    l4: -0.47166687226492093,
-    mc: 81.86,
-    md: 3.11,
-    me: 3.22,
-    mf: 2.02,
-    r_tf: 0.01,
-    r_tr: 0.01,
-    rf: 0.34352982332,
-    rr: 0.340958858855,
-    s_yf: 0.175,  # Andrew's estimates from his dissertation data
-    s_yr: 0.175,
-    s_zf: 0.175,
-    s_zr: 0.175,
-}
 p_arr = np.array([p_vals[pi] for pi in ps])
-for i, k in enumerate(p_vals.keys()):
-    print(i, k)
 
 
 def calc_fkp(t):
     """Returns the lateral forced applied to the tire by the kick plate."""
 
     if t > 0.5 and t < 1.0:
-        return 500.0
+        return 500.0  # Newtons
     else:
         return 0.0
 
@@ -129,9 +81,9 @@ def calc_inputs(t, x, p):
     c_mpr, c_pf, c_pr = p[6], p[7], p[8]
     alphar, alphaf, phir, phif = eval_angles(q, u, [y, yd], p)
     Fry, Mrz = calc_linear_tire_force(alphar, phir, Frz, c_ar, c_pr, c_mar,
-                                      0.0)
+                                      c_mpr)
     Ffy, Mfz = calc_linear_tire_force(alphaf, phif, Ffz, c_af, c_pf, c_maf,
-                                      0.0)
+                                      c_mpf)
 
     # steer, rear wheel, roll torques set to zero
     T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x)

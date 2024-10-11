@@ -7,8 +7,15 @@ import matplotlib.pyplot as plt
 
 from simulate import *
 from parameters import browser_jason_par as p_vals
+from inputs import calc_full_state_feedback_steer_torque as calc_steer_torque
 
 p_arr = np.array([p_vals[pi] for pi in ps])
+
+# LQR gains for Whipple model Broswer-Jason at 6 m/s
+kq4 = -2.2340917377023612
+kq7 = 4.90641020775064
+ku4 = -0.5939384880650549
+ku7 = 0.4340987861323103
 
 
 def calc_fkp(t):
@@ -18,26 +25,6 @@ def calc_fkp(t):
         return 500.0  # Newtons
     else:
         return 0.0
-
-
-def calc_steer_torque(t, x):
-    """Simple LQR control based on linear Carvallo-Whipple model."""
-
-    q = x[:10]
-    u = x[10:20]
-
-    q4 = q[3]
-    q7 = q[6]
-    u4 = u[3]
-    u7 = u[6]
-
-    # LQR gains for Whipple model at 6 m/s
-    kq4 = -2.2340917377023612
-    kq7 = 4.90641020775064
-    ku4 = -0.5939384880650549
-    ku7 = 0.4340987861323103
-
-    return -(kq4*q4 + kq7*q7 + ku4*u4 + ku7*u7)
 
 
 def calc_inputs(t, x, p):
@@ -86,7 +73,7 @@ def calc_inputs(t, x, p):
                                       c_mpf)
 
     # steer, rear wheel, roll torques set to zero
-    T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x)
+    T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x, [kq4, ku4, kq7, ku7])
 
     # kick plate force
     fkp = calc_fkp(t)

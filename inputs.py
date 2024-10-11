@@ -117,6 +117,7 @@ def calc_nonlinear_tire_force(alpha, phi, Fz, tire_data):
     # Used to adjust the Friction coefficient indoor test-rig VS kickplate
     # sandpaper
     # Obtained as: Friction coeff kickplate / Friction coeff test-rig
+    # TODO : This should only be applied to the rear wheel.
     Friction_coeff = 1.31917  # 1.279368
     Fy = Fy * Friction_coeff
     Mz = Mz * Friction_coeff

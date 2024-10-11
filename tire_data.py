@@ -1,21 +1,25 @@
-
 from dataclasses import dataclass
 from typing import List
 
-# Tire: 
-# SchwalbeT03: label for Schwalbe 50km Energizer, Plus G-Guard 5/Addix-E	(28" x 1,75)
+# Tire:
+# SchwalbeT03: label for Schwalbe 50km Energizer,
+# Plus G-Guard 5/Addix-E (28" x 1,75)
+
 
 @dataclass
 class TireCoefficients:
     Fy_coef: List[float]
     Mz_coef: List[float]
-    '''Data classes to manage multiple tires, and/or multiple inflation pressures'''
+    '''Data classes to manage multiple tires, and/or multiple inflation
+    pressures'''
     def __str__(self):
-        return f'Tirecoefficients(Fy_coef={self.Fy_coef}, Mz_coef={self.Mz_coef})'
+        return (f'Tirecoefficients(Fy_coef={self.Fy_coef}, ',
+                f'Mz_coef={self.Mz_coef})')
+
 
 SchwalbeT03_300kPa = TireCoefficients(
-    Fy_coef = [
-        3.11785071938867,            # MF Coefficients Fy (14 par). For input in deg. Upper Limit Fz: 1000 N
+    Fy_coef=[
+        3.11785071938867,  # MF Coefficients Fy (14 par). For input in deg. Upper Limit Fz: 1000 N
         -752.571579481671,
         1187.69713139730,
         124.477503972100,
@@ -30,9 +34,7 @@ SchwalbeT03_300kPa = TireCoefficients(
         -22.5925899864901,
         5.37222617956484,
     ],
-
-
-    Mz_coef = [
+    Mz_coef=[
         2.09906592639809,    # For input in deg. Upper Limit Fz: 1000 N
         10.5876618219117,
         2.60441934159322,
@@ -55,8 +57,8 @@ SchwalbeT03_300kPa = TireCoefficients(
 )
 
 SchwalbeT03_400kPa = TireCoefficients(
-    Fy_coef = [
-        2.41687583414210,           # For input in deg. Upper Limit Fz: 1000 N
+    Fy_coef=[
+        2.41687583414210,  # For input in deg. Upper Limit Fz: 1000 N
         -827.137473764760,
         1237.66083004943,
         395.200360397803,
@@ -71,9 +73,8 @@ SchwalbeT03_400kPa = TireCoefficients(
         -128.332286072010,
         42.3694891796893,
     ],
-
-    Mz_coef = [
-        2.21843255129583,           # For input in deg. Upper Limit Fz: 1000 N
+    Mz_coef=[
+        2.21843255129583,  # For input in deg. Upper Limit Fz: 1000 N
         11.5353268949534,
         0.999589243739601,
         -0.421820285221245,
@@ -95,7 +96,7 @@ SchwalbeT03_400kPa = TireCoefficients(
 )
 
 SchwalbeT03_500kPa = TireCoefficients(
-    Fy_coef = [
+    Fy_coef=[
         2.82190142692177,
         -600.725093731511,
         1126.13419486956,
@@ -111,8 +112,7 @@ SchwalbeT03_500kPa = TireCoefficients(
         59.7995288076727,
         -24.3588719849742,
     ],
-
-    Mz_coef = [
+    Mz_coef=[
         2.23288298875190,
         5.64395420003480,
         2.85799096871478,
@@ -133,9 +133,3 @@ SchwalbeT03_500kPa = TireCoefficients(
         0.0162591874180916
     ]
 )
-
-# SchwalbeT03_300kPa = TireCoefficients(Fy_coef=SchwalbeT03_300kPa_Fy_coef, Mz_coef=SchwalbeT03_300kPa_Mz_coef)
-# SchwalbeT03_400kPa = TireCoefficients(Fy_coef=SchwalbeT03_400kPa_Fy_coef, Mz_coef=SchwalbeT03_400kPa_Mz_coef)
-# SchwalbeT03_500kPa = TireCoefficients(Fy_coef=SchwalbeT03_500kPa_Fy_coef, Mz_coef=SchwalbeT03_500kPa_Mz_coef)
-
-

@@ -5,18 +5,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions, rhs,
-                      simulate, plot_all, plot_kick_motion, plot_wheel_paths,
+from simulate import (rr, rf, ps, setup_initial_conditions, rhs, simulate,
+                      plot_all, plot_kick_motion, plot_wheel_paths,
                       plot_tire_curves, calc_linear_tire_force,
                       calc_nonlinear_tire_force, eval_angles)
 from inputs import calc_kick_motion_constant_acc
 from inputs import calc_full_state_feedback_steer_torque as calc_steer_torque
+from parameters import balanceassistv1_gabriele as p_vals
 from tire_data import (SchwalbeT03_300kPa, SchwalbeT03_400kPa,
                        SchwalbeT03_500kPa)
 
 # Define the tire to equip the bicycle
 tire = SchwalbeT03_500kPa
 
+p_arr = np.array([p_vals[pi] for pi in ps])
+
+# TODO : Move to parameters.py
 # LQR gains for Whipple model, rider Gabriele (635 N), at 3 m/s
 kq4 = -19.5679
 ku4 = -6.7665
@@ -137,7 +141,7 @@ res = simulate(duration, calc_inputs, initial_conditions, p_arr, fps=fps)
 plot_all(*res)
 plot_kick_motion(res[0], res[-1])
 plot_wheel_paths(res[1], res[-3], res[-2], res[-1][:, 4])
-plot_tire_curves()
+plot_tire_curves(p_vals)
 
 if __name__ == "__main__":
     plt.show()

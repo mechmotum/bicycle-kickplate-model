@@ -6,9 +6,6 @@ import numpy as np
 from nonlin_sym import *
 from tire_data import (TireCoefficients, SchwalbeT03_300kPa,
                        SchwalbeT03_400kPa, SchwalbeT03_500kPa)
-from parameters import balanceassistv1_gabriele as p_vals
-
-p_arr = np.array([p_vals[pi] for pi in ps])
 
 ##########################
 # Check evaluation of EoMs
@@ -200,8 +197,6 @@ def calc_nonlinear_tire_force(alpha, phi, Fz, tire_data):
     return -Fy, -Mz
 
 
-
-
 def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     """Calculates dependent coordinates and speeds given the independent
     coordinates and speeds. The dependent coordinates and speeds in q_vals and
@@ -287,7 +282,7 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
 
 def simulate(dur, calc_inputs, x0, p, fps=60):
     """Simulate the model given the duration, constant parameters, initial
-    conditions, and inputs and calcaluate any output variables."""
+    conditions, and inputs and calculate any output variables."""
 
     t0 = 0.0
     tf = t0 + dur
@@ -419,7 +414,7 @@ def plot_wheel_paths(q_traj, q9_traj, q10_traj, kick_displacement):
     return ax
 
 
-def plot_tire_curves():
+def plot_tire_curves(p_vals):
 
     camber_range = np.deg2rad(45.0)
     camber_angles = np.linspace(-camber_range, camber_range)

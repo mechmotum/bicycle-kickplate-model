@@ -102,3 +102,101 @@ browser_jason_par = {
     s_zf: 0.175,
     s_zr: 0.175,
 }
+
+# Balanceassistv1 with Gabriele, tire parameters from Andrew and Gabriele.
+# TODO : Verify how Gabriele calculated these inertia parametes.
+balanceassistv1_gabriele = {
+    c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
+    c_ar: 11.46,
+    c_f: 4000.0,  # guess
+    c_maf: 0.33,  # 0.33 is rough calc from Gabriele's data
+    c_mar: 0.33,
+    c_mpf: 0.005,  # need real numbers for this
+    c_mpr: 0.005,  # need real numbers for this
+    c_pf: 0.573,
+    c_pr: 0.573,
+    c_r: 4000.0,  # guess
+    d1: 0.9631492634872098,
+    d2: 0.4338396131640938,
+    d3: 0.0705000000001252,
+    g: 9.81,
+    ic11: 12.242077,   # --START-- Parameters for Gabriele (635 N)
+    ic22: 14.951251,
+    ic31: 3.214818,
+    ic33: 4.493685,
+    id11: 0.070096,
+    id22: 0.129342,
+    ie11: 0.374921,
+    ie22: 0.339925,
+    ie31: -0.002581,
+    ie33: 0.072061,
+    if11: 0.052448,
+    if22: 0.098372,
+    k_f: 133000.0,  # [pressure 3 bar k_f:80000] [pressure 4 bar k_f:106000] [pressure 5 bar k_f:133000]. From G. Dell'Orto 2023 (EJM/A Solids)
+    k_r: 133000.0,  # same as k_f [N/m]
+    l1: 0.526720,
+    l2: -0.537772,
+    l3: -0.030119,
+    l4: -0.694391,
+    mc: 83.900000,
+    md: 4.900000,
+    me: 5.400000,
+    mf: 1.550000,
+    r_tf: 0.01,
+    r_tr: 0.01,
+    rf: 0.335573,  # --END-- Parameters for Gabriele (635 N)
+    rr: 0.332528,
+    s_yf: 0.175,  # Andrew's estimates from his dissertation data
+    s_yr: 0.175,
+    s_zf: 0.175,
+    s_zr: 0.175,
+}
+
+# Balanceassistv1 with Timo, tire parameters from Andrew and Gabriele.
+# TODO : Verify how Gabriele calculated these inertia parametes.
+balanceassistv1_timo = {
+    c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
+    c_ar: 11.46,
+    c_f: 4000.0,  # guess
+    c_maf: 0.33,  # 0.33 is rough calc from Gabriele's data
+    c_mar: 0.33,
+    c_mpf: 0.005,  # need real numbers for this
+    c_mpr: 0.005,  # need real numbers for this
+    c_pf: 0.573,
+    c_pr: 0.573,
+    c_r: 4000.0,  # guess
+    d1: 0.9631492634872098,
+    d2: 0.4338396131640938,
+    d3: 0.0705000000001252,
+    g: 9.81,
+    ic11: 14.338830,   # --START-- Parameters for Timo (701 N)
+    ic22: 17.115790,
+    ic31: 3.610619,
+    ic33: 4.976662,
+    id11: 0.070096,
+    id22: 0.129342,
+    ie11: 0.374921,
+    ie22: 0.339925,
+    ie31: -0.002581,
+    ie33: 0.072061,
+    if11: 0.052448,
+    if22: 0.098372,
+    k_f: 133000.0,  # [pressure 3 bar k_f:80000] [pressure 4 bar k_f:106000] [pressure 5 bar k_f:133000]. From G. Dell'Orto 2023 (EJM/A Solids)
+    k_r: 133000.0,  # same as k_f [N/m]
+    l1: 0.542381,
+    l2: -0.556788,
+    l3: -0.030119,
+    l4: -0.694391,
+    mc: 92.900000,
+    md: 4.900000,
+    me: 5.400000,
+    mf: 1.550000,
+    r_tf: 0.01,
+    r_tr: 0.01,
+    rf: 0.335573,  # --END-- Parameters for Timo (701 N)
+    rr: 0.332528,
+    s_yf: 0.175,  # Andrew's estimates from his dissertation data
+    s_yr: 0.175,
+    s_zf: 0.175,
+    s_zr: 0.175,
+}

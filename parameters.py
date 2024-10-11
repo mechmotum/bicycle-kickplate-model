@@ -104,7 +104,7 @@ browser_jason_par = {
 }
 
 # Balanceassistv1 with Gabriele, tire parameters from Andrew and Gabriele.
-# TODO : Verify how Gabriele calculated these inertia parametes.
+# TODO : Verify how Gabriele calculated these inertia parameters.
 balanceassistv1_gabriele = {
     c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
     c_ar: 11.46,
@@ -153,7 +153,7 @@ balanceassistv1_gabriele = {
 }
 
 # Balanceassistv1 with Timo, tire parameters from Andrew and Gabriele.
-# TODO : Verify how Gabriele calculated these inertia parametes.
+# TODO : Verify how Gabriele calculated these inertia parameters.
 balanceassistv1_timo = {
     c_af: 11.46,  # estimates from Andrew's dissertation (done by him)
     c_ar: 11.46,

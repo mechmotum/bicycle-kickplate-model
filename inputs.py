@@ -1,6 +1,35 @@
 import numpy as np
 
 
+def calc_full_state_feedback_steer_torque(t, x, k):
+    """Simple LQR control based on linear Carvallo-Whipple model.
+
+    Parameters
+    ==========
+    t : float
+        Time in seconds.
+    x : array_like, shape(24,)
+        State values where x = [q1, q2, q3, q4, q5, q6, q7, q8, q11, q12,
+                                u1, u2, u3, u4, u5, u6, u7, u8, u11, u12,
+                                Fry, Ffy, Mrz, Mfz].
+    k : array_like, shape(4,)
+        Gains: [kq4, ku4, kq7, ku7]
+
+    """
+
+    q = x[:10]
+    u = x[10:20]
+
+    q4 = q[3]
+    q7 = q[6]
+    u4 = u[3]
+    u7 = u[6]
+
+    kq4, ku4, kq7, ku7 = k
+
+    return -(kq4*q4 + kq7*q7 + ku4*u4 + ku7*u7)
+
+
 def calc_kick_force_pulse(t):
     """Returns the lateral forced applied to the tire by the kick plate. The
     force is modeled as a sinusoidal pulse."""

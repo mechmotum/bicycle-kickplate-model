@@ -10,43 +10,18 @@ from simulate import (rr, rf, p_vals, p_arr, setup_initial_conditions, rhs,
                       plot_tire_curves, calc_linear_tire_force,
                       calc_nonlinear_tire_force, eval_angles)
 from inputs import calc_kick_motion_constant_acc
+from inputs import calc_full_state_feedback_steer_torque as calc_steer_torque
 from tire_data import (SchwalbeT03_300kPa, SchwalbeT03_400kPa,
                        SchwalbeT03_500kPa)
 
 # Define the tire to equip the bicycle
 tire = SchwalbeT03_500kPa
 
-
-def calc_steer_torque(t, x):
-    """Simple LQR control based on linear Carvallo-Whipple model."""
-
-    q = x[:10]
-    u = x[10:20]
-
-    q4 = q[3]
-    q7 = q[6]
-    u4 = u[3]
-    u7 = u[6]
-
-    # LQR gains for Whipple model at 6 m/s
-    # kq4 = -2.2340917377023612
-    # kq7 = 4.90641020775064
-    # ku4 = -0.5939384880650549
-    # ku7 = 0.4340987861323103
-
-    # LQR gains for Whipple model at 3 m/s
-    # kq4 = -23.183400610625647
-    # kq7 = 17.086409893261113
-    # ku4 = -7.999852938163112
-    # ku7 = 1.8634394089384874
-
-    # LQR gains for Whipple model, rider Gabriele (635 N), at 3 m/s
-    kq4 = -19.5679
-    ku4 = -6.7665
-    kq7 = 15.4934
-    ku7 = 1.5876
-
-    return -(kq4*q4 + kq7*q7 + ku4*u4 + ku7*u7)
+# LQR gains for Whipple model, rider Gabriele (635 N), at 3 m/s
+kq4 = -19.5679
+ku4 = -6.7665
+kq7 = 15.4934
+ku7 = 1.5876
 
 
 def calc_inputs(t, x, p):
@@ -100,7 +75,7 @@ def calc_inputs(t, x, p):
     #print('Non-linear: ', Fry, Ffy)
 
     # steer, rear wheel, roll torques set to zero
-    T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x)
+    T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x, [kq4, ku4, kq7, ku7])
 
     # kick plate force
     fkp = 0.0

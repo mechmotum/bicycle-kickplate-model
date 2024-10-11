@@ -674,5 +674,20 @@ eval_balance = sm.lambdify((qs, ps),
                             center_of_mass(nd, rear_frame, rear_wheel,
                                            front_frame, front_wheel).dot(N.x)))
 
-with open('eval_dynamic.py', 'w') as file:
-    file.write(inspect.getsource(eval_dynamic))
+generated_funcs = [
+    ('eval_angles', eval_angles),
+    ('eval_balance', eval_balance),
+    ('eval_dep_speeds', eval_dep_speeds),
+    ('eval_dynamic', eval_dynamic),
+    ('eval_equilibrium', eval_equilibrium),
+    ('eval_front_contact', eval_front_contact),
+    ('eval_holonomic', eval_holonomic),
+]
+
+lines = "from numpy import sin, cos, tan, arctan, sqrt, array"
+
+for name, f in generated_funcs:
+    lines += '\n\n' + inspect.getsource(f).replace('_lambdifygenerated', name)
+
+with open('generated_functions.py', 'w') as file:
+    file.write(lines)

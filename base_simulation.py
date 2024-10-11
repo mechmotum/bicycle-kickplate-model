@@ -5,7 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-from nonlin_sym import rr, rf, ps, eval_angles
+from nonlin_sym import rr, rf, ps
+from generated_functions import eval_angles
 from inputs import (calc_kick_motion_constant_acc, calc_linear_tire_force,
                     calc_nonlinear_tire_force)
 from inputs import calc_full_state_feedback_steer_torque as calc_steer_torque

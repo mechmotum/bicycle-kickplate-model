@@ -20,16 +20,30 @@ Create the Conda environment and activate it::
    conda env create -f bicycle-kickplate-model-env.yml
    conda activate bicycle-kickplate-model
 
-After that you can run the simulation, e.g.::
+After that you can run the sample simulation, e.g.::
 
    python base_simulation.py
 
-The symbolic nonlinear equations of motion and functions that evaluate the
-equations are generated with::
+or recreate the plot from our ICSC 2023 poster presentation::
 
-   python nonlin_sym.py
+   python icsc2023_abstract_figure.py
 
-``simulate.py`` houses generic functions.
+The various files in the repository are described below:
+
+- ``nonlin_sym.py``: formulates the symbolic equations of motion and generates
+  numeric functions to evaluate them
+- ``inputs.py``: contains different function for specified inputs (kick plate
+  displacement, steer torque, etc.)
+- ``parameters.py``: holds dictionaries mapping numerical values to all model
+  constants
+- ``simulate.py``: simulation functions and plotting functions
+- ``viz.py``: sets up a pythreejs animation using PyDy
+- ``visualize.ipynb``: displays a 3D animation of the ``base_simualtion.py``
+- ``simple_kick_plate_simulation.py``: 1D simulation of a kick plate mass
+  hitting the stoppers used to understand the possible acceleration profiles
+- ``tire_data.py``: Pajecka Magic formula constants for the nonlinear tire
+  model measured from Gabriele Dell'Orto's work
+- ``utils.py``: helper functions
 
 License
 =======

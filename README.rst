@@ -6,11 +6,22 @@ model. The model includes lateral forces, self-aligning moments, relaxation
 length, and an input capable of applying either a force or displacement to the
 contact point under the rear wheel to simulate a lateral kick plate.
 
-The model is based on the nonlinear Carvallo-Whipple model presented in Moore
-2012. The lateral nonholonomic constraints at the wheel-ground contact
-locations are removed and replaced with a lateral force and yaw moment at the
-contact patch. A tire carcass radius creates a torodial tire and vertical tire
-compression is added.
+The model is based on the nonlinear Carvallo-Whipple model presented in
+[Moore2012]_. The lateral nonholonomic constraints at the wheel-ground contact
+locations are removed and replaced with a lateral force and self-aligning
+moment at the contact patch. A tire carcass radius creates a toroidal tire and
+vertical tire compression is added.
+
+We first presented preliminary results of this model at the ICSC 2023
+conference [DellOrto2023]_.
+
+.. [Moore2012] Moore, J. K. (2012). Human Control of a Bicycle [Doctor of
+   Philosophy, University of California].
+   http://moorepants.github.io/dissertation
+.. [DellOrto2023] Dell’Orto, G., Alizadehsaravi, L., Happee, R., & Moore, J. K.
+   (2023, November 16). Kick-plate test for assessing bicycle dynamics and tyre
+   effect [Poster]. International Cycling Safety Conference, The Hague, The
+   Netherlands.
 
 Usage
 =====

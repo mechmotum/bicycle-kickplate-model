@@ -684,7 +684,7 @@ generated_funcs = [
     ('eval_holonomic', eval_holonomic),
 ]
 
-lines = "from numpy import sin, cos, tan, arctan, sqrt, array"
+lines = "from numpy import sin, cos, arctan, sqrt, array"
 
 for name, f in generated_funcs:
     lines += '\n\n' + inspect.getsource(f).replace('_lambdifygenerated', name)

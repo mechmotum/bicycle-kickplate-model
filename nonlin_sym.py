@@ -4,9 +4,10 @@
 bicycle model ([Carvallo1899]_, [Whippl1899]_) following the description and
 nomenclature in [Moore2012]_ but with the tire-ground lateral slip nonholonomic
 constraint removed and replaced with a lateral tire force and self-aligning
-moment that are functions of the slip and camber angle of the wheels as well as
-a specified lateral displacement of the rear wheel contact to simulate
-perturbations applied by a kick plate.
+moment that are functions of the slip and camber angle of the wheels. Torodial
+tires are added that have damped compression and a specified lateral
+displacement of the rear wheel contact can be used to simulate perturbations
+applied by a kick plate.
 
 References
 ==========
@@ -78,10 +79,9 @@ print('Defining time varying symbols.')
 q1, q2, q3, q4 = mec.dynamicsymbols('q1, q2, q3, q4')
 q5, q6, q7, q8 = mec.dynamicsymbols('q5, q6, q7, q8')
 q11, q12 = mec.dynamicsymbols('q11, q12')
-y, yd, ydd = mec.dynamicsymbols('y, yd, ydd')
 
 # q's that will have kinematical differential equations
-qs = [
+qs = [  # index
     q1,  # 0
     q2,  # 1
     q3,  # 2
@@ -147,6 +147,9 @@ Mrz, Mfz = mec.dynamicsymbols('Mrz, Mfz')
 
 # kickplate force
 Fkp = mec.dynamicsymbols('Fkp')
+
+# kickplate displacement, speed, and acceleration
+y, yd, ydd = mec.dynamicsymbols('y, yd, ydd')
 
 ##############
 # Replacements
@@ -493,7 +496,6 @@ loads = [
 # Prep symbolic data
 ####################
 
-newto = N
 # rear contact x, rear contact y, yaw, roll, rear wheel angle, steer, front
 # wheel angle
 q_ind = (q1, q2, q3, q4, q6, q7, q8, q11, q12)
@@ -562,7 +564,7 @@ nonho = tuple(nonholonomic)
 print("Generating Kane's equations.")
 
 kane = mec.KanesMethod(
-    newto,
+    N,
     q_ind,
     u_ind,
     kd_eqs=kinematical,
@@ -674,4 +676,3 @@ eval_balance = sm.lambdify((qs, ps),
 
 with open('eval_dynamic.py', 'w') as file:
     file.write(inspect.getsource(eval_dynamic))
-

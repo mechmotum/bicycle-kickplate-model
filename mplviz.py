@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from symbols import rr, rf, y, qs, ps, d1, d2, d3
+# TODO : loading these from model.py forces the EoMs to be rebuilt
 from model import N, C, E, o, p, do, fo, nd, rear_wheel, front_wheel
 from symmeplot.matplotlib import Scene3D
 from base_simulation import p_arr, res, fps
@@ -33,11 +34,13 @@ front_wheel_plot.attach_circle(
     front_wheel.frame.y,
     facecolor="none", edgecolor="k")
 
-scene.add_line([do,
-                do.locatenew('d1_half', d1*C.x),
-                fo.locatenew('d2_half', -d3*E.x - d2*E.z),
-                fo,
-                fo.locatenew('d3_half', -d3*E.x)])
+scene.add_line([
+    fo,
+    fo.locatenew('d3_half', -d3*E.x),
+    fo.locatenew('d2_half', -d3*E.x - d2*E.z),
+    do.locatenew('d1_half', d1*C.x),
+    do,
+])
 
 scene.lambdify_system(qs + [y] + list(ps))
 scene.evaluate_system(*np.hstack((q_traj[0, :], r_traj[0, 4:5], p_arr)))

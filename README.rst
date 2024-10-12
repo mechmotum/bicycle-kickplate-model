@@ -61,7 +61,7 @@ The various files in the repository are described below:
 - ``plot.py``: plotting functions
 - ``viz.py``: sets up a pythreejs animation using PyDy
 - ``visualize.ipynb``: displays a 3D animation of the ``base_simualtion.py``
-- ``mplviz.ipynb``: a symmeplot animation of the motion
+- ``mplviz.py``: a symmeplot animation of the motion
 - ``simple_kick_plate_simulation.py``: 1D simulation of a kick plate mass
   hitting the stoppers used to understand the possible acceleration profiles
 - ``tire_data.py``: Pajecka Magic formula constants for the nonlinear tire

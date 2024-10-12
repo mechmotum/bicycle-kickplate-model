@@ -88,8 +88,12 @@ A.orient(N, 'Axis', (q3, N['3']))
 B.orient(A, 'Axis', (q4, A['1']))
 # rear frame pitch
 C.orient(B, 'Axis', (q5, B['2']))
+# rear wheel rotation
+D.orient(C, 'Axis', (q6, C['2']))
 # front frame steer
 E.orient(C, 'Axis', (q7, C['3']))
+# front wheel rotation
+F.orient(E, 'Axis', (q8, E['2']))
 
 # create a front "yaw" frame that is equivalent to the A frame for the rear
 # wheel.

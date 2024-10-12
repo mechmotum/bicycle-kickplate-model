@@ -128,7 +128,7 @@ print(initial_conditions)
                               fps=1000)
 
 axes, torqax = plot_minimal(times, q_traj[:, 6], slip_traj[:, 0],
-                            slip_traj[:, 1], r_traj[:, -1], r_traj[:, 2],
+                            slip_traj[:, 1], r_traj[:, 3], r_traj[:, 2],
                             f_traj[:, 0], f_traj[:, 1])
 
 factor = 1.3
@@ -146,7 +146,7 @@ initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
                               fps=1000)
 
 plot_minimal(times, q_traj[:, 6], slip_traj[:, 0], slip_traj[:, 1],
-             r_traj[:, -1], r_traj[:, 2], f_traj[:, 0], f_traj[:, 1],
+             r_traj[:, 3], r_traj[:, 2], f_traj[:, 0], f_traj[:, 1],
              axes=axes, torqax=torqax, linestyle=':')
 
 plt.show()

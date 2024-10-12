@@ -131,14 +131,13 @@ print(initial_conditions)
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, calc_inputs, p_arr))
 
-fps = 400  # frames per second
+fps = 60  # frames per second
 duration = 6.0  # seconds
 res = simulate(duration, calc_inputs, initial_conditions, p_arr, fps=fps)
 
-plot_all(*res)
-plot_kick_motion(res[0], res[-1])
-plot_wheel_paths(res[1], res[-3], res[-2], res[-1][:, 4])
-plot_tire_curves(p_vals)
-
 if __name__ == "__main__":
+    plot_all(*res)
+    plot_kick_motion(res[0], res[-1])
+    plot_wheel_paths(res[1], res[-3], res[-2], res[-1][:, 4])
+    plot_tire_curves(p_vals)
     plt.show()

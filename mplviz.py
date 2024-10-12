@@ -1,14 +1,18 @@
+import numpy as np
 import matplotlib.pyplot as plt
 
 from symbols import rr, rf, y, qs, ps
-from model import N, o, rear_wheel, front_wheel
+from model import N, o, p, rear_wheel, front_wheel
 from symmeplot.matplotlib import Scene3D
-from base_simulation import *
+from base_simulation import p_arr, res
 
 (times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj,
  q10_traj, r_traj) = res
 
-scene = Scene3D(N, o) #, scale=0.5)
+scene = Scene3D(N, o, scale=0.5)
+
+scene.add_frame(N, p)  # kick plate
+
 rear_wheel_plot = scene.add_body(rear_wheel)
 rear_wheel_plot.attach_circle(
     rear_wheel.masscenter,

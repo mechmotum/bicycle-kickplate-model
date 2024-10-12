@@ -40,6 +40,8 @@ from symbols import (c_af, c_ar, c_f, c_maf, c_mar, c_mpf, c_mpr, c_pf, c_pr,
                      s_zr, ps)
 from utils import ReferenceFrame, decompose_linear_parts, print_syms
 
+PRINT = False
+
 ##############
 # Replacements
 ##############
@@ -163,7 +165,7 @@ print('Defining holonomic constraints.')
 # this constraint is enforced so that the front wheel contacts the ground
 holonomic = fn.pos_from(nd).dot(A['3'])
 
-print_syms(holonomic, "Holonomic constraint is a function of: ")
+print_syms(holonomic, "Holonomic constraint is a function of: ", PRINT)
 
 ####################################
 # Kinematical Differential Equations
@@ -242,10 +244,10 @@ N_v_nd2 = rear_slip_vel.dot(A['2'])
 N_v_ft1 = ft.pos_from(o).dt(N).dot(g1_hat).xreplace(qdot_repl)
 N_v_ft2 = ft.pos_from(o).dt(N).dot(g2_hat).xreplace(qdot_repl)
 
-print_syms(N_v_nd1, "N_v_nd1 is a function of: ")
-print_syms(N_v_nd2, "N_v_nd2 is a function of: ")
-print_syms(N_v_ft1, "N_v_ft1 is a function of: ")
-print_syms(N_v_ft2, "N_v_ft2 is a function of: ")
+print_syms(N_v_nd1, "N_v_nd1 is a function of: ", PRINT)
+print_syms(N_v_nd2, "N_v_nd2 is a function of: ", PRINT)
+print_syms(N_v_ft1, "N_v_ft1 is a function of: ", PRINT)
+print_syms(N_v_ft2, "N_v_ft2 is a function of: ", PRINT)
 
 ####################
 # Motion Constraints
@@ -271,15 +273,17 @@ nonholonomic = [
     holonomic.diff(t).xreplace(qdot_repl),
 ]
 
-print_syms(nonholonomic[0], "rear slip constraint is a function of: ")
-print_syms(nonholonomic[1], "front slip constraint is a function of: ")
+print_syms(nonholonomic[0], "rear slip constraint is a function of: ", PRINT)
+print_syms(nonholonomic[1], "front slip constraint is a function of: ", PRINT)
 print_syms(nonholonomic[2],
-           "wheel vertical contact vel constraint is a function of: ")
+           "wheel vertical contact vel constraint is a function of: ", PRINT)
 
-common = mec.find_dynamicsymbols(nonholonomic[0]).intersection(
-    mec.find_dynamicsymbols(nonholonomic[0])).intersection(
-        mec.find_dynamicsymbols(nonholonomic[0]))
-print('Nonholonomic constraints share these time varying parameters: ', common)
+if PRINT:
+    common = mec.find_dynamicsymbols(nonholonomic[0]).intersection(
+        mec.find_dynamicsymbols(nonholonomic[0])).intersection(
+            mec.find_dynamicsymbols(nonholonomic[0]))
+    print('Nonholonomic constraints share these time varying parameters: ',
+          common)
 
 #########
 # Inertia
@@ -404,9 +408,9 @@ kane.kanes_equations(bodies, loads=loads)
 # (s_yf/N_v_fn1)*Mrz' + Mrz = Mrz_ = -(c_maf*alphaf + c_pf*phif)*Ffz
 # slip angle
 alphar = sm.atan(N_v_nd2/N_v_nd1)
-print_syms(alphar, 'Rear slip angle is a function of: ')
+print_syms(alphar, 'Rear slip angle is a function of: ', PRINT)
 alphaf = sm.atan(N_v_ft2/N_v_ft1)
-print_syms(alphaf, 'Front slip angle is a function of: ')
+print_syms(alphaf, 'Front slip angle is a function of: ', PRINT)
 # camber angle
 phir = q4
 phif = -sm.atan((mec.dot(fo.pos_from(ft), g2_hat) /
@@ -454,13 +458,14 @@ row3 = sm.zeros(2, num_udots).row_join(sm.zeros(2, 2)).row_join(Df)
 A_all = row1.col_join(row2).col_join(row3)
 b_all = forcing.col_join(nFy).col_join(nMz)
 
-print_syms(A_all, 'A_all is a function of these dynamic variables: ')
-print_syms(b_all, 'b_all is a function of these dynamic variables: ')
+print_syms(A_all, 'A_all is a function of these dynamic variables: ', PRINT)
+print_syms(b_all, 'b_all is a function of these dynamic variables: ', PRINT)
 
 # Create matrices for solving for the dependent speeds.
 nonholonomic = sm.Matrix(nonholonomic)
 print_syms(nonholonomic,
-           'The nonholonomic constraints are a function of these variables:')
+           'The nonholonomic constraints are a function of these variables:',
+           PRINT)
 A_nh, B_nh = decompose_linear_parts(nonholonomic, u_dep)
 
 # Front wheel contact point position.

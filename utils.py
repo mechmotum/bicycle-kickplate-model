@@ -5,14 +5,15 @@ import sympy as sm
 import sympy.physics.mechanics as mec
 
 
-def print_syms(expr, note=''):
-    dy_syms = list(sm.ordered(mec.find_dynamicsymbols(expr)))
-    co_syms = list(sm.ordered(expr.free_symbols))
-    try:
-        co_syms.remove(mec.dynamicsymbols._t)
-    except ValueError:
-        pass
-    print('{}\n    {}\n    {}'.format(note, dy_syms, co_syms))
+def print_syms(expr, note='', log=True):
+    if log:
+        dy_syms = list(sm.ordered(mec.find_dynamicsymbols(expr)))
+        co_syms = list(sm.ordered(expr.free_symbols))
+        try:
+            co_syms.remove(mec.dynamicsymbols._t)
+        except ValueError:
+            pass
+        print('{}\n    {}\n    {}'.format(note, dy_syms, co_syms))
 
 
 @cacheit

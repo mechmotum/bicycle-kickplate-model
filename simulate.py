@@ -11,7 +11,7 @@ from inputs import calc_linear_tire_force, calc_nonlinear_tire_force
 try:
     import generated_functions
 except ModuleNotFoundError:
-    import nonlin_sym
+    import model
 finally:
     from generated_functions import (eval_dynamic, eval_equilibrium,
                                      eval_holonomic, eval_balance,

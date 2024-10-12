@@ -1,7 +1,7 @@
 Description
 ===========
 
-https://github.com/user-attachments/assets/71bbadf5-80d3-4f66-bf41-2daf0c47d846
+https://github.com/user-attachments/assets/763f898f-44b9-431b-bffe-0263762950e4
 
 Dynamic model of a bicycle that includes both a nonlinear and linear tire
 model. The model includes lateral forces, self-aligning moments, relaxation

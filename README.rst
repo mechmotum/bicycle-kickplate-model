@@ -1,7 +1,7 @@
 Description
 ===========
 
-https://github.com/user-attachments/assets/763f898f-44b9-431b-bffe-0263762950e4
+.. image:: https://github.com/user-attachments/assets/763f898f-44b9-431b-bffe-0263762950e4
 
 Dynamic model of a bicycle that includes both a nonlinear and linear tire
 model. The model includes lateral forces, self-aligning moments, relaxation
@@ -60,6 +60,7 @@ The various files in the repository are described below:
 - ``plot.py``: plotting functions
 - ``viz.py``: sets up a pythreejs animation using PyDy
 - ``visualize.ipynb``: displays a 3D animation of the ``base_simualtion.py``
+- ``mplviz.ipynb``: a symmeplot animation of the motion
 - ``simple_kick_plate_simulation.py``: 1D simulation of a kick plate mass
   hitting the stoppers used to understand the possible acceleration profiles
 - ``tire_data.py``: Pajecka Magic formula constants for the nonlinear tire

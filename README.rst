@@ -56,7 +56,8 @@ The various files in the repository are described below:
   displacement, steer torque, etc.)
 - ``parameters.py``: holds dictionaries mapping numerical values to all model
   constants
-- ``simulate.py``: simulation functions and plotting functions
+- ``simulate.py``: simulation functions
+- ``plot.py``: plotting functions
 - ``viz.py``: sets up a pythreejs animation using PyDy
 - ``visualize.ipynb``: displays a 3D animation of the ``base_simualtion.py``
 - ``simple_kick_plate_simulation.py``: 1D simulation of a kick plate mass

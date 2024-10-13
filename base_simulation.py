@@ -15,9 +15,10 @@ from plot import (plot_all, plot_kick_motion, plot_wheel_paths,
                   plot_tire_curves)
 from generated_functions import eval_angles
 
+DURATION = 6.0  # seconds
+FPS = 60  # frames per second
+INITIAL_SPEED = 3.0  # m/s
 KICKDUR = 0.15  # kick duration [s]
-
-p_arr = np.array([p_vals[pi] for pi in ps])
 
 # TODO : Move to parameters.py
 # LQR gains for Whipple model, rider Gabriele (635 N), at 3 m/s
@@ -25,6 +26,8 @@ kq4 = -19.5679
 ku4 = -6.7665
 kq7 = 15.4934
 ku7 = 1.5876
+
+p_arr = np.array([p_vals[pi] for pi in ps])
 
 
 def calc_inputs(t, x, p):
@@ -107,35 +110,31 @@ q_vals = np.array([
 ])
 
 # initial speeds
-initial_speed = 3.0  # m/s
 u_vals = np.array([
     np.nan,  # u1
     np.nan,  # u2
     0.0,  # u3, rad/s
     0.0,  # u4, rad/s
     np.nan,  # u5, rad/s
-    -initial_speed/p_vals[rr],  # u6
+    -INITIAL_SPEED/p_vals[rr],  # u6
     0.0,  # u7
-    -initial_speed/p_vals[rf],  # u8
+    -INITIAL_SPEED/p_vals[rf],  # u8
     0.0,  # u11
     0.0,  # u12
 ])
 
 # initial tire forces
-f_vals = np.array([0.0, 0.0, 0.0, 0.0])
+f_vals = np.array([np.nan, np.nan, np.nan, np.nan])
 
 initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr,
                                               calc_inputs)
 print('Initial conditions:')
 print(initial_conditions)
 
-
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, calc_inputs, p_arr))
 
-fps = 60  # frames per second
-duration = 6.0  # seconds
-res = simulate(duration, calc_inputs, initial_conditions, p_arr, fps=fps)
+res = simulate(DURATION, calc_inputs, initial_conditions, p_arr, fps=FPS)
 
 if __name__ == "__main__":
     plot_all(*res)

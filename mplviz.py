@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from symmeplot.matplotlib import Scene3D
 
 from symbols import rr, rf, y, qs, us, ps, d1, d2, d3
 # TODO : loading these from model.py forces the EoMs to be rebuilt
 from model import (N, A, C, E, o, p, do, fo, nd, fn, g1_hat, rear_wheel,
                    front_wheel)
-from symmeplot.matplotlib import Scene3D
 from base_simulation import p_arr, res, FPS, INITIAL_SPEED, KICKDUR
 
 (times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj,
@@ -19,8 +19,13 @@ scene = Scene3D(N,
 
 scene.add_frame(N, p)  # kick plate
 kick_length = INITIAL_SPEED*KICKDUR
-scene.add_line([o, o.locatenew('pp', kick_length*N.x)])  # reference
-scene.add_line([p, p.locatenew('pp', kick_length*N.x)])  # kick plate
+scene.add_line([
+    o,
+    o.locatenew('pp', kick_length*N.x),
+    p.locatenew('pp', kick_length*N.x),
+    p,
+    o
+], color="k")  # kick plate
 scene.add_point(nd, color='C1')
 scene.add_point(fn, color='C1')
 

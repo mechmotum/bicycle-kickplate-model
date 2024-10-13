@@ -5,7 +5,7 @@ from symbols import rr, rf, y, qs, ps, d1, d2, d3
 # TODO : loading these from model.py forces the EoMs to be rebuilt
 from model import N, C, E, o, p, do, fo, nd, rear_wheel, front_wheel
 from symmeplot.matplotlib import Scene3D
-from base_simulation import p_arr, res, fps
+from base_simulation import p_arr, res, fps, initial_speed, KICKDUR
 
 (times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj,
  q10_traj, r_traj) = res
@@ -17,8 +17,10 @@ scene = Scene3D(N,
                 ax=ax, scale=2.0)
 
 scene.add_frame(N, p)  # kick plate
-scene.add_line([o, o.locatenew('pp', 0.5*N.x)])  # reference
-scene.add_line([p, p.locatenew('pp', 0.5*N.x)])  # kick plate
+kick_length = initial_speed*KICKDUR
+scene.add_line([o, o.locatenew('pp', kick_length*N.x)])  # reference
+scene.add_line([p, p.locatenew('pp', kick_length*N.x)])  # kick plate
+scene.add_point(nd, color='green')
 
 rear_wheel_plot = scene.add_body(rear_wheel)
 rear_wheel_plot.attach_circle(

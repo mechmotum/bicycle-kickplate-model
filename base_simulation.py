@@ -15,6 +15,8 @@ from plot import (plot_all, plot_kick_motion, plot_wheel_paths,
                   plot_tire_curves)
 from generated_functions import eval_angles
 
+KICKDUR = 0.15  # kick duration [s]
+
 p_arr = np.array([p_vals[pi] for pi in ps])
 
 # TODO : Move to parameters.py
@@ -59,7 +61,7 @@ def calc_inputs(t, x, p):
     Ffz = -k_f*q12 - c_f*u12  # negative when in compression
 
     # plate motion
-    y, yd, ydd = calc_kick_motion_constant_acc(t)
+    y, yd, ydd = calc_kick_motion_constant_acc(t, duration=KICKDUR)
 
     c_af, c_ar = p[0], p[1]
     c_maf, c_mar, c_mpf = p[3], p[4], p[5]

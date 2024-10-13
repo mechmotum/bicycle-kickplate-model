@@ -103,7 +103,7 @@ def equilibrium_eq(q, p):
     return q
 
 
-def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
+def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr, input_func):
     """Calculates dependent coordinates and speeds given the independent
     coordinates and speeds. The dependent coordinates and speeds in q_vals and
     u_vals will be overwritten.
@@ -117,6 +117,9 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     f_vals: array_like, shape(4,)
         [Fry, Ffy, Mrz, Mfz]
     p_arr: array_like, shape(42,)
+    input_func : function
+        Returns [T4, T6, T7, fkp, y, yd, ydd, Fry, Ffy, Mrz, Mfz] = f(t, x, p).
+        Used to find the initial tire forces.
 
     """
 
@@ -182,6 +185,8 @@ def setup_initial_conditions(q_vals, u_vals, f_vals, p_arr):
     # The singularity with q7=0.0 causes this and it is very sensitive to the
     # value of q7.
     u_vals[1] = 0.0
+
+    f_vals = input_func(0.0, np.hstack((q_vals, u_vals)), p_arr)[-4:].copy()
 
     return np.hstack((q_vals, u_vals, f_vals))
 

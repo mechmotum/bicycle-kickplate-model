@@ -102,9 +102,8 @@ q_vals = np.array([
     0.0,  # q6
     1e-14,  # q7, setting to zero gives singular matrix
     0.0,  # q8
-    # TODO : these can be generated from equilibrium_eq (copied for now)
-    0.0, #0.00664797028,  # q11
-    0.0, #0.00220163072,  # q12
+    0.0,  # q11
+    0.0,  # q12
 ])
 
 # initial speeds
@@ -123,12 +122,13 @@ u_vals = np.array([
 ])
 
 # initial tire forces
-# TODO : Need to figure out how we know the initial state of the tire forces.
 f_vals = np.array([0.0, 0.0, 0.0, 0.0])
 
-initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
+initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr,
+                                              calc_inputs)
 print('Initial conditions:')
 print(initial_conditions)
+
 
 print('Test rhs with initial conditions and correct constants:')
 print(rhs(0.0, initial_conditions, calc_inputs, p_arr))

@@ -120,7 +120,8 @@ u_vals = np.array([
 # TODO : Need to figure out how we know the initial state of the tire forces.
 f_vals = np.array([0.0, 0.0, 0.0, 0.0])
 
-initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
+initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr,
+                                              calc_inputs)
 print('Initial conditions:')
 print(initial_conditions)
 
@@ -128,9 +129,10 @@ print(initial_conditions)
  q10_traj, r_traj) = simulate(2.0, calc_inputs, initial_conditions, p_arr,
                               fps=1000)
 
-axes, torqax = plot_minimal(times, q_traj[:, 6], slip_traj[:, 0],
-                            slip_traj[:, 1], r_traj[:, 3], r_traj[:, 2],
-                            f_traj[:, 0], f_traj[:, 1])
+if __name__ == "__main__":
+    axes, torqax = plot_minimal(times, q_traj[:, 6], slip_traj[:, 0],
+                                slip_traj[:, 1], r_traj[:, 3], r_traj[:, 2],
+                                f_traj[:, 0], f_traj[:, 1])
 
 factor = 1.3
 p_vals[c_af] = p_vals[c_af]*factor
@@ -140,14 +142,16 @@ p_vals[c_mar] = p_vals[c_mar]*factor
 p_vals[c_pf] = p_vals[c_pf]*factor
 p_vals[c_pr] = p_vals[c_pr]*factor
 p_arr = np.array([p_vals[pi] for pi in ps])
-initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr)
+initial_conditions = setup_initial_conditions(q_vals, u_vals, f_vals, p_arr,
+                                              calc_inputs)
 
 (times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj,
  q10_traj, r_traj) = simulate(2.0, calc_inputs, initial_conditions, p_arr,
                               fps=1000)
 
-plot_minimal(times, q_traj[:, 6], slip_traj[:, 0], slip_traj[:, 1],
-             r_traj[:, 3], r_traj[:, 2], f_traj[:, 0], f_traj[:, 1],
-             axes=axes, torqax=torqax, linestyle=':')
+if __name__ == "__main__":
+    plot_minimal(times, q_traj[:, 6], slip_traj[:, 0], slip_traj[:, 1],
+                 r_traj[:, 3], r_traj[:, 2], f_traj[:, 0], f_traj[:, 1],
+                 axes=axes, torqax=torqax, linestyle=':')
 
-plt.show()
+    plt.show()

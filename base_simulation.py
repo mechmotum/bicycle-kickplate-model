@@ -14,20 +14,48 @@ from simulate import setup_initial_conditions, rhs, simulate
 from plot import (plot_all, plot_kick_motion, plot_wheel_paths,
                   plot_tire_curves)
 from generated_functions import eval_angles
+from utils import calc_lqr_gains
 
-DURATION = 6.0  # seconds
+DURATION = 3.0  # seconds
 FPS = 60  # frames per second
 INITIAL_SPEED = 3.0  # m/s
 KICKDUR = 0.15  # kick duration [s]
 
-# TODO : Move to parameters.py
-# LQR gains for Whipple model, rider Gabriele (635 N), at 3 m/s
-kq3 = 0.0
-ku3 = 0.0
-kq4 = -19.5679
-ku4 = -6.7665
-kq7 = 15.4934
-ku7 = 1.5876
+# NOTE : This is the Balanceassistv1 + rider Jason, see:
+# https://github.com/moorepants/BicycleParameters/pull/110
+bike_with_rider = {
+    'IBxx': 19.66343529689361,
+    'IBxz': -3.5176010009473533,
+    'IByy': 22.675459667916336,
+    'IBzz': 5.001009792291661,
+    'IFxx': 0.09953295608625136,
+    'IFyy': 0.19015619017713314,
+    'IFzz': 0.09953295608625136,
+    'IHxx': 0.29844713987805804,
+    'IHxz': -0.03826451175579229,
+    'IHyy': 0.25662501245035463,
+    'IHzz': 0.05656444304099169,
+    'IRxx': 0.10227397798804952,
+    'IRyy': 0.1886505218140362,
+    'IRzz': 0.10227397798804952,
+    'c': 0.041754825960194364,
+    'g': 9.80665,
+    'lam': 0.25453392722979173,
+    'mB': 106.00000000000001,
+    'mF': 2.235,
+    'mH': 4.3,
+    'mR': 4.085,
+    'rF': 0.3523093609017968,
+    'rR': 0.3489472127289805,
+    'v': 1.0,
+    'w': 1.1132722200610523,
+    'xB': 0.37430384487162016,
+    'xH': 0.9208250036668604,
+    'yB': 0.0,
+    'zB': -1.009365940238417,
+    'zH': -0.8600415661998936,
+}
+kq4, kq7, ku4, ku7, kq3 = calc_lqr_gains(bike_with_rider, INITIAL_SPEED)
 
 p_arr = np.array([p_vals[pi] for pi in ps])
 

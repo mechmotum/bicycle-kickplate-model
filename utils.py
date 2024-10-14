@@ -1,8 +1,49 @@
+from bicycleparameters.models import Meijaard2007Model
+from bicycleparameters.parameter_sets import Meijaard2007ParameterSet
+from scipy.linalg import solve_continuous_are
 from sympy import ImmutableMatrix, zeros
 from sympy.core.cache import cacheit
 import numpy as np
 import sympy as sm
 import sympy.physics.mechanics as mec
+
+
+def calc_lqr_gains(par, speed):
+
+    """
+    x = |roll angle | = |phi     |
+        |steer angle|   |delta   |
+        |roll rate  |   |phidot  |
+        |steer rate |   |deltadot|
+        |yaw angle  |   |psi     |
+
+    u = |roll torque | = |Tphi  |
+        |steer torque|   |Tdelta|
+
+    psid = (v*delta + c*deltad)/w*cos(lam)
+
+    """
+    # TODO : I don't seem to have a function that converts the benchmark
+    # parameters set to my parameter set.
+
+    #par = {k: str(v) for k, v in sym_par_map.items()}
+    try:
+        par['v']
+    except KeyError:
+        par['v'] = 0.0
+    par_set = Meijaard2007ParameterSet(par, True)
+    model = Meijaard2007Model(par_set)
+    A_, B_ = model.form_state_space_matrices(v=speed)  # 4x4, 4x2
+    A1 = np.hstack((A_, np.zeros((4, 1))))
+    coef = np.cos(par['lam'])/par['w']
+    A = np.vstack((A1, [0.0, speed*coef, 0.0, par['c']*coef, 0.0]))
+    B = np.vstack((B_, [0.0, 0.0]))
+    Q = np.eye(5)
+    R = np.eye(1)
+    S = solve_continuous_are(A, B[:, 1:2], Q, R)  # steer torque control
+    K = (np.linalg.inv(R) @ B[:, 1:2].T @ S).squeeze()
+
+    return K
 
 
 def print_syms(expr, note='', log=True):

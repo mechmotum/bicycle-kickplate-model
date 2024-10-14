@@ -22,6 +22,8 @@ def calc_lqr_gains(par, speed):
         |steer torque|   |Tdelta|
 
     psid = (v*delta + c*deltad)/w*cos(lam)
+    yp = v*psi
+    yq = (v + w)*psi - c*cos(lam)*delta
 
     """
     # TODO : I don't seem to have a function that converts the benchmark

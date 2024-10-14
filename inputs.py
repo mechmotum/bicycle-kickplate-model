@@ -144,14 +144,16 @@ def calc_full_state_feedback_steer_torque(t, x, k):
     q = x[:10]
     u = x[10:20]
 
+    q3 = q[2]
     q4 = q[3]
     q7 = q[6]
+    u3 = u[2]
     u4 = u[3]
     u7 = u[6]
 
-    kq4, ku4, kq7, ku7 = k
+    kq3, ku3, kq4, ku4, kq7, ku7 = k
 
-    return -(kq4*q4 + kq7*q7 + ku4*u4 + ku7*u7)
+    return -(kq3*q3 + ku3*u3 + kq4*q4 + kq7*q7 + ku4*u4 + ku7*u7)
 
 
 def calc_kick_force_pulse(t):

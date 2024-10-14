@@ -16,6 +16,8 @@ from generated_functions import eval_angles
 p_arr = np.array([p_vals[pi] for pi in ps])
 
 # LQR gains for Whipple model Broswer-Jason at 6 m/s
+kq3 = 0.0
+ku3 = 0.0
 kq4 = -2.2340917377023612
 kq7 = 4.90641020775064
 ku4 = -0.5939384880650549
@@ -77,7 +79,8 @@ def calc_inputs(t, x, p):
                                       c_mpf)
 
     # steer, rear wheel, roll torques set to zero
-    T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x, [kq4, ku4, kq7, ku7])
+    k = [kq3, ku3, kq4, ku4, kq7, ku7]
+    T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x, k)
 
     # kick plate force
     fkp = calc_fkp(t)

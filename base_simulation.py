@@ -22,6 +22,8 @@ KICKDUR = 0.15  # kick duration [s]
 
 # TODO : Move to parameters.py
 # LQR gains for Whipple model, rider Gabriele (635 N), at 3 m/s
+kq3 = 0.0
+ku3 = 0.0
 kq4 = -19.5679
 ku4 = -6.7665
 kq7 = 15.4934
@@ -81,7 +83,8 @@ def calc_inputs(t, x, p):
     #print('Non-linear: ', Fry, Ffy)
 
     # steer, rear wheel, roll torques set to zero
-    T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x, [kq4, ku4, kq7, ku7])
+    k = [kq3, ku3, kq4, ku4, kq7, ku7]
+    T4, T6, T7 = 0.0, 0.0, calc_steer_torque(t, x, k)
 
     # kick plate force
     fkp = 0.0

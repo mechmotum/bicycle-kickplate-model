@@ -15,7 +15,7 @@ fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
 
 scene = Scene3D(N,
                 o.locatenew('e', nd.pos_from(o).dot(N.x)*N.x),
-                ax=ax, scale=2.0)
+                ax=ax, scale=1.0)
 
 # Adds a kick plate.
 scene.add_frame(N, p)  # kick plate
@@ -27,14 +27,14 @@ scene.add_line([
     p,
     o
 ], color="k")  # kick plate
-scene.add_point(nd, color='C1')
-scene.add_point(fn, color='C1')
+scene.add_point(nd, color='C0')
+scene.add_point(fn, color='C2')
 
 # Adds moving lines along the "lane".
-scene.add_line([o.locatenew(f'o{i}', o.pos_from(o) + 1.0*N.y + 0.5*i*N.x)
-                for i in range(20)], marker='.', color='grey')
-scene.add_line([o.locatenew(f'o{i}', o.pos_from(o) - 1.0*N.y + 0.5*i*N.x)
-                for i in range(20)], marker='.', color='grey')
+for side in [-1.0, 1.0]:
+    scene.add_line([o.locatenew(f'o{i}',
+                                o.pos_from(o) + side*N.y + (0.5*i - 10.0)*N.x)
+                    for i in range(40)], marker='.', color='grey')
 
 # Adds the bicycle.
 rear_wheel_plot = scene.add_body(rear_wheel)
@@ -58,15 +58,15 @@ scene.add_line([
     do.locatenew('d1_half', d1*C.x),
     do,
 
-], color='k')
+], color='k', linewidth=2)
 
 # Adds velocity vectors at wheel contacts to show slip angles.
 scene.add_vector(A.x, nd, color="black")
-scene.add_vector(nd.vel(N).normalize(), nd, color="C0")
+scene.add_vector(nd.vel(N)/INITIAL_SPEED, nd, color="C0")
 
 # TODO : Adding this makes the script significantly slower.
 scene.add_vector(g1_hat, fn, color="black")
-scene.add_vector(fn.vel(N).normalize(), fn, color="C2")
+scene.add_vector(fn.vel(N)/INITIAL_SPEED, fn, color="C2")
 
 scene.lambdify_system(qs + us + [y] + list(ps))
 scene.evaluate_system(*np.hstack((q_traj[0, :], u_traj[0, :], r_traj[0, 4:5],
@@ -76,9 +76,9 @@ scene.plot()
 
 ax.invert_zaxis()
 
-ax.set_xlim((-2.0, 2.0))
-ax.set_ylim((-2.0, 2.0))
-ax.set_zlim((2.0, -2.0))
+ax.set_xlim((-0.5, 1.5))
+ax.set_ylim((-1.0, 1.0))
+ax.set_zlim((1.0, -1.0))
 
 slow_factor = 3  # int
 ani = scene.animate(lambda i: np.hstack((q_traj[i, :], u_traj[i, :],

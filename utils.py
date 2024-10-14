@@ -1,5 +1,6 @@
 from bicycleparameters.models import Meijaard2007Model
 from bicycleparameters.parameter_sets import Meijaard2007ParameterSet
+from control import ctrb
 from scipy.linalg import solve_continuous_are
 from sympy import ImmutableMatrix, zeros
 from sympy.core.cache import cacheit
@@ -38,7 +39,10 @@ def calc_lqr_gains(par, speed):
     coef = np.cos(par['lam'])/par['w']
     A = np.vstack((A1, [0.0, speed*coef, 0.0, par['c']*coef, 0.0]))
     B = np.vstack((B_, [0.0, 0.0]))
+    C = ctrb(A, B[:, 1:2])
+    print("Controllability rank:", np.linalg.matrix_rank(C))
     Q = np.eye(5)
+    Q = np.diag([1.0, 1.0, 1.0, 1.0, 200.0])
     R = np.eye(1)
     S = solve_continuous_are(A, B[:, 1:2], Q, R)  # steer torque control
     K = (np.linalg.inv(R) @ B[:, 1:2].T @ S).squeeze()

@@ -16,19 +16,10 @@ from plot import (plot_all, plot_kick_motion, plot_wheel_paths,
 from generated_functions import eval_angles
 from utils import calc_lqr_gains
 
-DURATION = 6.0  # seconds
+DURATION = 3.0  # seconds
 FPS = 60  # frames per second
 INITIAL_SPEED = 3.0  # m/s
 KICKDUR = 0.15  # kick duration [s]
-
-# TODO : Move to parameters.py
-# LQR gains for Whipple model, rider Gabriele (635 N), at 3 m/s
-kq3 = 0.0
-ku3 = 0.0
-kq4 = -19.5679
-ku4 = -6.7665
-kq7 = 15.4934
-ku7 = 1.5876
 
 # NOTE : This is the Balanceassistv1 + rider Jason, see:
 # https://github.com/moorepants/BicycleParameters/pull/110

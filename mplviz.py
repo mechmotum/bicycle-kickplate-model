@@ -2,10 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from symmeplot.matplotlib import Scene3D
 
-from symbols import rr, rf, y, qs, us, ps, d1, d2, d3
+from symbols import rr, rf, y, qs, us, rs, ps, d1, d2, d3, Fry_, Ffy_
 # TODO : loading these from model.py forces the EoMs to be rebuilt
-from model import (N, A, C, E, o, p, do, fo, nd, fn, g1_hat, rear_wheel,
-                   front_wheel)
+from model import (N, A, C, E, o, p, do, fo, nd, fn, g1_hat, g2_hat,
+                   rear_wheel, front_wheel)
 from base_simulation import p_arr, res, FPS, INITIAL_SPEED, KICKDUR
 
 (times, q_traj, u_traj, slip_traj, f_traj, fz_traj, con_traj, q9_traj,
@@ -37,14 +37,16 @@ for side in [-1.0, 1.0]:
                     for i in range(40)], marker='.', color='grey')
 
 # Adds the bicycle.
-rear_wheel_plot = scene.add_body(rear_wheel)
+rear_wheel_plot = scene.add_body(rear_wheel,
+                                 plot_frame_properties={"scale": 0.3})
 rear_wheel_plot.attach_circle(
     rear_wheel.masscenter,
     rr,
     rear_wheel.frame.y,
     facecolor="C0", alpha=0.4, edgecolor="black")
 
-front_wheel_plot = scene.add_body(front_wheel)
+front_wheel_plot = scene.add_body(front_wheel,
+                                  plot_frame_properties={"scale": 0.3})
 front_wheel_plot.attach_circle(
     front_wheel.masscenter,
     rf,
@@ -63,13 +65,14 @@ scene.add_line([
 # Adds velocity vectors at wheel contacts to show slip angles.
 scene.add_vector(A.x, nd, color="black")
 scene.add_vector(nd.vel(N)/INITIAL_SPEED, nd, color="C0")
+scene.add_vector(Fry_*A['2']/300, nd, color="C4")
 
-# TODO : Adding this makes the script significantly slower.
 scene.add_vector(g1_hat, fn, color="black")
 scene.add_vector(fn.vel(N)/INITIAL_SPEED, fn, color="C2")
+scene.add_vector(Ffy_*g2_hat/300, fn, color="C4")
 
-scene.lambdify_system(qs + us + [y] + list(ps))
-scene.evaluate_system(*np.hstack((q_traj[0, :], u_traj[0, :], r_traj[0, 4:5],
+scene.lambdify_system(qs + us + list(rs) + list(ps))
+scene.evaluate_system(*np.hstack((q_traj[0, :], u_traj[0, :], r_traj[0, :],
                                   p_arr)))
 
 scene.plot()
@@ -82,6 +85,6 @@ ax.set_zlim((1.0, -1.0))
 
 slow_factor = 3  # int
 ani = scene.animate(lambda i: np.hstack((q_traj[i, :], u_traj[i, :],
-                                         r_traj[i, 4:5], p_arr)),
+                                         r_traj[i, :], p_arr)),
                     frames=len(times), interval=slow_factor/FPS*1000)
 ani.save("animation.gif", fps=FPS//slow_factor)

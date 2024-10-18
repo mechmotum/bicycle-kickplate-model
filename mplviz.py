@@ -34,7 +34,7 @@ scene.add_point(fn, color='C2')
 for side in [-1.0, 1.0]:
     scene.add_line([o.locatenew(f'o{i}',
                                 o.pos_from(o) + side*N.y + (0.5*i - 10.0)*N.x)
-                    for i in range(40)], marker='.', color='grey')
+                    for i in range(40)], marker='+', color='grey')
 
 # Adds the bicycle.
 rear_wheel_plot = scene.add_body(rear_wheel,

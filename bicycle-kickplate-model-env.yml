@@ -2,6 +2,8 @@ name: bicycle-kickplate-model
 channels:
   - conda-forge
 dependencies:
+  - bicycleparameters ==1.2.0
+  - control ==0.10.1
   - ipython ==8.28.0
   - jupyter ==1.1.1
   - matplotlib ==3.9.2
